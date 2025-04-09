@@ -482,3 +482,31 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# ====================
+# Unity-specifika filer att ignorera
+# ====================
+
+# Cache och temporära filer
+Library/
+Temp/
+Obj/
+Logs/
+Build/
+Builds/
+MemoryCaptures/
+UserSettings/
+*.pidb
+
+# Rider / VS Code / Unity meta
+.idea/
+.vscode/
+*.csproj
+*.unityproj
+*.sln
+*.user
+*.userprefs
+*.booproj
+
+# Autogenererade och versionsspecifika filer
+ProjectSettings/ProjectVersion.txt

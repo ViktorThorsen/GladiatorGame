@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6478961335050794fbd1bd02aedb4313, type: 3}
+  m_Name: ItemApple
+  m_EditorClassIdentifier: 
+  itemName: Apple
+  itemIcon: {fileID: 21300000, guid: 86a055a8db58c6843aeacfbaaeaa5486, type: 3}
+  itemSprite: {fileID: 21300000, guid: 86a055a8db58c6843aeacfbaaeaa5486, type: 3}
+  equippedPositionOffset: {x: 0.5500458, y: 0.1500171, z: 0}
+  equippedRotation: {x: 0, y: 0, z: 48.015}
+  equippedScale: {x: 0.1553432, y: 0.1553432, z: 0.5443}
+  description: 
+  itemType: 2
+  abilityType: 1
+  durability: 0
+  healthRestorationAmount: 15
+  dodgeRate: 0
+  critRate: 0
+  damage: 0
+  health: 0
+  strength: 0
+  agility: 0
+  intellect: 0

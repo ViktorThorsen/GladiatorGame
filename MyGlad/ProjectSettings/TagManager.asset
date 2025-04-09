@@ -1,0 +1,79 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!78 &1
+TagManager:
+  serializedVersion: 2
+  tags:
+  - Enemy
+  - Enemy1
+  - Enemy2
+  - Enemy3
+  - Enemy4
+  - Pet1
+  - Pet2
+  - Pet3
+  - EnemyGlad
+  - EnemyPet1
+  - EnemyPet2
+  - EnemyPet3
+  layers:
+  - Default
+  - TransparentFX
+  - Ignore Raycast
+  - 
+  - Water
+  - UI
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  m_SortingLayers:
+  - name: Default
+    uniqueID: 0
+    locked: 0
+  - name: firstBack
+    uniqueID: 1230422419
+    locked: 0
+  - name: secondBack
+    uniqueID: 361760103
+    locked: 0
+  - name: midToBack
+    uniqueID: 2409126421
+    locked: 0
+  - name: middleUp
+    uniqueID: 387061619
+    locked: 0
+  - name: middleDown
+    uniqueID: 2286576895
+    locked: 0
+  - name: midToFront
+    uniqueID: 3216498497
+    locked: 0
+  - name: secondFront
+    uniqueID: 2026852713
+    locked: 0
+  - name: firstFront
+    uniqueID: 11266975
+    locked: 0
