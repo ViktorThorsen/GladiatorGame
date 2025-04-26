@@ -21,7 +21,7 @@ MonoBehaviour:
   description: 
   itemType: 0
   abilityType: 0
-  durability: 6
+  durability: 5
   healthRestorationAmount: 0
   strength: 0
   agility: 0

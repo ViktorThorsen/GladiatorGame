@@ -2,6 +2,7 @@ using TMPro;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections;
 using Unity.VisualScripting; // Use the correct namespace for UI Image components
 
 public class BaseManager : MonoBehaviour
@@ -21,9 +22,12 @@ public class BaseManager : MonoBehaviour
     [SerializeField] private TMP_Text SRText;
     [SerializeField] private Slider xpBar;
 
+
     [SerializeField] private TMP_Text energyText;
 
     // Array to hold references to the UI item slots (assign in the Inspector)
+    [SerializeField] private GameObject inventoryPopupPanel;
+    [SerializeField] private GameObject statsPopupPanel;
     [SerializeField] private Image[] weaponSlots = new Image[12];
     [SerializeField] private Image[] consumableSlots = new Image[3];
     [SerializeField] private Image[] petSlots = new Image[3];
@@ -38,55 +42,124 @@ public class BaseManager : MonoBehaviour
     public Transform parentObj;          // Reference to the Canvas (assign in Inspector)
     public Transform charPos;            // Reference to the charPos Transform (assign in Inspector)
 
+    [System.Serializable]
+    public class CharacterResponse
+    {
+        public int characterId;
+        public CharacterWrapper wrapper;
+    }
     void Start()
     {
-        // Instantiate and set up the character using the CharacterManager
-        GameObject characterObject = CharacterManager.InstantiateCharacter(
-            CharacterData.Instance,
-            characterPrefab,
-            parentObj,
-            charPos,
-            new Vector3(0.7f, 0.7f, 1f) // Set the desired scale
-        );
+        StartCoroutine(InitCharacterAndUI());
+    }
 
-        if (characterObject != null)
+    private IEnumerator InitCharacterAndUI()
+    {
+        string token = PlayerPrefs.GetString("jwt", null);
+        int userid = PlayerPrefs.GetInt("id");
+        if (!string.IsNullOrEmpty(token))
         {
-            // Apply the saved stats to the UI elements
-            lvlText.text = CharacterData.Instance.Level.ToString();
-            healthText.text += CharacterData.Instance.Health.ToString();
+            Debug.Log("✅ Användaren är inloggad, JWT: " + token);
+            Debug.Log("✅ Användarens id : " + userid);
+            Debug.Log("karaktärens id : " + PlayerPrefs.GetInt("characterId"));
 
-            strText.text += CharacterData.Instance.Strength.ToString();
-            agiText.text += CharacterData.Instance.Agility.ToString();
-            intText.text += CharacterData.Instance.Intellect.ToString();
+            if (CharacterData.Instance == null)
+            {
+                GameObject characterObj = new GameObject("CharacterData");
+                characterObj.AddComponent<CharacterData>();
+                DontDestroyOnLoad(characterObj);
 
-            ADText.text += CharacterData.Instance.AttackDamage.ToString();
-            DRText.text += CharacterData.Instance.DodgeRate.ToString();
-            CRText.text += CharacterData.Instance.CritRate.ToString();
-            SRText.text += CharacterData.Instance.StunRate.ToString();
-            energyText.text = CharacterData.Instance.Energy.ToString();
+                // 🔁 Vänta en frame så att Awake() hinner köras
+                yield return null;
 
+                yield return StartCoroutine(CharacterData.Instance.LoadCharacterFromBackend(itemDataBase, petDataBase, skillDataBase));
+            }
+            if (FightData.Instance == null)
+            {
+                GameObject fightDataObj = new GameObject("FightData");
+                fightDataObj.AddComponent<FightData>();
+                DontDestroyOnLoad(fightDataObj);
 
+                // 🔁 Vänta en frame så att Awake() hinner köras
+                yield return null;
+            }
+
+            // 👤 Instansiera karaktären
+            GameObject characterObject = CharacterManager.InstantiateCharacter(
+                CharacterData.Instance,
+                characterPrefab,
+                parentObj,
+                charPos,
+                new Vector3(0.7f, 0.7f, 1f)
+            );
+
+            if (characterObject != null)
+            {
+                lvlText.text = CharacterData.Instance.Level.ToString();
+                healthText.text += CharacterData.Instance.Health.ToString();
+
+                strText.text += CharacterData.Instance.Strength.ToString();
+                agiText.text += CharacterData.Instance.Agility.ToString();
+                intText.text += CharacterData.Instance.Intellect.ToString();
+
+                ADText.text += CharacterData.Instance.AttackDamage.ToString();
+                DRText.text += CharacterData.Instance.DodgeRate.ToString();
+                CRText.text += CharacterData.Instance.CritRate.ToString();
+                SRText.text += CharacterData.Instance.StunRate.ToString();
+                energyText.text = CharacterData.Instance.Energy.ToString();
+            }
+
+            UpdateXpBar();
+            UpdateInventorySlots();
+
+            if (Inventory.Instance.HasSkill("BeastMaster"))
+            {
+                UpdatePetSlots();
+            }
+            SaveCharacter();
         }
-
-        UpdateXpBar();
-        // Update the UI item slots based on the inventory
-        UpdateInventorySlots();
-        if (Inventory.Instance.HasSkill("BeastMaster"))
+        else
         {
-            UpdatePetSlots();
+            Debug.LogWarning("❌ Ingen JWT hittades, visa login");
         }
     }
 
-    public void OnSaveButtonClick()
+    public void ToggleInventoryPopup()
+    {
+        bool isActive = inventoryPopupPanel.activeSelf;
+        inventoryPopupPanel.SetActive(!isActive);
+    }
+
+    public void ToggleStatsPopup()
+    {
+        bool isActive = statsPopupPanel.activeSelf;
+        statsPopupPanel.SetActive(!isActive);
+    }
+
+    public void SaveCharacter()
     {
         if (CharacterData.Instance != null)
         {
-            CharacterData.Instance.SaveCharacterToBackend(); // Call the save method on the singleton instance
+            Debug.Log("Saving character data...");
+            StartCoroutine(SaveAndLinkCharacter());
         }
         else
         {
             Debug.LogWarning("CharacterData instance not found!");
         }
+    }
+
+    private IEnumerator SaveAndLinkCharacter()
+    {
+        yield return StartCoroutine(CharacterData.Instance.SaveCharacterToBackend());
+
+        Debug.Log("Character saved, now linking...");
+        yield return StartCoroutine(CharacterData.Instance.LinkCharacterToUser(
+            PlayerPrefs.GetInt("id"),
+            PlayerPrefs.GetInt("characterId")
+        ));
+
+        Debug.Log("Character linked to user!");
     }
 
     public void OnLoadButtonClick()
@@ -120,7 +193,7 @@ public class BaseManager : MonoBehaviour
                 {
                     // Clear the slot if there's no corresponding item
                     weaponSlots[i].sprite = null;
-                    weaponSlots[i].color = new Color(60f / 255f, 47f / 255f, 47f / 255f, 1f);
+                    weaponSlots[i].color = new Color(60f / 255f, 47f / 255f, 47f / 255f, 0f);
                 }
             }
             for (int i = 0; i < consumableSlots.Length; i++)
@@ -136,7 +209,7 @@ public class BaseManager : MonoBehaviour
                 {
                     // Clear the slot if there's no corresponding item
                     consumableSlots[i].sprite = null;
-                    consumableSlots[i].color = new Color(60f / 255f, 47f / 255f, 47f / 255f, 1f);
+                    consumableSlots[i].color = new Color(60f / 255f, 47f / 255f, 47f / 255f, 0f);
                 }
             }
             // Clear any existing slots if necessary
@@ -186,7 +259,7 @@ public class BaseManager : MonoBehaviour
             else
             {
                 petSlots[i].sprite = null;
-                petSlots[i].color = new Color(1, 1, 1, 1);
+                petSlots[i].color = new Color(1, 1, 1, 0);
             }
         }
     }

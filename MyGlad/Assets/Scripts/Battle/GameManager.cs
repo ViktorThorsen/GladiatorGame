@@ -16,11 +16,14 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Transform parentObj;
     [SerializeField] private Transform charPos;
     [SerializeField] private MonsterDataBase monsterDataBase;
+
     [SerializeField] private Transform enemyPos;
     [SerializeField] private SceneController sceneController;
     [SerializeField] private Transform weaponInventorySlotParent; // The parent object that holds all the inventory slots
     [SerializeField] private Transform consumableInventorySlotParent;
     [SerializeField] private Transform petInventorySlotParent;
+    [SerializeField] private BackgroundImageDataBase backgroundImageDataBase;
+    [SerializeField] private SpriteRenderer backgroundImage;
 
 
     [SerializeField] private GameObject inventorySlotPrefab;
@@ -116,6 +119,15 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
+        BattleBackground battlebackgroundImage = backgroundImageDataBase.GetBattleBackgroundByName(MonsterHuntManager.Instance.sceneState);
+        if (battlebackgroundImage != null)
+        {
+            backgroundImage.sprite = battlebackgroundImage.backgroundImage;
+        }
+        else
+        {
+            Debug.LogWarning("Background image not found for state: ");
+        }
         // Initialize availability arrays
         leftPositionsAvailable = new bool[playerStartPositions.Length];
         rightPositionsAvailable = new bool[enemyStartPositions.Length];
@@ -424,7 +436,7 @@ public class GameManager : MonoBehaviour
         Vector3 screenPosition = Camera.main.WorldToViewportPoint(character.transform.Find("Feet").position);
 
         // Beräkna skalan baserat på den vertikala (y) skärmpositionen
-        float scaleMultiplier = Mathf.Lerp(1f, 0.7f, screenPosition.y); // 1 är större nära botten, 0.7 är mindre nära toppen
+        float scaleMultiplier = Mathf.Lerp(1f, 0.5f, screenPosition.y); // 1 är större nära botten, 0.7 är mindre nära toppen
 
         // Applicera den nya skalan baserat på den ursprungliga skalan
         character.transform.localScale = initialScale * scaleMultiplier;
@@ -750,8 +762,8 @@ public class GameManager : MonoBehaviour
     }
     private IEnumerator DelayedSceneLoad()
     {
-        BackgroundMusicManager.Instance.FadeOutMusic(2f);
-        yield return new WaitForSeconds(2f); // Wait for 2 seconds
+        BackgroundMusicManager.Instance.FadeOutMusic(3f);
+        yield return new WaitForSeconds(3f); // Wait for 2 seconds
         sceneController.LoadScene("RewardScene");
     }
 }

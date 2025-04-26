@@ -3,6 +3,7 @@ namespace server;
 
 public class CharacterRoutes
 {
+
     public static async Task GetCharacter()
     {
 
@@ -36,13 +37,14 @@ public class CharacterRoutes
 
     public static async Task<int> AddCharacter(CharacterWrapperDTO wrapper, NpgsqlDataSource db)
     {
+        int characterId = -1;
         try
         {
 
             using var checkCmd = db.CreateCommand("SELECT id FROM characters WHERE name = @name");
             checkCmd.Parameters.AddWithValue("name", wrapper.character.charName);
 
-            int characterId = -1;
+
             using (var reader = await checkCmd.ExecuteReaderAsync())
             {
                 if (await reader.ReadAsync())
@@ -208,6 +210,7 @@ public class CharacterRoutes
 
                     await insertPetCmd.ExecuteNonQueryAsync();
                 }
+
             }
             else
             {
@@ -305,47 +308,113 @@ public class CharacterRoutes
             Console.WriteLine("Error saving character or body parts: " + ex.Message);
             return -1;
         }
-        return -1;
+        return characterId;
     }
-
-    public static async Task<IResult> GetCharacterByName(HttpContext context, NpgsqlDataSource db)
-
+    public record LinkCharacterRequest(int UserId, int CharacterId);
+    public static async Task<IResult> LinkCharacterToUser(LinkCharacterRequest request, NpgsqlDataSource db)
     {
-        var name = context.Request.RouteValues["name"]?.ToString();
-        if (string.IsNullOrWhiteSpace(name))
+        // 2. Kolla om koppling redan finns
+        await using var checkLinkCmd = db.CreateCommand();
+        checkLinkCmd.CommandText = @"
+        SELECT 1 FROM userxcharacter 
+        WHERE ""user"" = @userId AND character = @characterId
+        LIMIT 1";
+        checkLinkCmd.Parameters.Add("userId", NpgsqlTypes.NpgsqlDbType.Integer).Value = request.UserId;
+        checkLinkCmd.Parameters.Add("characterId", NpgsqlTypes.NpgsqlDbType.Integer).Value = request.CharacterId;
+
+        var linkExists = await checkLinkCmd.ExecuteScalarAsync();
+        if (linkExists != null && linkExists != DBNull.Value)
         {
-            return Results.BadRequest("Name is required.");
+            return Results.Ok("Link already exists.");
         }
 
-        int characterId;
+        // 3. Skapa ny koppling
+        await using var insertCmd = db.CreateCommand();
+        insertCmd.CommandText = "INSERT INTO userxcharacter (\"user\", character) VALUES (@userId, @characterId)";
+        insertCmd.Parameters.AddWithValue("userId", request.UserId);
+        insertCmd.Parameters.AddWithValue("characterId", request.CharacterId);
 
-        // Hämta karaktärsinfo
-        using (var cmd = db.CreateCommand("SELECT id, level, xp, health, attack_damage, life_steal, dodge_rate, crit_rate, stun_rate, initiative, strength, agility, intellect FROM characters WHERE name = @name"))
+        await insertCmd.ExecuteNonQueryAsync();
+
+        return Results.Ok("Character linked successfully.");
+    }
+
+    public static async Task<IResult> GetAllCharacterNames(HttpContext context, NpgsqlDataSource db)
+    {
+        var characterNames = new List<string>();
+
+        using var cmd = db.CreateCommand("SELECT name FROM public.characters ORDER BY name ASC"); // sorterat för enkelhets skull
+
+        using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
         {
-            cmd.Parameters.AddWithValue("name", name);
+            characterNames.Add(reader.GetString(0));
+        }
+
+        return Results.Json(characterNames);
+    }
+    public record EnemyCharacterResponse
+    {
+        public int id { get; set; }
+        public string name { get; set; }
+    }
+    public static async Task<IResult> GetRandomCharacterName(HttpContext context, NpgsqlDataSource db)
+    {
+        await using var cmd = db.CreateCommand("SELECT id, name FROM public.characters ORDER BY RANDOM() LIMIT 1");
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+
+        if (await reader.ReadAsync())
+        {
+            var id = reader.GetInt32(0);
+            var name = reader.GetString(1);
+
+            var response = new EnemyCharacterResponse
+            {
+                id = id,
+                name = name
+            };
+
+            return Results.Json(response);
+        }
+        else
+        {
+            return Results.NotFound("No characters found.");
+        }
+    }
+
+    public static async Task<IResult> GetCharacterByCharacterId(int characterId, HttpContext context, NpgsqlDataSource db)
+    {
+
+
+        // Hämta karaktärsinfo från characters-tabellen baserat på gladiatorId
+        await using (var cmd = db.CreateCommand())
+        {
+            cmd.CommandText = @"SELECT id, name, level, xp, health, attack_damage, life_steal, dodge_rate, crit_rate, stun_rate, initiative, strength, agility, intellect
+                            FROM public.characters WHERE id = @id";
+            cmd.Parameters.AddWithValue("id", characterId);
 
             using var reader = await cmd.ExecuteReaderAsync();
             if (!await reader.ReadAsync())
                 return Results.NotFound("Character not found.");
 
-            characterId = reader.GetInt32(0);
             var character = new CharacterDTO(
-                charName: name,
-                level: reader.GetInt32(1),
-                xp: reader.GetInt32(2),
-                health: reader.GetInt32(3),
-                attackDamage: reader.GetInt32(4),
-                lifeSteal: reader.GetInt32(5),
-                dodgeRate: reader.GetInt32(6),
-                critRate: reader.GetInt32(7),
-                stunRate: reader.GetInt32(8),
-                initiative: reader.GetInt32(9),
-                strength: reader.GetInt32(10),
-                agility: reader.GetInt32(11),
-                intellect: reader.GetInt32(12)
+                charName: reader.GetString(1),
+                level: reader.GetInt32(2),
+                xp: reader.GetInt32(3),
+                health: reader.GetInt32(4),
+                attackDamage: reader.GetInt32(5),
+                lifeSteal: reader.GetInt32(6),
+                dodgeRate: reader.GetInt32(7),
+                critRate: reader.GetInt32(8),
+                stunRate: reader.GetInt32(9),
+                initiative: reader.GetInt32(10),
+                strength: reader.GetInt32(11),
+                agility: reader.GetInt32(12),
+                intellect: reader.GetInt32(13)
             );
 
-            // Hämtar nu övriga data baserat på characterId
+            // Hämta övriga kopplade resurser
             var bodyParts = await GetBodyParts(db, characterId);
             var skills = await GetSkills(db, characterId);
             var pets = await GetPets(db, characterId);
@@ -353,6 +422,7 @@ public class CharacterRoutes
             var consumables = await GetConsumables(db, characterId);
 
             var wrapper = new CharacterWrapperDTO(character, bodyParts, skills, pets, weapons, consumables);
+
 
             return Results.Json(wrapper);
         }
@@ -362,7 +432,7 @@ public class CharacterRoutes
     {
         using var cmd = db.CreateCommand(@"
         SELECT hair, eyes, chest, legs
-        FROM body_parts
+        FROM public.body_parts
         WHERE character = @charId
         LIMIT 1");
 
@@ -388,8 +458,8 @@ public class CharacterRoutes
 
         using var cmd = db.CreateCommand(@"
         SELECT s.name
-        FROM characterxskills cx
-        JOIN skills s ON cx.skill = s.id
+        FROM public.characterxskills cx
+        JOIN public.skills s ON cx.skill = s.id
         WHERE cx.character = @charId");
 
         cmd.Parameters.AddWithValue("charId", characterId);
@@ -409,8 +479,8 @@ public class CharacterRoutes
 
         using var cmd = db.CreateCommand(@"
         SELECT p.name
-        FROM characterxpets cp
-        JOIN pets p ON cp.pet = p.id
+        FROM public.characterxpets cp
+        JOIN public.pets p ON cp.pet = p.id
         WHERE cp.character = @charId");
 
         cmd.Parameters.AddWithValue("charId", characterId);
@@ -430,8 +500,8 @@ public class CharacterRoutes
 
         using var cmd = db.CreateCommand(@"
         SELECT w.name
-        FROM characterxweapons cw
-        JOIN weapons w ON cw.weapon = w.id
+        FROM public.characterxweapons cw
+        JOIN public.weapons w ON cw.weapon = w.id
         WHERE cw.character = @charId");
 
         cmd.Parameters.AddWithValue("charId", characterId);
@@ -451,8 +521,8 @@ public class CharacterRoutes
 
         using var cmd = db.CreateCommand(@"
         SELECT c.name
-        FROM characterxconsumables cc
-        JOIN consumables c ON cc.consumable = c.id
+        FROM public.characterxconsumables cc
+        JOIN public.consumables c ON cc.consumable = c.id
         WHERE cc.character = @charId");
 
         cmd.Parameters.AddWithValue("charId", characterId);

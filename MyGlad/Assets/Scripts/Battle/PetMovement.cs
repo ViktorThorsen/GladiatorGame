@@ -24,6 +24,7 @@ public class PetMovement : MonoBehaviour
     private Coroutine moveCoroutine;
     Vector3 screenLeft;
     Vector3 screenRight;
+    private Transform visualTransform;
     public int positionIndex;
 
     bool valid = false;
@@ -54,7 +55,13 @@ public class PetMovement : MonoBehaviour
             availableEnemies.Add(enemy);
         }
         petFeet = pet.transform.Find("Feet");
-        anim = GetComponent<Animator>();
+        visualTransform = transform.Find("Visual");
+        if (visualTransform == null)
+        {
+            visualTransform = transform; // fallback för vanliga sprites
+        }
+
+        anim = visualTransform.GetComponent<Animator>();
         petSpeed = 30;
         petHealthManager = pet.GetComponent<HealthManager>();
         monsterStats = pet.GetComponent<MonsterStats>();
@@ -91,15 +98,7 @@ public class PetMovement : MonoBehaviour
 
     IEnumerator MoveTowards(Vector2 targetPosition, float stoppingDistance)
     {
-        // Ensure the pet faces the target position
-        if (petFeet.position.x > targetPosition.x)
-        {
-            pet.transform.localScale = new Vector3(Mathf.Abs(pet.transform.localScale.x) * -1, pet.transform.localScale.y, pet.transform.localScale.z);
-        }
-        else
-        {
-            pet.transform.localScale = new Vector3(Mathf.Abs(pet.transform.localScale.x), pet.transform.localScale.y, pet.transform.localScale.z);
-        }
+        FlipTowards(targetPosition);
 
         while (Vector2.Distance(petFeet.position, targetPosition) > stoppingDistance)
         {
@@ -254,6 +253,20 @@ public class PetMovement : MonoBehaviour
         {
             anim.SetTrigger("stophit");
             MoveBackToRandomStart();
+        }
+    }
+
+    private void FlipTowards(Vector2 targetPosition)
+    {
+        float direction = targetPosition.x - transform.position.x;
+
+        if (direction > 0.01f)
+        {
+            visualTransform.localRotation = Quaternion.Euler(0, 0, 0); // höger
+        }
+        else if (direction < -0.01f)
+        {
+            visualTransform.localRotation = Quaternion.Euler(0, 180, 0); // vänster
         }
     }
 
@@ -418,16 +431,16 @@ public class PetMovement : MonoBehaviour
 
         while (Vector2.Distance(transform.position, targetPosition) > tolerance)
         {
-            // Ensure the pet is always facing left (flip if necessary) during the movement
-            if (transform.position.x > targetPosition.x)
-            {
-                transform.localScale = new Vector3(Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
-            }
+            // Flip mot mål
+            FlipTowards(targetPosition);
 
             anim.SetBool("run", true);
             transform.position = Vector2.MoveTowards(transform.position, targetPosition, petSpeed * Time.deltaTime);
             yield return null;
         }
+
+        // Efter att ha nått målet: återställ till vänster
+        visualTransform.localRotation = Quaternion.Euler(0, 0, 0);
 
         anim.SetBool("run", false);
         moveCoroutine = null;

@@ -1,12 +1,26 @@
 {
   "version": 2,
-  "dgSpecHash": "eTes19Ynt+4=",
+  "dgSpecHash": "CuBp7+yY0FA=",
   "success": true,
   "projectFilePath": "D:\\UnityProjects\\GladiatorGame\\MyGladBackend\\server.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\vikto\\.nuget\\packages\\google.apis\\1.69.0\\google.apis.1.69.0.nupkg.sha512",
+    "C:\\Users\\vikto\\.nuget\\packages\\google.apis.auth\\1.69.0\\google.apis.auth.1.69.0.nupkg.sha512",
+    "C:\\Users\\vikto\\.nuget\\packages\\google.apis.core\\1.69.0\\google.apis.core.1.69.0.nupkg.sha512",
+    "C:\\Users\\vikto\\.nuget\\packages\\microsoft.aspnetcore.authentication.jwtbearer\\9.0.4\\microsoft.aspnetcore.authentication.jwtbearer.9.0.4.nupkg.sha512",
     "C:\\Users\\vikto\\.nuget\\packages\\microsoft.extensions.dependencyinjection.abstractions\\8.0.2\\microsoft.extensions.dependencyinjection.abstractions.8.0.2.nupkg.sha512",
     "C:\\Users\\vikto\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\8.0.2\\microsoft.extensions.logging.abstractions.8.0.2.nupkg.sha512",
-    "C:\\Users\\vikto\\.nuget\\packages\\npgsql\\9.0.3\\npgsql.9.0.3.nupkg.sha512"
+    "C:\\Users\\vikto\\.nuget\\packages\\microsoft.identitymodel.abstractions\\8.8.0\\microsoft.identitymodel.abstractions.8.8.0.nupkg.sha512",
+    "C:\\Users\\vikto\\.nuget\\packages\\microsoft.identitymodel.jsonwebtokens\\8.8.0\\microsoft.identitymodel.jsonwebtokens.8.8.0.nupkg.sha512",
+    "C:\\Users\\vikto\\.nuget\\packages\\microsoft.identitymodel.logging\\8.8.0\\microsoft.identitymodel.logging.8.8.0.nupkg.sha512",
+    "C:\\Users\\vikto\\.nuget\\packages\\microsoft.identitymodel.protocols\\8.0.1\\microsoft.identitymodel.protocols.8.0.1.nupkg.sha512",
+    "C:\\Users\\vikto\\.nuget\\packages\\microsoft.identitymodel.protocols.openidconnect\\8.0.1\\microsoft.identitymodel.protocols.openidconnect.8.0.1.nupkg.sha512",
+    "C:\\Users\\vikto\\.nuget\\packages\\microsoft.identitymodel.tokens\\8.8.0\\microsoft.identitymodel.tokens.8.8.0.nupkg.sha512",
+    "C:\\Users\\vikto\\.nuget\\packages\\newtonsoft.json\\13.0.3\\newtonsoft.json.13.0.3.nupkg.sha512",
+    "C:\\Users\\vikto\\.nuget\\packages\\npgsql\\9.0.3\\npgsql.9.0.3.nupkg.sha512",
+    "C:\\Users\\vikto\\.nuget\\packages\\system.codedom\\7.0.0\\system.codedom.7.0.0.nupkg.sha512",
+    "C:\\Users\\vikto\\.nuget\\packages\\system.identitymodel.tokens.jwt\\8.8.0\\system.identitymodel.tokens.jwt.8.8.0.nupkg.sha512",
+    "C:\\Users\\vikto\\.nuget\\packages\\system.management\\7.0.2\\system.management.7.0.2.nupkg.sha512"
   ],
   "logs": []
 }

@@ -19,6 +19,7 @@ public class EnemyMovement : MonoBehaviour
     private HealthManager playerHealthManager;
     private PlayerMovement playerMovement;
     private PetMovement petMovement;
+    private Transform visualTransform;
 
     public int positionIndex;
     private bool isMoving;
@@ -50,17 +51,29 @@ public class EnemyMovement : MonoBehaviour
 
     void Start()
     {
-        gameManager = FindObjectOfType<GameManager>(); // Find GameManager
+        gameManager = FindObjectOfType<GameManager>();
         enemy = gameObject;
+
         foreach (GameObject player in gameManager.GetPlayerAndPets())
         {
             availableEnemies.Add(player);
         }
-        enemyFeet = enemy.transform.Find("Feet"); // Find feet object
-        anim = GetComponent<Animator>();
+
+        enemyFeet = enemy.transform.Find("Feet");
+
+        // Hämta visualTransform (för flip och animation)
+        visualTransform = transform.Find("Visual");
+        if (visualTransform == null)
+        {
+            visualTransform = transform; // fallback om "Visual" inte finns
+        }
+
+        // Hämta Animator från rätt plats
+        anim = visualTransform.GetComponent<Animator>();
+
         monsterstats = GetComponent<MonsterStats>();
         enemySpeed = 30;
-        enemyHealthManager = enemy.GetComponent<HealthManager>();
+        enemyHealthManager = GetComponent<HealthManager>();
 
         screenLeft = Camera.main.ViewportToWorldPoint(new Vector3(0, 0, Camera.main.nearClipPlane));
         screenRight = Camera.main.ViewportToWorldPoint(new Vector3(1, 0, Camera.main.nearClipPlane));
@@ -96,17 +109,9 @@ public class EnemyMovement : MonoBehaviour
         while (Vector2.Distance(enemyFeet.position, targetPosition) > stoppingDistance)
         {
             anim.SetBool("run", true);
-            // Flip enemy to face the target (opposite logic from player)
-            if (enemyFeet.position.x > targetPosition.x)
-            {
-                // Face left (default)
-                enemy.transform.localScale = new Vector3(Mathf.Abs(enemy.transform.localScale.x), enemy.transform.localScale.y, enemy.transform.localScale.z);
-            }
-            else
-            {
-                // Face right
-                enemy.transform.localScale = new Vector3(-Mathf.Abs(enemy.transform.localScale.x), enemy.transform.localScale.y, enemy.transform.localScale.z);
-            }
+
+            // Flip visual based on movement direction
+            FlipTowards(targetPosition);
 
             Vector2 newPosition = Vector2.MoveTowards(enemyFeet.position, targetPosition, enemySpeed * Time.deltaTime);
             transform.position += (Vector3)(newPosition - (Vector2)enemyFeet.position);
@@ -474,6 +479,19 @@ public class EnemyMovement : MonoBehaviour
         else { outDmg = randomDmg; }
         return outDmg; // Random.Range is inclusive for integers
     }
+    private void FlipTowards(Vector2 targetPosition)
+    {
+        float direction = targetPosition.x - transform.position.x;
+
+        if (direction > 0.01f)
+        {
+            visualTransform.localRotation = Quaternion.Euler(0, 180, 0);
+        }
+        else if (direction < -0.01f)
+        {
+            visualTransform.localRotation = Quaternion.Euler(0, 0, 0);
+        }
+    }
 
     public void MoveBackToRandomStart()
     {
@@ -503,19 +521,16 @@ public class EnemyMovement : MonoBehaviour
     {
         float tolerance = 0.1f;
 
-        while (Vector2.Distance(transform.position, targetPosition) > tolerance)
+        while (Vector2.Distance(enemy.transform.position, targetPosition) > tolerance)
         {
-            // Ensure the player is always facing left (flip if necessary) during the movement
-            if (transform.position.x < targetPosition.x)
-            {
-                transform.localScale = new Vector3(-Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
-            }
+            // Flip based on direction
+            FlipTowards(targetPosition);
 
             anim.SetBool("run", true);
-            transform.position = Vector2.MoveTowards(transform.position, targetPosition, enemySpeed * Time.deltaTime);
+            enemy.transform.position = Vector2.MoveTowards(enemy.transform.position, targetPosition, enemySpeed * Time.deltaTime);
             yield return null;
         }
-
+        visualTransform.localRotation = Quaternion.Euler(0, 0, 0);
         anim.SetBool("run", false);
         moveCoroutine = null;
         isMoving = false;

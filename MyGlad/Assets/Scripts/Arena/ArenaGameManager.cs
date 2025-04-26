@@ -19,6 +19,9 @@ public class ArenaGameManager : MonoBehaviour
     [SerializeField] private Transform enemyConsumableInventorySlotParent;
     [SerializeField] private Transform enemyPetInventorySlotParent;
 
+    [SerializeField] private BackgroundImageDataBase backgroundImageDataBase;
+    [SerializeField] private SpriteRenderer backgroundImage;
+
     [SerializeField] private GameObject inventorySlotPrefab;
     [SerializeField] public Transform[] playerStartPositions;
     public bool[] leftPositionsAvailable;
@@ -126,8 +129,48 @@ public class ArenaGameManager : MonoBehaviour
         return playerAndPets;
     }
 
+    public string GetEnemyBackground()
+    {
+        int level = EnemyGladiatorData.Instance.Level;
+
+        string backgroundName = "";
+
+        switch (level)
+        {
+            case 1:
+                backgroundName = "Farm";
+                break;
+            case 2:
+                backgroundName = "Forest";
+                break;
+            case 3:
+                backgroundName = "Alley";
+                break;
+            case 4:
+                backgroundName = "SnowMountain";
+                break;
+            case 5:
+                backgroundName = "Colosseum";
+                break;
+            default:
+                backgroundName = "Farm";
+                break;
+        }
+
+        return backgroundName;
+    }
+
     void Start()
     {
+        BattleBackground battlebackgroundImage = backgroundImageDataBase.GetBattleBackgroundByName(GetEnemyBackground());
+        if (battlebackgroundImage != null)
+        {
+            backgroundImage.sprite = battlebackgroundImage.backgroundImage;
+        }
+        else
+        {
+            Debug.LogWarning("Background image not found for state: ");
+        }
         // Initialize availability arrays
         leftPositionsAvailable = new bool[playerStartPositions.Length];
         rightPositionsAvailable = new bool[enemyStartPositions.Length];
@@ -489,7 +532,7 @@ public class ArenaGameManager : MonoBehaviour
         Vector3 screenPosition = Camera.main.WorldToViewportPoint(character.transform.Find("Feet").position);
 
         // Beräkna skalan baserat på den vertikala (y) skärmpositionen
-        float scaleMultiplier = Mathf.Lerp(1f, 0.7f, screenPosition.y); // 1 är större nära botten, 0.7 är mindre nära toppen
+        float scaleMultiplier = Mathf.Lerp(1f, 0.5f, screenPosition.y); // 1 är större nära botten, 0.7 är mindre nära toppen
 
         // Applicera den nya skalan baserat på den ursprungliga skalan
         character.transform.localScale = initialScale * scaleMultiplier;
@@ -934,8 +977,8 @@ public class ArenaGameManager : MonoBehaviour
 
     private IEnumerator DelayedSceneLoad()
     {
-
-        yield return new WaitForSeconds(2f); // Wait for 2 seconds
+        BackgroundMusicManager.Instance.FadeOutMusic(3f);
+        yield return new WaitForSeconds(4f); // Wait for 2 seconds
         sceneController.LoadScene("Base");
     }
 }

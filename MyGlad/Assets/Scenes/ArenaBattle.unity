@@ -264,7 +264,6 @@ GameObject:
   - component: {fileID: 502001133}
   - component: {fileID: 502001132}
   - component: {fileID: 502001137}
-  - component: {fileID: 502001136}
   - component: {fileID: 502001135}
   m_Layer: 0
   m_Name: Main Camera
@@ -344,7 +343,8 @@ Transform:
   m_LocalPosition: {x: 0.095066234, y: 0.38997892, z: -15.74239}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 902436667}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &502001135
@@ -381,19 +381,6 @@ MonoBehaviour:
   m_CameraActivatedEvent:
     m_PersistentCalls:
       m_Calls: []
---- !u!114 &502001136
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 502001131}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 52924646dadfdd84fa792b686ec6d604, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  targetAspect: 1.7777778
 --- !u!114 &502001137
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -792,8 +779,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 902436666}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 923.4733, y: 487.7217, z: 5.6173177}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 923.4049, y: 487.33173, z: 21.359707}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -806,7 +793,7 @@ Transform:
   - {fileID: 661838311}
   - {fileID: 1217369117}
   - {fileID: 1304588117}
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 502001134}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1122265589
 GameObject:
@@ -1477,8 +1464,8 @@ Transform:
   m_GameObject: {fileID: 1952500863}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -923.47, y: -487.7, z: 0}
-  m_LocalScale: {x: 1.5561311, y: 1.5561311, z: 1.5561311}
+  m_LocalPosition: {x: -923.38, y: -486.4, z: 0}
+  m_LocalScale: {x: 1.9841074, y: 1.9841074, z: 1.9841074}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 902436667}
@@ -1524,7 +1511,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: c45218db434100c489ba0f13e195a10d, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 728a651b30b85c44da75e96054315cea, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -1705,7 +1692,6 @@ MonoBehaviour:
   characterPrefab: {fileID: 665549054361094497, guid: a40b0c398abeafd47acd92e11388fdc3, type: 3}
   parentObj: {fileID: 902436667}
   charPos: {fileID: 429203399}
-  monsterDataBase: {fileID: 11400000, guid: 8f970cf9c0c096443b9357fb5cc32f22, type: 2}
   enemyPos: {fileID: 661838311}
   sceneController: {fileID: 1739517776548274485, guid: 2e7d2c1d4fe960446bef51336ae038ca, type: 3}
   weaponInventorySlotParent: {fileID: 228758520}
@@ -1714,6 +1700,8 @@ MonoBehaviour:
   enemyWeaponInventorySlotParent: {fileID: 697070096}
   enemyConsumableInventorySlotParent: {fileID: 1209985697}
   enemyPetInventorySlotParent: {fileID: 0}
+  backgroundImageDataBase: {fileID: 11400000, guid: 0cfd83c38cb2bcf419765587f3887235, type: 2}
+  backgroundImage: {fileID: 1952500865}
   inventorySlotPrefab: {fileID: 4816014025817942178, guid: 5f580676318a1a141be3a7e992d135af, type: 3}
   playerStartPositions:
   - {fileID: 469894707}
@@ -1945,7 +1933,6 @@ SceneRoots:
   - {fileID: 502001134}
   - {fileID: 1599788582}
   - {fileID: 2117813819}
-  - {fileID: 902436667}
   - {fileID: 1449602736}
   - {fileID: 1849873996}
   - {fileID: 2032360888}

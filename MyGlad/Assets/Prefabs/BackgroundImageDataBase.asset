@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cf6fe2009a42f28478800c9e78e7abd6, type: 3}
+  m_Name: BackgroundImageDataBase
+  m_EditorClassIdentifier: 
+  BattleBackgrounds:
+  - {fileID: 11400000, guid: eacea05b981528945a018486c1aac596, type: 2}
+  - {fileID: 11400000, guid: e39c6f63e19c0fe4783f78f4e39ca050, type: 2}
+  - {fileID: 11400000, guid: bc6da79a8d39e44418c509c5eda108aa, type: 2}

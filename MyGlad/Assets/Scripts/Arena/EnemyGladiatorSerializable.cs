@@ -25,3 +25,9 @@ public class EnemyGladiatorDataSerializable
     public string[] skills;       // Store skill names
     public string[] pets;         // Store pet names
 }
+
+public class EnemyCharacterResponse
+{
+    public int id;
+    public string name;
+}

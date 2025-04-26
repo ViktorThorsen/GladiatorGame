@@ -18,6 +18,7 @@ public class HealthManager : MonoBehaviour
     private Transform healthSliderParent;
     private GameObject thisUnit;
     private GameManager gameManager;
+    private Transform visualTransform;
 
 
     public GameObject damageTextPrefab; // Reference to the txtCombat prefab
@@ -45,7 +46,14 @@ public class HealthManager : MonoBehaviour
     {
         gameManager = FindObjectOfType<GameManager>();
         thisUnit = gameObject;
-        anim = GetComponent<Animator>();
+        visualTransform = transform.Find("Visual");
+        if (visualTransform == null)
+        {
+            visualTransform = transform; // fallback om "Visual" inte finns
+        }
+
+        // Hämta Animator från rätt plats
+        anim = visualTransform.GetComponent<Animator>();
 
         GameObject canvas = GameObject.Find("Canvas");
 

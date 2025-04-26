@@ -57,3 +57,9 @@ public class CharacterWrapper
     public ConsumableDataSerializable consumables;
 
 }
+
+public class LinkCharacterRequest
+{
+    public int userId;
+    public int characterId;
+}

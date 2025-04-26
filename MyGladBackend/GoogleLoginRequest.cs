@@ -1,0 +1,1 @@
+public record GoogleLoginRequest(string IdToken);

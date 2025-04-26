@@ -9,7 +9,7 @@ using System.Collections;
 public class CharacterData : MonoBehaviour
 {
     public static CharacterData Instance { get; private set; }
-
+    [SerializeField] private int id;
     // Private fields
     [SerializeField] private string charName;
     [SerializeField] private int level;
@@ -30,7 +30,11 @@ public class CharacterData : MonoBehaviour
 
     [SerializeField] private string[] bodyPartLabels;
 
-
+    public int Id
+    {
+        get { return id; }
+        set { id = value; }
+    }
 
     // Public properties
     public string CharName
@@ -197,9 +201,9 @@ public class CharacterData : MonoBehaviour
     }
 
     // Method to save the character data
-    public void SaveCharacterToBackend()
+    public IEnumerator SaveCharacterToBackend()
     {
-        StartCoroutine(SendCharacterDataCoroutine());
+        yield return StartCoroutine(SendCharacterDataCoroutine());
     }
 
     private IEnumerator SendCharacterDataCoroutine()
@@ -248,7 +252,6 @@ public class CharacterData : MonoBehaviour
             consumableNames = Inventory.Instance.GetConsumables().Select(consumable => consumable.itemName).ToList()
         };
 
-
         CharacterWrapper wrapper = new CharacterWrapper
         {
             character = data,
@@ -256,23 +259,24 @@ public class CharacterData : MonoBehaviour
             skills = skillData,
             pets = petData,
             weapons = weaponData,
-            consumables = consumableData
+            consumables = consumableData,
         };
-
+        Debug.Log("still saving character");
         string json = JsonConvert.SerializeObject(wrapper);
-        Debug.Log("Serialized JSON: " + json); // Log the serialized JSON for debugging
-        Debug.Log(json.ToString()); // Log the serialized JSON for debugging])
         byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(json);
         UnityWebRequest request = new UnityWebRequest("http://localhost:5000/api/characters", "POST");
         request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+        Debug.Log(bodyRaw);
         request.downloadHandler = new DownloadHandlerBuffer();
         request.SetRequestHeader("Content-Type", "application/json");
 
         yield return request.SendWebRequest();
-
+        Debug.Log("📦 RAW svar1: " + request.downloadHandler.text);
         if (request.result == UnityWebRequest.Result.Success)
         {
-            Debug.Log("Character saved to backend!");
+            id = JsonConvert.DeserializeObject<int>(request.downloadHandler.text);
+            PlayerPrefs.SetInt("characterId", id);
+            Debug.Log("📦 RAW svar2: " + request.downloadHandler.text);
         }
         else
         {
@@ -280,15 +284,48 @@ public class CharacterData : MonoBehaviour
         }
     }
 
-    public void LoadCharacterFromBackend(ItemDataBase itemDataBase, PetDataBase petDataBase, SkillDataBase skillDataBase)
+    public IEnumerator LinkCharacterToUser(int userId, int characterId)
     {
-        StartCoroutine(LoadCharacterCoroutine(itemDataBase, petDataBase, skillDataBase));
+        string url = "http://localhost:5000/api/user/characters";
+
+        // Skapa en liten JSON att skicka
+        string jsonBody = JsonUtility.ToJson(new LinkCharacterRequest
+        {
+            userId = userId,
+            characterId = characterId
+        });
+
+        UnityWebRequest request = new UnityWebRequest(url, "POST");
+        byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonBody);
+        request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+        request.downloadHandler = new DownloadHandlerBuffer();
+        request.SetRequestHeader("Content-Type", "application/json");
+
+        string jwt = PlayerPrefs.GetString("jwt");
+        request.SetRequestHeader("Authorization", $"Bearer {jwt}");
+
+        yield return request.SendWebRequest();
+
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            Debug.Log("Kopplade karaktär till användare!");
+        }
+        else
+        {
+            Debug.LogError($"Fel: {request.error}");
+        }
+    }
+
+
+    public IEnumerator LoadCharacterFromBackend(ItemDataBase itemDataBase, PetDataBase petDataBase, SkillDataBase skillDataBase)
+    {
+        yield return StartCoroutine(LoadCharacterCoroutine(itemDataBase, petDataBase, skillDataBase));
     }
 
     private IEnumerator LoadCharacterCoroutine(ItemDataBase itemDataBase, PetDataBase petDataBase, SkillDataBase skillDataBase)
     {
-        string characterName = "Maria";
-        UnityWebRequest request = UnityWebRequest.Get($"http://localhost:5000/api/characters/{characterName}");
+        int characterId = PlayerPrefs.GetInt("characterId");
+        UnityWebRequest request = UnityWebRequest.Get($"http://localhost:5000/api/characters/{characterId}");
         request.SetRequestHeader("Content-Type", "application/json");
 
         yield return request.SendWebRequest();

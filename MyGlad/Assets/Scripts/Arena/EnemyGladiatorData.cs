@@ -2,6 +2,8 @@ using UnityEngine;
 using System.IO;
 using Newtonsoft.Json;
 using System.Linq;
+using UnityEngine.Networking;
+using System.Collections;
 public class EnemyGladiatorData : MonoBehaviour
 {
     public static EnemyGladiatorData Instance { get; private set; }
@@ -187,11 +189,16 @@ public class EnemyGladiatorData : MonoBehaviour
     }
 
     // Method to save the EnemyGladiator data
-    public void SaveEnemyGladiatorAndInventory(string fileName)
+    public void SaveCharacterToBackend()
     {
-        EnemyGladiatorDataSerializable data = new EnemyGladiatorDataSerializable
+        StartCoroutine(SendCharacterDataCoroutine());
+    }
+
+    private IEnumerator SendCharacterDataCoroutine()
+    {
+        CharacterDataSerializable data = new CharacterDataSerializable
         {
-            // EnemyGladiator data
+            // Fyll på med dina fält som innan
             charName = this.charName,
             level = this.level,
             xp = this.xp,
@@ -205,107 +212,142 @@ public class EnemyGladiatorData : MonoBehaviour
             strength = this.strength,
             agility = this.agility,
             intellect = this.intellect,
-            bodyPartLabels = this.bodyPartLabels,
-
-            // Convert lists to arrays
-            weapons = EnemyInventory.Instance.GetWeapons().Select(w => w.itemName).ToArray(),
-            consumables = EnemyInventory.Instance.GetConsumables().Select(c => c.itemName).ToArray(),
-            skills = EnemyInventory.Instance.GetSkills().Select(s => s.skillName).ToArray(),
-            pets = EnemyInventory.Instance.GetPets().Select(p => p.name).ToArray()  // Store pet names
+        };
+        BodyPartsDataSerializable bodyPartsData = new BodyPartsDataSerializable
+        {
+            hair = bodyPartLabels[0],
+            eyes = bodyPartLabels[1],
+            chest = bodyPartLabels[2],
+            legs = bodyPartLabels[3],
         };
 
-        string json = JsonConvert.SerializeObject(data, Formatting.Indented);
-        string filePath = Path.Combine(Application.persistentDataPath, fileName);
-        File.WriteAllText(filePath, json);
-
-        Debug.Log("EnemyGladiator and inventory data saved to " + filePath);
-    }
-    public void LoadEnemyGladiatorAndInventory(ItemDataBase itemDataBase, PetDataBase petDataBase, SkillDataBase skillDataBase, string fileName)
-    {
-        string filePath = Path.Combine(Application.persistentDataPath, fileName);
-
-        if (File.Exists(filePath))
+        SkillDataSerializable skillData = new SkillDataSerializable
         {
-            string json = File.ReadAllText(filePath);
-            EnemyGladiatorDataSerializable data = JsonConvert.DeserializeObject<EnemyGladiatorDataSerializable>(json);
+            skillNames = Inventory.Instance.GetSkills().Select(skill => skill.skillName).ToList()
+        };
 
-            // Apply EnemyGladiator data
-            this.charName = data.charName;
-            this.level = data.level;
-            this.xp = data.xp;
-            this.health = data.health;
-            this.attackDamage = data.attackDamage;
-            this.lifeSteal = data.lifeSteal;
-            this.dodgeRate = data.dodgeRate;
-            this.critRate = data.critRate;
-            this.stunRate = data.stunRate;
-            this.initiative = data.initiative;
-            this.strength = data.strength;
-            this.agility = data.agility;
-            this.intellect = data.intellect;
-            this.bodyPartLabels = data.bodyPartLabels;
+        PetDataSerializable petData = new PetDataSerializable
+        {
+            petNames = Inventory.Instance.GetPets().Select(pet => pet.GetComponent<MonsterStats>().MonsterName).ToList()
+        };
 
-            // Clear the current inventory
-            EnemyInventory.Instance.ClearInventory();
+        WeaponDataSerializable weaponData = new WeaponDataSerializable
+        {
+            weaponNames = Inventory.Instance.GetWeapons().Select(weapon => weapon.itemName).ToList()
+        };
+        ConsumableDataSerializable consumableData = new ConsumableDataSerializable
+        {
+            consumableNames = Inventory.Instance.GetConsumables().Select(consumable => consumable.itemName).ToList()
+        };
 
-            // Retrieve pets, skills, and items by name and add them back to the inventory
-            foreach (string petName in data.pets)
-            {
-                GameObject petPrefab = petDataBase.GetPetByName(petName);
-                if (petPrefab != null)
-                {
-                    EnemyInventory.Instance.AddPetToInventory(petPrefab);
-                }
-                else
-                {
-                    Debug.LogWarning($"Pet not found: {petName}");
-                }
-            }
 
-            foreach (string skillName in data.skills)
-            {
-                Skill skill = skillDataBase.GetSkillByName(skillName);
-                if (skill != null)
-                {
-                    EnemyInventory.Instance.AddSkillToInventory(skill);
-                }
-                else
-                {
-                    Debug.LogWarning($"Skill not found: {skillName}");
-                }
-            }
+        CharacterWrapper wrapper = new CharacterWrapper
+        {
+            character = data,
+            bodyPartLabels = bodyPartsData,
+            skills = skillData,
+            pets = petData,
+            weapons = weaponData,
+            consumables = consumableData
+        };
 
-            foreach (string itemName in data.weapons)
-            {
-                Item item = itemDataBase.GetWeaponByName(itemName);
-                if (item != null)
-                {
-                    EnemyInventory.Instance.AddWeaponToInventory(item);
-                }
-                else
-                {
-                    Debug.LogWarning($"Item not found: {itemName}");
-                }
-            }
+        string json = JsonConvert.SerializeObject(wrapper);
+        Debug.Log("Serialized JSON: " + json); // Log the serialized JSON for debugging
+        Debug.Log(json.ToString()); // Log the serialized JSON for debugging])
+        byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(json);
+        UnityWebRequest request = new UnityWebRequest("http://localhost:5000/api/characters", "POST");
+        request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+        request.downloadHandler = new DownloadHandlerBuffer();
+        request.SetRequestHeader("Content-Type", "application/json");
 
-            foreach (string consumableName in data.consumables)
-            {
-                Item consumable = itemDataBase.GetConsumableByName(consumableName); // Assuming consumables are items
-                if (consumable != null)
-                {
-                    EnemyInventory.Instance.AddConsumableToInventory(consumable);
-                }
-                else
-                {
-                    Debug.LogWarning($"Consumable not found: {consumableName}");
-                }
-            }
+        yield return request.SendWebRequest();
 
-            Debug.Log("EnemyGladiator and inventory data loaded successfully.");
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            Debug.Log("Character saved to backend!");
         }
         else
         {
-            Debug.LogWarning("Save file not found at " + filePath);
+            Debug.LogError("Error saving character: " + request.error);
+        }
+    }
+
+    public IEnumerator LoadCharacterFromBackend(ItemDataBase itemDataBase, PetDataBase petDataBase, SkillDataBase skillDataBase, int id)
+    {
+        yield return StartCoroutine(LoadCharacterCoroutine(itemDataBase, petDataBase, skillDataBase, id));
+    }
+
+    private IEnumerator LoadCharacterCoroutine(ItemDataBase itemDataBase, PetDataBase petDataBase, SkillDataBase skillDataBase, int id)
+    {
+        int characterId = id;
+        UnityWebRequest request = UnityWebRequest.Get($"http://localhost:5000/api/characters/{characterId}");
+        request.SetRequestHeader("Content-Type", "application/json");
+
+        yield return request.SendWebRequest();
+
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            string json = request.downloadHandler.text;
+            Debug.Log("Received character JSON: " + json);
+
+            CharacterWrapper data = JsonConvert.DeserializeObject<CharacterWrapper>(json);
+
+            // === Karaktärsdata ===
+            charName = data.character.charName;
+            level = data.character.level;
+            xp = data.character.xp;
+            health = data.character.health;
+            attackDamage = data.character.attackDamage;
+            lifeSteal = data.character.lifeSteal;
+            dodgeRate = data.character.dodgeRate;
+            critRate = data.character.critRate;
+            stunRate = data.character.stunRate;
+            initiative = data.character.initiative;
+            strength = data.character.strength;
+            agility = data.character.agility;
+            intellect = data.character.intellect;
+
+            // === Kroppsdelar ===
+            bodyPartLabels = new string[]
+            {
+            data.bodyPartLabels.hair,
+            data.bodyPartLabels.eyes,
+            data.bodyPartLabels.chest,
+            data.bodyPartLabels.legs
+            };
+
+            // === Inventering ===
+            EnemyInventory.Instance.ClearInventory();
+
+            foreach (string skillName in data.skills.skillNames)
+            {
+                var skill = skillDataBase.GetSkillByName(skillName);
+                if (skill != null) EnemyInventory.Instance.AddSkillToInventory(skill);
+            }
+
+            foreach (string petName in data.pets.petNames)
+            {
+                var pet = petDataBase.GetPetByName(petName);
+                if (pet != null) EnemyInventory.Instance.AddPetToInventory(pet);
+            }
+
+            foreach (string weaponName in data.weapons.weaponNames)
+            {
+                var weapon = itemDataBase.GetWeaponByName(weaponName);
+                if (weapon != null) EnemyInventory.Instance.AddWeaponToInventory(weapon);
+            }
+
+            foreach (string consumableName in data.consumables.consumableNames)
+            {
+                var item = itemDataBase.GetConsumableByName(consumableName);
+                if (item != null) EnemyInventory.Instance.AddConsumableToInventory(item);
+            }
+
+            Debug.Log("Character loaded from backend.");
+        }
+        else
+        {
+            Debug.LogError("Failed to load character: " + request.error);
         }
     }
 }

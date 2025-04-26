@@ -15,10 +15,6 @@ namespace Completed
         // Start is called before the first frame update
         void Start()
         {
-            foreach (string namn in labels)
-            {
-                Debug.Log(namn.ToString());
-            }
 
             for (int i = 0; i < bodyParts.Length; i++)
             {
@@ -63,7 +59,7 @@ namespace Completed
 
                 if (validLabel != null)
                 {
-                    Debug.Log($"Switching {item.GetCategory()} to {validLabel}");
+
                     item.SetCategoryAndLabel(item.GetCategory(), validLabel);
                 }
                 else

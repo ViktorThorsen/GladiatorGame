@@ -15,6 +15,7 @@ public class MonsterHuntManager : MonoBehaviour
         get { return selectedMonsterNames; }
         set { selectedMonsterNames = value; }
     }
+    public string sceneState;
 
     private void Awake()
     {
@@ -36,6 +37,11 @@ public class MonsterHuntManager : MonoBehaviour
         selectedMonsterNames.Clear();
         // Add the selected monster's name to the list (allow duplicates)
         selectedMonsterNames.Add(name);
+    }
+
+    public void SetState(string state)
+    {
+        sceneState = state;
     }
 
     // Method to clear all selected monsters

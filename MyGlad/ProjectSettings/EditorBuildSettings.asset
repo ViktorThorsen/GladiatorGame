@@ -32,4 +32,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/ArenaBattle.unity
     guid: bd6bbd873074f3647bbf7216d06d4296
+  - enabled: 1
+    path: Assets/Scenes/ChooseCharacter.unity
+    guid: c5df60c398edb0a42a3be9106c25326a
   m_configObjects: {}

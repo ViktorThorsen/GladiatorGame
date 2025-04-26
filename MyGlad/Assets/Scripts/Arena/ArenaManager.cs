@@ -1,6 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
+using UnityEngine.Networking;
+using TMPro;
 
 public class ArenaManager : MonoBehaviour
 {
@@ -10,17 +13,9 @@ public class ArenaManager : MonoBehaviour
     [SerializeField] PetDataBase petDataBase;
     [SerializeField] SkillDataBase skillDataBase;
     [SerializeField] Transform enemyCharPos;
+    [SerializeField] TMP_Text nameText;
     [SerializeField] GameObject characterPrefab;
     [SerializeField] Transform parentObj;
-
-    private List<string> selectedGladiatorNames = new List<string>();
-
-    // Property to get the selected monster names
-    public List<string> SelectedGladiatorNames
-    {
-        get { return selectedGladiatorNames; }
-        set { selectedGladiatorNames = value; }
-    }
 
     private void Awake()
     {
@@ -37,40 +32,76 @@ public class ArenaManager : MonoBehaviour
 
     void Start()
     {
-        if (EnemyGladiatorData.Instance != null)
+        StartCoroutine(GetRandomNameAndLoadCharacter());
+    }
+
+    private IEnumerator GetRandomNameAndLoadCharacter()
+    {
+        int currentId = PlayerPrefs.GetInt("characterId");
+        int randomId = currentId;
+
+        string currentName = PlayerPrefs.GetString("characterName");
+        string randomName = currentName;
+
+        int tries = 0;
+        while ((randomId == currentId || randomName == currentName) && tries < 50)
         {
-            EnemyGladiatorData.Instance.LoadEnemyGladiatorAndInventory(itemDataBase, petDataBase, skillDataBase, "testChar1.json"); // Load the data
+            UnityWebRequest request = UnityWebRequest.Get("http://localhost:5000/api/characters/random");
+            yield return request.SendWebRequest();
+
+            if (request.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError("❌ Failed to fetch random character: " + request.error);
+                yield break;
+            }
+
+            string json = request.downloadHandler.text;
+            EnemyCharacterResponse response = JsonUtility.FromJson<EnemyCharacterResponse>(json);
+
+            randomId = response.id;
+            randomName = response.name;
+
+            tries++;
         }
+
+        if (randomName == currentName)
+        {
+            Debug.LogWarning("⚠️ Fick samma namn efter 50 försök – laddar ändå.");
+        }
+
+        Debug.Log("✅ Ny karaktär: " + randomName + " (ID: " + randomId + ")");
+
+        // Rensa gammal karaktär
+        foreach (Transform child in parentObj)
+        {
+            if (child.CompareTag("Player"))
+            {
+                Destroy(child.gameObject);
+            }
+        }
+
+        // Ladda ny karaktär
+        yield return StartCoroutine(LoadAndCreateGladiator(randomId));
+    }
+
+    public void OnChangeCharacterButtonClicked()
+    {
+        StartCoroutine(GetRandomNameAndLoadCharacter());
+    }
+
+
+    private IEnumerator LoadAndCreateGladiator(int id)
+    {
+        yield return StartCoroutine(EnemyGladiatorData.Instance.LoadCharacterFromBackend(itemDataBase, petDataBase, skillDataBase, id));
+
         GameObject characterObject = CharacterManager.InstantiateEnemyGladiator(
-                    EnemyGladiatorData.Instance,
-                    characterPrefab,
-                    parentObj,
-                    enemyCharPos,
-                    new Vector3(0.7f, 0.7f, 1f) // Set the desired scale
-                );
-    }
-
-    // Method to select a Gladiator and add its name to the list
-    public void SelectGladiator(string name)
-    {
-
-        selectedGladiatorNames.Clear();
-        // Add the selected Gladiator's name to the list (allow duplicates)
-        selectedGladiatorNames.Add(name);
-    }
-
-    public void OnLoadButtonClick()
-    {
-        if (EnemyGladiatorData.Instance != null)
-        {
-            EnemyGladiatorData.Instance.LoadEnemyGladiatorAndInventory(itemDataBase, petDataBase, skillDataBase, "testChar1.json"); // Load the data
-        }
-    }
-
-    // Method to clear all selected Gladiators
-    public void ClearSelectedGladiators()
-    {
-        selectedGladiatorNames.Clear();
+        EnemyGladiatorData.Instance,
+            characterPrefab,
+            parentObj,
+            enemyCharPos,
+            new Vector3(0.7f, 0.7f, 1f)
+        ); characterObject.tag = "Player";
+        nameText.text = EnemyGladiatorData.Instance.CharName;
     }
 
     public void Cleanup()
@@ -80,5 +111,6 @@ public class ArenaManager : MonoBehaviour
             Instance = null;
             Destroy(gameObject);
         }
+        ;
     }
 }
