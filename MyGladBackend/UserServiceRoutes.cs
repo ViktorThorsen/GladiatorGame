@@ -18,7 +18,7 @@ public static class UserServiceRoutes
 
 #if DEBUG
         // MOCKAD användare i utvecklingsläge
-        email = "maria@gmail.com";
+        email = "galt@gmail.com";
 #else
         var payload = await GoogleJsonWebSignature.ValidateAsync(body.IdToken);
         email = payload.Email;
@@ -50,21 +50,30 @@ public static class UserServiceRoutes
     public static async Task<int> GetOrCreateUserAsync(string email, NpgsqlDataSource db)
     {
         Console.WriteLine($"✅ Användare med email {email}");
+
         await using var conn = await db.OpenConnectionAsync();
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT id FROM users WHERE email = @email";
-        cmd.Parameters.AddWithValue("email", email);
-        var result = await cmd.ExecuteScalarAsync();
 
-        if (result != null)
-            return (int)result;
+        // Först: kolla om användaren finns
+        await using (var checkCmd = conn.CreateCommand())
+        {
+            checkCmd.CommandText = "SELECT id FROM users WHERE email = @email";
+            checkCmd.Parameters.AddWithValue("email", email);
+            var result = await checkCmd.ExecuteScalarAsync();
 
-        // Skapa ny användare
-        cmd.CommandText = "INSERT INTO users (email) VALUES (@email) RETURNING id";
-        return (int)(await cmd.ExecuteScalarAsync())!;
+            if (result != null)
+                return (int)result;
+        }
+
+        // Sedan: skapa användare
+        await using (var insertCmd = conn.CreateCommand())
+        {
+            insertCmd.CommandText = "INSERT INTO users (email) VALUES (@email) RETURNING id";
+            insertCmd.Parameters.AddWithValue("email", email);
+            return (int)(await insertCmd.ExecuteScalarAsync())!;
+        }
     }
 
-    public static IResult GetUserInfo(HttpContext context, NpgsqlDataSource db)
+    public static async Task<IResult> GetUserInfo(HttpContext context, NpgsqlDataSource db)
     {
         var userIdClaim = context.User.FindFirst("userId");
         if (userIdClaim == null)
@@ -72,17 +81,18 @@ public static class UserServiceRoutes
 
         int userId = int.Parse(userIdClaim.Value);
 
-        using var conn = db.OpenConnection();
-        using var cmd = conn.CreateCommand();
+        await using var conn = await db.OpenConnectionAsync();
+        await using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT character FROM userxcharacter WHERE \"user\" = @userId LIMIT 1";
         cmd.Parameters.AddWithValue("userId", userId);
 
-        var result = cmd.ExecuteScalar();
+        var result = await cmd.ExecuteScalarAsync();
 
         bool hasGladiator = result != null && result != DBNull.Value;
 
         return Results.Ok(new { hasGladiator });
     }
+
 
     public static async Task<IResult> GetUserCharacters(HttpContext context, NpgsqlDataSource db)
     {
@@ -102,7 +112,7 @@ public static class UserServiceRoutes
 
         cmd.Parameters.AddWithValue("userId", userId);
 
-        using var reader = await cmd.ExecuteReaderAsync();
+        await using var reader = await cmd.ExecuteReaderAsync();
 
         var characters = new List<object>();
         while (await reader.ReadAsync())

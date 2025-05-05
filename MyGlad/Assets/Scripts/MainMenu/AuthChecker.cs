@@ -11,17 +11,18 @@ public class AuthChecker : MonoBehaviour
         instance = this;
     }
 
-    public void StartCheck()
+    public void StartCheck(GameObject loadingPanel)
     {
-        StartCoroutine(CheckIfHasGladiator());
+        StartCoroutine(CheckIfHasGladiator(loadingPanel));
     }
 
-    private IEnumerator CheckIfHasGladiator()
+    private IEnumerator CheckIfHasGladiator(GameObject loadingPanel)
     {
         string jwt = PlayerPrefs.GetString("jwt", null);
         if (string.IsNullOrEmpty(jwt))
         {
             Debug.LogWarning("Ingen JWT hittades, visa login");
+            loadingPanel.SetActive(false);
             yield break;
         }
 
@@ -43,6 +44,7 @@ public class AuthChecker : MonoBehaviour
         else
         {
             Debug.LogError("❌ Fel vid kontroll av gladiator: " + request.error);
+            loadingPanel.SetActive(false); // Göm loading om API-koll misslyckas
         }
     }
 

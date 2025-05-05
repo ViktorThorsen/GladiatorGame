@@ -4,6 +4,7 @@ using Completed;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Networking;
 
 public class CreateCharacter : MonoBehaviour
 {
@@ -94,6 +95,8 @@ public class CreateCharacter : MonoBehaviour
         UnityEditor.EditorUtility.SetDirty(characterData);
 #endif
         Debug.Log("Character data saved successfully.");
+
+
     }
 
     // Method to set all body parts to the "blue" label

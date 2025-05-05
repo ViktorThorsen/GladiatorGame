@@ -4,11 +4,18 @@ using UnityEngine;
 public class Inventory : MonoBehaviour
 {
     public static Inventory Instance { get; private set; }
-    private List<Item> inventoryWeapons;
+    public List<Item> inventoryWeapons;
     private List<Item> inventoryConsumables;
     private List<Skill> inventorySkills;
 
     private List<GameObject> inventoryPets;
+
+    public List<int> shortcutWeaponIndexes;
+
+    private bool isDirty = false;
+    public void MarkAsDirty() => isDirty = true;
+    public bool HasChanges() => isDirty;
+    public void ClearDirtyFlag() => isDirty = false;
 
     private void Awake()
     {
@@ -22,6 +29,7 @@ public class Inventory : MonoBehaviour
             inventoryConsumables = new List<Item>();
             inventoryPets = new List<GameObject>();
             inventorySkills = new List<Skill>();
+            shortcutWeaponIndexes = new List<int>();
         }
         else
         {
@@ -133,5 +141,74 @@ public class Inventory : MonoBehaviour
         inventoryPets.Clear();
 
         Debug.Log("Inventory cleared.");
+    }
+
+    public void ClearShortcutItem(int index)
+    {
+        if (index >= 0 && index < shortcutWeaponIndexes.Count)
+        {
+            shortcutWeaponIndexes[index] = -1;
+        }
+    }
+    public void AssignWeaponToShortcut(int weaponIndex, int shortcutSlot)
+    {
+        if (!IsValidIndex(weaponIndex, inventoryWeapons)) return;
+
+        // Se till att listan är lika lång som vapenantalet
+        while (shortcutWeaponIndexes.Count < inventoryWeapons.Count)
+        {
+            shortcutWeaponIndexes.Add(-1);
+        }
+
+        // Rensa tidigare slot som använde denna plats
+        for (int i = 0; i < shortcutWeaponIndexes.Count; i++)
+        {
+            if (shortcutWeaponIndexes[i] == shortcutSlot)
+            {
+                shortcutWeaponIndexes[i] = -1;
+            }
+        }
+
+        // Tilldela slotten till rätt vapen
+        shortcutWeaponIndexes[weaponIndex] = shortcutSlot;
+
+        Debug.Log($"🗂️ Weapon index {weaponIndex} assigned to shortcut slot {shortcutSlot}.");
+    }
+
+    public void SwapWeapons(int indexA, int indexB)
+    {
+        if (IsValidIndex(indexA, inventoryWeapons) && IsValidIndex(indexB, inventoryWeapons))
+        {
+            // Byt vapnen
+            (inventoryWeapons[indexA], inventoryWeapons[indexB]) = (inventoryWeapons[indexB], inventoryWeapons[indexA]);
+
+            // Justera shortcutIndex-listan så att shortcutslotarna följer med rätt vapen
+            int tmpSlot = shortcutWeaponIndexes[indexA];
+            shortcutWeaponIndexes[indexA] = shortcutWeaponIndexes[indexB];
+            shortcutWeaponIndexes[indexB] = tmpSlot;
+
+            Debug.Log($"🔁 Swapped weapons at {indexA} and {indexB}, including shortcut mapping.");
+        }
+    }
+
+    public void SwapConsumables(int indexA, int indexB)
+    {
+        if (IsValidIndex(indexA, inventoryConsumables) && IsValidIndex(indexB, inventoryConsumables))
+        {
+            (inventoryConsumables[indexA], inventoryConsumables[indexB]) = (inventoryConsumables[indexB], inventoryConsumables[indexA]);
+        }
+    }
+
+    public void SwapPets(int indexA, int indexB)
+    {
+        if (IsValidIndex(indexA, inventoryPets) && IsValidIndex(indexB, inventoryPets))
+        {
+            (inventoryPets[indexA], inventoryPets[indexB]) = (inventoryPets[indexB], inventoryPets[indexA]);
+        }
+    }
+
+    private bool IsValidIndex<T>(int index, List<T> list)
+    {
+        return index >= 0 && index < list.Count;
     }
 }

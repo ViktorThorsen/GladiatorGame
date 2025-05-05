@@ -662,11 +662,11 @@ public class GameManager : MonoBehaviour
 
     private PlayerAction DeterminePlayerAction(int roll)
     {
-        if (roll >= 50 && inventoryBattleHandler.GetCombatConsumableInventory().Count > 0)
+        if (roll >= 70 && inventoryBattleHandler.GetCombatConsumableInventory().Count > 0)
         {
             return PlayerAction.UseConsumable;
         }
-        else if (roll < 50 && inventoryBattleHandler.GetCombatWeaponInventory().Count > 0 && !inventoryBattleHandler.IsWeaponEquipped)
+        else if (roll < 70 && inventoryBattleHandler.GetCombatWeaponInventory().Count > 0 && !inventoryBattleHandler.IsWeaponEquipped)
         {
             return PlayerAction.EquipWeapon;
         }
@@ -707,6 +707,8 @@ public class GameManager : MonoBehaviour
             if (winnerTag == "Player")
             {
                 FightData.Instance.AddFightResultWinOrLoss(true);
+                FightData.Instance.AddFightResultLand(ChooseLandsManager.Instance.ChoosedLand);
+                FightData.Instance.AddFightResultStage(MonsterHuntManager.Instance.selectedStage);
             }
             else { FightData.Instance.AddFightResultWinOrLoss(false); }
 
@@ -745,8 +747,17 @@ public class GameManager : MonoBehaviour
             // Get the Image component from the slot
             Image slotImage = newSlot.GetComponent<Image>();
 
-            // Set the sprite of the image to the item's sprite
-            slotImage.sprite = item.itemSprite;
+            if (item != null)
+            {
+                // Set the sprite of the image to the item's sprite
+                slotImage.sprite = item.itemSprite;
+            }
+            else
+            {
+                // Inget vapen i denna slot, gör den t.ex. grå eller transparent
+                slotImage.sprite = null;
+                slotImage.color = new Color(1f, 1f, 1f, 0.3f); // halvtransparent grå
+            }
         }
         foreach (Item item in inventoryBattleHandler.GetCombatConsumableInventory())
         {

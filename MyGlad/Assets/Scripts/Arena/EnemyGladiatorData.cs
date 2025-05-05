@@ -241,6 +241,7 @@ public class EnemyGladiatorData : MonoBehaviour
         };
 
 
+
         CharacterWrapper wrapper = new CharacterWrapper
         {
             character = data,
@@ -335,6 +336,26 @@ public class EnemyGladiatorData : MonoBehaviour
             {
                 var weapon = itemDataBase.GetWeaponByName(weaponName);
                 if (weapon != null) EnemyInventory.Instance.AddWeaponToInventory(weapon);
+            }
+            if (data.shortcuts?.shortcuts != null)
+            {
+                EnemyInventory.Instance.shortcutWeaponIndexes = Enumerable.Repeat(-1, EnemyInventory.Instance.GetWeapons().Count).ToList();
+
+                // Bygg om shortcut-listan med namn-matchning
+                foreach (var shortcut in data.shortcuts.shortcuts)
+                {
+                    string weaponName = shortcut.weaponName;
+                    int shortcutSlot = shortcut.slotIndex;
+
+                    int weaponIndex = EnemyInventory.Instance.GetWeapons()
+                        .FindIndex(w => w.itemName == weaponName);
+
+                    if (weaponIndex != -1)
+                    {
+                        EnemyInventory.Instance.shortcutWeaponIndexes[weaponIndex] = shortcutSlot;
+                        Debug.Log($"🔁 Loaded shortcut: weapon '{weaponName}' → slot {shortcutSlot}");
+                    }
+                }
             }
 
             foreach (string consumableName in data.consumables.consumableNames)

@@ -9,6 +9,7 @@ public class EnemyInventory : MonoBehaviour
     private List<Skill> inventorySkills;
 
     private List<GameObject> inventoryPets;
+    public List<int> shortcutWeaponIndexes;
 
     private void Awake()
     {
@@ -22,6 +23,8 @@ public class EnemyInventory : MonoBehaviour
             inventoryConsumables = new List<Item>();
             inventoryPets = new List<GameObject>();
             inventorySkills = new List<Skill>();
+            shortcutWeaponIndexes = new List<int>();
+
         }
         else
         {

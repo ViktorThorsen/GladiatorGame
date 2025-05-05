@@ -55,11 +55,40 @@ public class CharacterWrapper
     public PetDataSerializable pets;
     public WeaponDataSerializable weapons;
     public ConsumableDataSerializable consumables;
+    public ShortcutDataSerializable shortcuts;
 
+}
+public class CharacterIdDTO
+{
+    public int characterId;
 }
 
 public class LinkCharacterRequest
 {
     public int userId;
     public int characterId;
+}
+
+public class EnergyResponse
+{
+    public int id;
+    public int energy;
+}
+
+public class UpdateMonsterHuntStageDTO
+{
+    public int characterId;
+    public string map;
+    public int newStage;
+}
+
+public class ShortcutDataSerializable
+{
+    public List<ShortcutEntrySerializable> shortcuts;
+}
+
+public class ShortcutEntrySerializable
+{
+    public int slotIndex;
+    public string weaponName;
 }

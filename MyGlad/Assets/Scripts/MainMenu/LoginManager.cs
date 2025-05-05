@@ -8,7 +8,6 @@ using System.Collections;
 
 public class LoginManager : MonoBehaviour
 {
-
     [System.Serializable]
     public class LoginRequest
     {
@@ -22,9 +21,11 @@ public class LoginManager : MonoBehaviour
         public int id;
     }
 
+    public GameObject loadingPanel;
 
     public void LoginWithGoogle()
     {
+        loadingPanel.SetActive(true); // Visa Loading
         StartCoroutine(LoginCoroutine());
     }
 
@@ -50,14 +51,15 @@ public class LoginManager : MonoBehaviour
             PlayerPrefs.SetInt("id", response.id);
             PlayerPrefs.Save();
 
-            // 💤 LÄGG TILL LITEN DELAY
+            // 💤 LÄGG LITEN DELAY
             yield return new WaitForSeconds(0.2f);
 
-            AuthChecker.instance.StartCheck();
+            AuthChecker.instance.StartCheck(loadingPanel);
         }
         else
         {
             Debug.LogError("❌ Login misslyckades: " + www.error);
+            loadingPanel.SetActive(false); // Göm loading om misslyckad login
         }
     }
 

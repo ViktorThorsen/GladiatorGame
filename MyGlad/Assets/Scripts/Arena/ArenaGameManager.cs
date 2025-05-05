@@ -826,11 +826,11 @@ public class ArenaGameManager : MonoBehaviour
 
     private PlayerAction DeterminePlayerAction(int roll)
     {
-        if (roll >= 50 && inventoryBattleHandler.GetCombatConsumableInventory().Count > 0)
+        if (roll >= 70 && inventoryBattleHandler.GetCombatConsumableInventory().Count > 0)
         {
             return PlayerAction.UseConsumable;
         }
-        else if (roll < 50 && inventoryBattleHandler.GetCombatWeaponInventory().Count > 0 && !inventoryBattleHandler.IsWeaponEquipped)
+        else if (roll < 70 && inventoryBattleHandler.GetCombatWeaponInventory().Count > 0 && !inventoryBattleHandler.IsWeaponEquipped)
         {
             return PlayerAction.EquipWeapon;
         }

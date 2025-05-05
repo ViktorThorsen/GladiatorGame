@@ -29,6 +29,11 @@ public class ChooseCharacterManager : MonoBehaviour
 
     void Start()
     {
+        if (CharacterData.Instance != null)
+        {
+            Destroy(CharacterData.Instance.gameObject);
+        }
+
         StartCoroutine(LoadCharacters());
     }
 

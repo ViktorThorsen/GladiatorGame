@@ -11,6 +11,8 @@ public class BackgroundMusicManager : MonoBehaviour
     public AudioClip menuMusic;  // Ljudklipp för huvudmenyn
     public AudioClip battleMusic;  // Ljudklipp för spelet
     public AudioClip battle1Music;
+    public AudioClip battle2Music;
+    public AudioClip battle3Music;
     // You can add more clips for additional scenes if necessary
     public AudioClip levelUpMusic;
     public AudioClip arenaManagerMusic;
@@ -59,7 +61,7 @@ public class BackgroundMusicManager : MonoBehaviour
 
         audioSource.volume = normalVolume;
         AudioClip[] menuClips = new AudioClip[] { storyMusic, story2Music, ThemeViol, ThemeViol2, ThemeViol3 };
-        AudioClip[] arenaClips = new AudioClip[] { battleMusic, battle1Music };
+        AudioClip[] arenaClips = new AudioClip[] { battleMusic, battle1Music, battle2Music, battle3Music };
         switch (scene.name)
         {
 

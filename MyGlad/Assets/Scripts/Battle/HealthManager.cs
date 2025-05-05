@@ -10,7 +10,7 @@ using Cinemachine;
 public class HealthManager : MonoBehaviour
 {
     private Animator anim;
-    private int maxHealth;
+    public int maxHealth;
     private int currentHealth;
     private ParticleSystem hitParticles;
     private Transform hitParticleTransform;

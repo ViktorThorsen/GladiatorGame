@@ -6,8 +6,6 @@ public class BackgroundImageDataBase : ScriptableObject
 {
     [SerializeField] private BattleBackground[] BattleBackgrounds;
 
-
-
     public int GetBattleBackgroundsCount()
     {
         return BattleBackgrounds.Length; // Use Length instead of Count for arrays

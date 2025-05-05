@@ -6,6 +6,7 @@ using UnityEngine.Networking;
 using System.Text;
 using System.Threading.Tasks;
 using System.Collections;
+using System;
 public class CharacterData : MonoBehaviour
 {
     public static CharacterData Instance { get; private set; }
@@ -251,6 +252,15 @@ public class CharacterData : MonoBehaviour
         {
             consumableNames = Inventory.Instance.GetConsumables().Select(consumable => consumable.itemName).ToList()
         };
+        ShortcutDataSerializable shortcutData = new ShortcutDataSerializable
+        {
+            shortcuts = Inventory.Instance.shortcutWeaponIndexes
+    .Select((slotIndex, i) => slotIndex != -1
+        ? new ShortcutEntrySerializable { slotIndex = slotIndex, weaponName = Inventory.Instance.GetWeapons()[i].itemName }
+        : null)
+    .Where(entry => entry != null)
+    .ToList()
+        };
 
         CharacterWrapper wrapper = new CharacterWrapper
         {
@@ -260,6 +270,8 @@ public class CharacterData : MonoBehaviour
             pets = petData,
             weapons = weaponData,
             consumables = consumableData,
+            shortcuts = shortcutData
+
         };
         Debug.Log("still saving character");
         string json = JsonConvert.SerializeObject(wrapper);
@@ -317,13 +329,14 @@ public class CharacterData : MonoBehaviour
     }
 
 
-    public IEnumerator LoadCharacterFromBackend(ItemDataBase itemDataBase, PetDataBase petDataBase, SkillDataBase skillDataBase)
+    public IEnumerator LoadCharacterFromBackend(ItemDataBase itemDataBase, PetDataBase petDataBase, SkillDataBase skillDataBase, Action<bool> onComplete)
     {
-        yield return StartCoroutine(LoadCharacterCoroutine(itemDataBase, petDataBase, skillDataBase));
+        yield return StartCoroutine(LoadCharacterCoroutine(itemDataBase, petDataBase, skillDataBase, onComplete));
     }
 
-    private IEnumerator LoadCharacterCoroutine(ItemDataBase itemDataBase, PetDataBase petDataBase, SkillDataBase skillDataBase)
+    private IEnumerator LoadCharacterCoroutine(ItemDataBase itemDataBase, PetDataBase petDataBase, SkillDataBase skillDataBase, Action<bool> onComplete)
     {
+
         int characterId = PlayerPrefs.GetInt("characterId");
         UnityWebRequest request = UnityWebRequest.Get($"http://localhost:5000/api/characters/{characterId}");
         request.SetRequestHeader("Content-Type", "application/json");
@@ -381,6 +394,26 @@ public class CharacterData : MonoBehaviour
                 var weapon = itemDataBase.GetWeaponByName(weaponName);
                 if (weapon != null) Inventory.Instance.AddWeaponToInventory(weapon);
             }
+            if (data.shortcuts?.shortcuts != null)
+            {
+                Inventory.Instance.shortcutWeaponIndexes = Enumerable.Repeat(-1, Inventory.Instance.GetWeapons().Count).ToList();
+
+                // Bygg om shortcut-listan med namn-matchning
+                foreach (var shortcut in data.shortcuts.shortcuts)
+                {
+                    string weaponName = shortcut.weaponName;
+                    int shortcutSlot = shortcut.slotIndex;
+
+                    int weaponIndex = Inventory.Instance.GetWeapons()
+                        .FindIndex(w => w.itemName == weaponName);
+
+                    if (weaponIndex != -1)
+                    {
+                        Inventory.Instance.shortcutWeaponIndexes[weaponIndex] = shortcutSlot;
+                        Debug.Log($"🔁 Loaded shortcut: weapon '{weaponName}' → slot {shortcutSlot}");
+                    }
+                }
+            }
 
             foreach (string consumableName in data.consumables.consumableNames)
             {
@@ -389,98 +422,57 @@ public class CharacterData : MonoBehaviour
             }
 
             Debug.Log("Character loaded from backend.");
+            onComplete?.Invoke(true);
         }
         else
         {
             Debug.LogError("Failed to load character: " + request.error);
+            onComplete?.Invoke(false);
         }
     }
-    /*
-    public void LoadCharacterAndInventory(ItemDataBase itemDataBase, PetDataBase petDataBase, SkillDataBase skillDataBase, string fileName)
+    public IEnumerator FetchCharacterEnergy(Action<bool> onComplete)
     {
-        string filePath = Path.Combine(Application.persistentDataPath, fileName);
+        int id = PlayerPrefs.GetInt("characterId");
+        UnityWebRequest request = UnityWebRequest.Get($"http://localhost:5000/api/characters/energy?characterid={id}");
 
-        if (File.Exists(filePath))
+        string token = PlayerPrefs.GetString("jwt");
+        request.SetRequestHeader("Authorization", $"Bearer {token}");
+
+        yield return request.SendWebRequest();
+
+        if (request.result == UnityWebRequest.Result.Success)
         {
-            string json = File.ReadAllText(filePath);
-            CharacterDataSerializable data = JsonConvert.DeserializeObject<CharacterDataSerializable>(json);
+            var response = JsonUtility.FromJson<EnergyResponse>(request.downloadHandler.text);
+            Energy = response.energy;
 
-            // Apply character data
-            this.charName = data.charName;
-            this.level = data.level;
-            this.xp = data.xp;
-            this.health = data.health;
-            this.attackDamage = data.attackDamage;
-            this.lifeSteal = data.lifeSteal;
-            this.dodgeRate = data.dodgeRate;
-            this.critRate = data.critRate;
-            this.stunRate = data.stunRate;
-            this.initiative = data.initiative;
-            this.strength = data.strength;
-            this.agility = data.agility;
-            this.intellect = data.intellect;
-
-            // Clear the current inventory
-            Inventory.Instance.ClearInventory();
-
-            // Retrieve pets, skills, and items by name and add them back to the inventory
-            foreach (string petName in data.pets)
-            {
-                GameObject petPrefab = petDataBase.GetPetByName(petName);
-                if (petPrefab != null)
-                {
-                    Inventory.Instance.AddPetToInventory(petPrefab);
-                }
-                else
-                {
-                    Debug.LogWarning($"Pet not found: {petName}");
-                }
-            }
-
-            foreach (string skillName in data.skills)
-            {
-                Skill skill = skillDataBase.GetSkillByName(skillName);
-                if (skill != null)
-                {
-                    Inventory.Instance.AddSkillToInventory(skill);
-                }
-                else
-                {
-                    Debug.LogWarning($"Skill not found: {skillName}");
-                }
-            }
-
-            foreach (string itemName in data.weapons)
-            {
-                Item item = itemDataBase.GetWeaponByName(itemName);
-                if (item != null)
-                {
-                    Inventory.Instance.AddWeaponToInventory(item);
-                }
-                else
-                {
-                    Debug.LogWarning($"Item not found: {itemName}");
-                }
-            }
-
-            foreach (string consumableName in data.consumables)
-            {
-                Item consumable = itemDataBase.GetConsumableByName(consumableName); // Assuming consumables are items
-                if (consumable != null)
-                {
-                    Inventory.Instance.AddConsumableToInventory(consumable);
-                }
-                else
-                {
-                    Debug.LogWarning($"Consumable not found: {consumableName}");
-                }
-            }
-
-            Debug.Log("Character and inventory data loaded successfully.");
+            Debug.Log("⚡ Detta fick jag från fetchen i databasen: " + response.energy);
+            onComplete?.Invoke(true);
         }
         else
         {
-            Debug.LogWarning("Save file not found at " + filePath);
+            Debug.LogError("❌ Misslyckades hämta energi: " + request.error);
+            onComplete?.Invoke(false);
         }
-    }*/
+    }
+
+    public IEnumerator UseEnergyForMatch()
+    {
+        UnityWebRequest request = UnityWebRequest.PostWwwForm($"http://localhost:5000/api/characters/useenergy?characterid={id}", "");
+
+        string token = PlayerPrefs.GetString("jwt");
+        request.SetRequestHeader("Authorization", $"Bearer {token}");
+        request.SetRequestHeader("Content-Type", "application/json");
+
+        yield return request.SendWebRequest();
+
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            var response = JsonUtility.FromJson<EnergyResponse>(request.downloadHandler.text);
+            Debug.Log("✅ Energi använd! Ny energi: " + response.energy);
+        }
+        else
+        {
+            Debug.LogError("❌ Kunde inte använda energi: " + request.error);
+        }
+    }
 }

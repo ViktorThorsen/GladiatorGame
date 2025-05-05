@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
-using Unity.VisualScripting; // Use the correct namespace for UI Image components
+using UnityEngine.Networking;
 
 public class BaseManager : MonoBehaviour
 {
@@ -27,15 +27,17 @@ public class BaseManager : MonoBehaviour
 
     // Array to hold references to the UI item slots (assign in the Inspector)
     [SerializeField] private GameObject inventoryPopupPanel;
+    [SerializeField] private GameObject itemPrefab;
     [SerializeField] private GameObject statsPopupPanel;
     [SerializeField] private Image[] weaponSlots = new Image[12];
     [SerializeField] private Image[] consumableSlots = new Image[3];
     [SerializeField] private Image[] petSlots = new Image[3];
+    [SerializeField] private Image[] shortcutSlots = new Image[3];
 
     [SerializeField] private GameObject skillImagePrefab;
     [SerializeField] private Transform skillPanel;
 
-
+    [SerializeField] private GameObject loadingScreen;
 
 
     public GameObject characterPrefab;   // Reference to the character prefab
@@ -55,6 +57,15 @@ public class BaseManager : MonoBehaviour
 
     private IEnumerator InitCharacterAndUI()
     {
+        loadingScreen.SetActive(true);
+        if (MonsterHuntManager.Instance != null)
+        {
+            Destroy(MonsterHuntManager.Instance.gameObject);
+        }
+        if (ChooseLandsManager.Instance != null)
+        {
+            Destroy(ChooseLandsManager.Instance.gameObject);
+        }
         string token = PlayerPrefs.GetString("jwt", null);
         int userid = PlayerPrefs.GetInt("id");
         if (!string.IsNullOrEmpty(token))
@@ -72,7 +83,20 @@ public class BaseManager : MonoBehaviour
                 // 🔁 Vänta en frame så att Awake() hinner köras
                 yield return null;
 
-                yield return StartCoroutine(CharacterData.Instance.LoadCharacterFromBackend(itemDataBase, petDataBase, skillDataBase));
+                bool loadSuccess = false;
+                yield return StartCoroutine(CharacterData.Instance.LoadCharacterFromBackend(
+                    itemDataBase,
+                    petDataBase,
+                    skillDataBase,
+                    success => loadSuccess = success
+                ));
+
+                if (!loadSuccess)
+                {
+                    Debug.LogWarning("❌ Kunde inte ladda karaktärsdata – loggar ut.");
+                    SceneController.instance.Logout();
+                    yield break;
+                }
             }
             if (FightData.Instance == null)
             {
@@ -106,7 +130,10 @@ public class BaseManager : MonoBehaviour
                 DRText.text += CharacterData.Instance.DodgeRate.ToString();
                 CRText.text += CharacterData.Instance.CritRate.ToString();
                 SRText.text += CharacterData.Instance.StunRate.ToString();
-                energyText.text = CharacterData.Instance.Energy.ToString();
+            }
+            else
+            {
+                SceneController.instance.Logout();
             }
 
             UpdateXpBar();
@@ -116,18 +143,53 @@ public class BaseManager : MonoBehaviour
             {
                 UpdatePetSlots();
             }
-            SaveCharacter();
+            Debug.Log("Innan Energy fetch " + CharacterData.Instance.Energy);
+            bool energySuccess = false;
+            yield return StartCoroutine(CharacterData.Instance.FetchCharacterEnergy(success => energySuccess = success));
+
+            if (!energySuccess)
+            {
+                Debug.LogWarning("❌ Energin kunde inte hämtas – loggar ut.");
+                SceneController.instance.Logout();
+                yield break;
+            }
+
+            energyText.text = $"{CharacterData.Instance.Energy} / 10";
+            yield return StartCoroutine(SaveCharacter());
+
         }
         else
         {
             Debug.LogWarning("❌ Ingen JWT hittades, visa login");
+            SceneController.instance.Logout();
         }
+        loadingScreen.SetActive(false);
     }
 
     public void ToggleInventoryPopup()
     {
         bool isActive = inventoryPopupPanel.activeSelf;
-        inventoryPopupPanel.SetActive(!isActive);
+
+        if (isActive)
+        {
+            // Om panelen ska stängas, kör save-koll
+            OnCloseInventory();
+        }
+        else
+        {
+            inventoryPopupPanel.SetActive(true);
+        }
+    }
+
+    public void OnCloseInventory()
+    {
+        inventoryPopupPanel.SetActive(false);
+
+        if (Inventory.Instance.HasChanges())
+        {
+            StartCoroutine(SaveCharacter());
+            Inventory.Instance.ClearDirtyFlag();
+        }
     }
 
     public void ToggleStatsPopup()
@@ -136,12 +198,15 @@ public class BaseManager : MonoBehaviour
         statsPopupPanel.SetActive(!isActive);
     }
 
-    public void SaveCharacter()
+
+
+
+    public IEnumerator SaveCharacter()
     {
         if (CharacterData.Instance != null)
         {
             Debug.Log("Saving character data...");
-            StartCoroutine(SaveAndLinkCharacter());
+            yield return StartCoroutine(SaveAndLinkCharacter());
         }
         else
         {
@@ -160,14 +225,38 @@ public class BaseManager : MonoBehaviour
         ));
 
         Debug.Log("Character linked to user!");
+        yield return StartCoroutine(AddCharacterMonsterHuntInfo(PlayerPrefs.GetInt("characterId")));
     }
 
-    public void OnLoadButtonClick()
+    public IEnumerator AddCharacterMonsterHuntInfo(int characterId)
     {
-        if (CharacterData.Instance != null)
+        CharacterIdDTO data = new CharacterIdDTO { characterId = characterId };
+        string json = JsonUtility.ToJson(data);
+        byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(json);
+
+        UnityWebRequest request = UnityWebRequest.PostWwwForm("http://localhost:5000/api/monsterhunt", "");
+        request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+        request.downloadHandler = new DownloadHandlerBuffer();
+        request.SetRequestHeader("Content-Type", "application/json");
+
+        string token = PlayerPrefs.GetString("jwt");
+        request.SetRequestHeader("Authorization", $"Bearer {token}");
+
+        yield return request.SendWebRequest();
+
+        if (request.result == UnityWebRequest.Result.Success)
         {
-            CharacterData.Instance.LoadCharacterFromBackend(itemDataBase, petDataBase, skillDataBase); // Load the data
+            Debug.Log("✅ Monster Hunt skapad: " + request.downloadHandler.text);
         }
+        else
+        {
+            Debug.LogError("❌ Misslyckades: " + request.error);
+        }
+    }
+
+    public void OnSwitchCharacterButtonClick()
+    {
+        SceneController.instance.LoadScene("ChooseCharacter"); // Load the character selection scene
     }
 
     // Method to update the inventory slots in the UI
@@ -182,18 +271,30 @@ public class BaseManager : MonoBehaviour
             // Loop through the inventory items and assign to slots
             for (int i = 0; i < weaponSlots.Length; i++)
             {
-                // If there's an item at this index, assign its sprite to the slot
+                Transform slot = weaponSlots[i].transform;
+
+                // 🧹 Rensa tidigare items i slotten
+                foreach (Transform child in slot)
+                {
+                    Destroy(child.gameObject);
+                }
+
+                // 🪄 Lägg till nytt item om det finns
                 if (i < weaponItems.Count)
                 {
                     Item item = weaponItems[i];
-                    weaponSlots[i].sprite = item.itemIcon;
-                    weaponSlots[i].color = new Color(1, 1, 1, 1); // Make the slot fully visible
-                }
-                else
-                {
-                    // Clear the slot if there's no corresponding item
-                    weaponSlots[i].sprite = null;
-                    weaponSlots[i].color = new Color(60f / 255f, 47f / 255f, 47f / 255f, 0f);
+
+                    GameObject itemObj = Instantiate(itemPrefab, slot);
+                    itemObj.transform.localPosition = Vector3.zero;
+
+                    Image img = itemObj.GetComponent<Image>();
+                    img.sprite = item.itemIcon;
+
+                    ItemUI itemUI = itemObj.GetComponent<ItemUI>();
+                    if (itemUI != null)
+                    {
+                        itemUI.Item = item;
+                    }
                 }
             }
             for (int i = 0; i < consumableSlots.Length; i++)
@@ -228,6 +329,38 @@ public class BaseManager : MonoBehaviour
 
                 // Set the sprite of the image to the item's sprite
                 slotImage.sprite = skill.skillIcon;
+            }
+            if (Inventory.Instance.shortcutWeaponIndexes.Count == Inventory.Instance.GetWeapons().Count)
+            {
+                for (int weaponIndex = 0; weaponIndex < Inventory.Instance.shortcutWeaponIndexes.Count; weaponIndex++)
+                {
+                    int shortcutSlot = Inventory.Instance.shortcutWeaponIndexes[weaponIndex];
+
+                    if (shortcutSlot >= 0 && shortcutSlot < shortcutSlots.Length)
+                    {
+                        foreach (Transform child in shortcutSlots[shortcutSlot].transform)
+                        {
+                            Destroy(child.gameObject);
+                        }
+
+                        Item item = Inventory.Instance.GetWeapons()[weaponIndex];
+                        GameObject itemObj = Instantiate(itemPrefab, shortcutSlots[shortcutSlot].transform);
+                        itemObj.transform.localPosition = Vector3.zero;
+
+                        Image img = itemObj.GetComponent<Image>();
+                        img.sprite = item.itemIcon;
+
+                        ItemUI itemUI = itemObj.GetComponent<ItemUI>();
+                        if (itemUI != null)
+                        {
+                            itemUI.Item = item;
+                        }
+
+                        Destroy(itemObj.GetComponent<ItemDragHandler>());
+                        var cg = itemObj.GetComponent<CanvasGroup>();
+                        if (cg != null) Destroy(cg);
+                    }
+                }
             }
         }
     }

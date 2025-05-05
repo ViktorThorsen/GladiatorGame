@@ -1,5 +1,6 @@
 using Npgsql;
 namespace server;
+using Microsoft.AspNetCore.Mvc;
 
 public class CharacterRoutes
 {
@@ -10,7 +11,8 @@ public class CharacterRoutes
     }
 
     public record CharacterWrapperDTO(
-        CharacterDTO character, CharacterBodyPartsDTO bodyPartLabels, SkillsDTO skills, PetsDTO pets, WeaponsDTO weapons, ConsumablesDTO consumables
+        CharacterDTO character, CharacterBodyPartsDTO bodyPartLabels, SkillsDTO skills,
+        PetsDTO pets, WeaponsDTO weapons, ConsumablesDTO consumables, ShortcutDTO shortcuts
     );
 
     public record CharacterDTO(
@@ -34,6 +36,14 @@ public class CharacterRoutes
     public record ConsumablesDTO(
         List<string> consumableNames
     );
+    public record ShortcutDTO(
+    List<ShortcutEntry> shortcuts
+);
+
+    public record ShortcutEntry(
+        int slotIndex,
+        string weaponName
+    );
 
     public static async Task<int> AddCharacter(CharacterWrapperDTO wrapper, NpgsqlDataSource db)
     {
@@ -44,8 +54,7 @@ public class CharacterRoutes
             using var checkCmd = db.CreateCommand("SELECT id FROM characters WHERE name = @name");
             checkCmd.Parameters.AddWithValue("name", wrapper.character.charName);
 
-
-            using (var reader = await checkCmd.ExecuteReaderAsync())
+            await using (var reader = await checkCmd.ExecuteReaderAsync())
             {
                 if (await reader.ReadAsync())
                     characterId = reader.GetInt32(0);
@@ -105,7 +114,7 @@ public class CharacterRoutes
                 cmd.Parameters.AddWithValue(wrapper.character.intellect);
 
 
-                using (var reader = await cmd.ExecuteReaderAsync())
+                await using (var reader = await cmd.ExecuteReaderAsync())
                 {
                     if (await reader.ReadAsync())
                         characterId = reader.GetInt32(0);
@@ -152,7 +161,7 @@ public class CharacterRoutes
                     getSkillIdCmd.Parameters.AddWithValue("name", skillName);
 
                     int skillId;
-                    using (var reader = await getSkillIdCmd.ExecuteReaderAsync())
+                    await using (var reader = await getSkillIdCmd.ExecuteReaderAsync())
                     {
                         if (!await reader.ReadAsync())
                         {
@@ -192,7 +201,7 @@ public class CharacterRoutes
                     getPetIdCmd.Parameters.AddWithValue("name", petName);
 
                     int petId;
-                    using (var reader = await getPetIdCmd.ExecuteReaderAsync())
+                    await using (var reader = await getPetIdCmd.ExecuteReaderAsync())
                     {
                         if (!await reader.ReadAsync())
                         {
@@ -227,31 +236,44 @@ public class CharacterRoutes
 
             if (wrapper.weapons?.weaponNames is { Count: > 0 })
             {
-                foreach (var weaponName in wrapper.weapons.weaponNames)
+                for (int i = 0; i < wrapper.weapons.weaponNames.Count; i++)
                 {
-                    Console.WriteLine("Processing weapon: " + weaponName);
+                    string weaponName = wrapper.weapons.weaponNames[i];
 
-                    using var getWeaponIdCmd = db.CreateCommand(@"
-            SELECT id FROM weapons WHERE name = @name");
+                    using var getWeaponIdCmd = db.CreateCommand("SELECT id FROM weapons WHERE name = @name");
                     getWeaponIdCmd.Parameters.AddWithValue("name", weaponName);
 
                     int weaponId;
-                    using (var reader = await getWeaponIdCmd.ExecuteReaderAsync())
+                    await using (var reader = await getWeaponIdCmd.ExecuteReaderAsync())
                     {
                         if (!await reader.ReadAsync())
                         {
-                            Console.WriteLine($"Weapon '{weaponName}' not found in weapons table.");
-                            continue; // hoppa över om den inte finns
+                            Console.WriteLine($"❌ Weapon '{weaponName}' not found.");
+                            continue;
                         }
                         weaponId = reader.GetInt32(0);
                     }
 
-                    // 2. Lägg in i characterxskills
+                    // 🔍 Hitta om detta vapen finns i någon shortcut-slot
+                    int shortcutSlot = -1;
+                    if (wrapper.shortcuts?.shortcuts is { Count: > 0 })
+                    {
+                        foreach (var entry in wrapper.shortcuts.shortcuts)
+                        {
+                            if (entry.weaponName == weaponName) // matcha på namn, inte index
+                            {
+                                shortcutSlot = entry.slotIndex;
+                                break;
+                            }
+                        }
+                    }
+
                     using var insertWeaponCmd = db.CreateCommand(@"
-            INSERT INTO characterxweapons (character, weapon)
-            VALUES (@charId, @weaponId)");
+            INSERT INTO characterxweapons (character, weapon, shortcut)
+            VALUES (@charId, @weaponId, @shortcut)");
                     insertWeaponCmd.Parameters.AddWithValue("charId", characterId);
                     insertWeaponCmd.Parameters.AddWithValue("weaponId", weaponId);
+                    insertWeaponCmd.Parameters.AddWithValue("shortcut", shortcutSlot);
 
                     await insertWeaponCmd.ExecuteNonQueryAsync();
                 }
@@ -277,7 +299,7 @@ public class CharacterRoutes
                     getConsumableIdCmd.Parameters.AddWithValue("name", consumableName);
 
                     int consumableId;
-                    using (var reader = await getConsumableIdCmd.ExecuteReaderAsync())
+                    await using (var reader = await getConsumableIdCmd.ExecuteReaderAsync())
                     {
                         if (!await reader.ReadAsync())
                         {
@@ -345,7 +367,7 @@ public class CharacterRoutes
 
         using var cmd = db.CreateCommand("SELECT name FROM public.characters ORDER BY name ASC"); // sorterat för enkelhets skull
 
-        using var reader = await cmd.ExecuteReaderAsync();
+        await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
             characterNames.Add(reader.GetString(0));
@@ -394,7 +416,7 @@ public class CharacterRoutes
                             FROM public.characters WHERE id = @id";
             cmd.Parameters.AddWithValue("id", characterId);
 
-            using var reader = await cmd.ExecuteReaderAsync();
+            await using var reader = await cmd.ExecuteReaderAsync();
             if (!await reader.ReadAsync())
                 return Results.NotFound("Character not found.");
 
@@ -420,8 +442,9 @@ public class CharacterRoutes
             var pets = await GetPets(db, characterId);
             var weapons = await GetWeapons(db, characterId);
             var consumables = await GetConsumables(db, characterId);
+            var shortcuts = await GetShortcuts(db, characterId);
 
-            var wrapper = new CharacterWrapperDTO(character, bodyParts, skills, pets, weapons, consumables);
+            var wrapper = new CharacterWrapperDTO(character, bodyParts, skills, pets, weapons, consumables, shortcuts);
 
 
             return Results.Json(wrapper);
@@ -438,7 +461,7 @@ public class CharacterRoutes
 
         cmd.Parameters.AddWithValue("charId", characterId);
 
-        using var reader = await cmd.ExecuteReaderAsync();
+        await using var reader = await cmd.ExecuteReaderAsync();
         if (await reader.ReadAsync())
         {
             return new CharacterBodyPartsDTO(
@@ -450,6 +473,29 @@ public class CharacterRoutes
         }
 
         return new CharacterBodyPartsDTO("", "", "", "");
+    }
+    private static async Task<ShortcutDTO> GetShortcuts(NpgsqlDataSource db, int characterId)
+    {
+        var list = new List<ShortcutEntry>();
+
+        await using var cmd = db.CreateCommand(@"
+        SELECT cw.shortcut, w.name
+        FROM characterxweapons cw
+        JOIN weapons w ON cw.weapon = w.id
+        WHERE cw.character = @charId AND cw.shortcut >= 0
+    ");
+        cmd.Parameters.AddWithValue("charId", characterId);
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            int slotIndex = reader.GetInt32(0);         // shortcut position
+            string weaponName = reader.GetString(1);    // weapon name
+
+            list.Add(new ShortcutEntry(slotIndex, weaponName));
+        }
+
+        return new ShortcutDTO(list);
     }
 
     private static async Task<SkillsDTO> GetSkills(NpgsqlDataSource db, int characterId)
@@ -464,7 +510,7 @@ public class CharacterRoutes
 
         cmd.Parameters.AddWithValue("charId", characterId);
 
-        using var reader = await cmd.ExecuteReaderAsync();
+        await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
             skills.Add(reader.GetString(0));
@@ -485,7 +531,7 @@ public class CharacterRoutes
 
         cmd.Parameters.AddWithValue("charId", characterId);
 
-        using var reader = await cmd.ExecuteReaderAsync();
+        await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
             pets.Add(reader.GetString(0));
@@ -506,7 +552,7 @@ public class CharacterRoutes
 
         cmd.Parameters.AddWithValue("charId", characterId);
 
-        using var reader = await cmd.ExecuteReaderAsync();
+        await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
             weapons.Add(reader.GetString(0));
@@ -527,7 +573,7 @@ public class CharacterRoutes
 
         cmd.Parameters.AddWithValue("charId", characterId);
 
-        using var reader = await cmd.ExecuteReaderAsync();
+        await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
             consumables.Add(reader.GetString(0));
@@ -536,6 +582,76 @@ public class CharacterRoutes
         return new ConsumablesDTO(consumables);
     }
 
+    public record EnergyCharacterDTO(int id, int energy);
 
+    public static async Task<EnergyCharacterDTO> UpdateCharacterEnergy([FromQuery(Name = "characterid")] int characterId, NpgsqlDataSource db)
+    {
+        var now = DateTime.UtcNow;
+
+        await using var loadCmd = db.CreateCommand();
+        loadCmd.CommandText = @"SELECT energy, last_energy_update FROM characters WHERE id = @id";
+        loadCmd.Parameters.AddWithValue("id", characterId);
+
+        await using var reader = await loadCmd.ExecuteReaderAsync();
+
+        if (!await reader.ReadAsync())
+            throw new Exception("Character not found");
+
+        int currentEnergy = reader.GetInt32(0);
+        DateTime lastUpdate = reader.GetFieldValue<DateTime>(1);
+
+        // Beräkna hur mycket tid som gått
+        var timePassed = now - lastUpdate;
+        int energyRecovered = (int)(timePassed.TotalMinutes / 2);
+
+        currentEnergy = Math.Min(currentEnergy + energyRecovered, 10);
+
+        await using var updateCmd = db.CreateCommand();
+        updateCmd.CommandText = @"
+        UPDATE characters 
+        SET energy = @energy, last_energy_update = @updateTime
+        WHERE id = @id";
+
+        updateCmd.Parameters.AddWithValue("energy", currentEnergy);
+        updateCmd.Parameters.AddWithValue("updateTime", lastUpdate.AddMinutes(energyRecovered * 2));
+        updateCmd.Parameters.AddWithValue("id", characterId);
+
+        await updateCmd.ExecuteNonQueryAsync();
+
+        return new EnergyCharacterDTO(characterId, currentEnergy);
+    }
+
+    public static async Task<IResult> UseEnergy([FromQuery(Name = "characterid")] int characterId, NpgsqlDataSource db)
+    {
+        await using var loadCmd = db.CreateCommand();
+        loadCmd.CommandText = @"SELECT energy FROM characters WHERE id = @id";
+        loadCmd.Parameters.AddWithValue("id", characterId);
+
+        await using var reader = await loadCmd.ExecuteReaderAsync();
+
+        if (!await reader.ReadAsync())
+            return Results.NotFound("Character not found");
+
+        int currentEnergy = reader.GetInt32(0);
+
+        if (currentEnergy <= 0)
+        {
+            return Results.BadRequest("Not enough energy!");
+        }
+
+        int newEnergy = currentEnergy - 1;
+
+        await using var updateCmd = db.CreateCommand();
+        updateCmd.CommandText = @"
+    UPDATE characters
+    SET energy = @newEnergy
+    WHERE id = @id";
+        updateCmd.Parameters.AddWithValue("newEnergy", newEnergy);
+        updateCmd.Parameters.AddWithValue("id", characterId);
+
+        await updateCmd.ExecuteNonQueryAsync();
+
+        return Results.Json(new { id = characterId, energy = newEnergy });
+    }
 
 }

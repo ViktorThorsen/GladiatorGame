@@ -1,17 +1,18 @@
-using System;
 using System.Collections.Generic;
-using JetBrains.Annotations;
+using System.Text;
 using TMPro;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Networking;
+using System.Collections;
+
 
 public class RewardSystem : MonoBehaviour
 {
     [SerializeField] private ItemDataBase itemDataBase;
     [SerializeField] private MonsterDataBase monsterDataBase;
     [SerializeField] private PetDataBase petDataBase;
-    [SerializeField] private Image[] weaponSlots = new Image[12];
+    [SerializeField] private Image[] weaponSlots = new Image[20];
     [SerializeField] private Image[] consumableSlots = new Image[3];
     [SerializeField] private Image[] petSlots = new Image[3];
 
@@ -21,6 +22,9 @@ public class RewardSystem : MonoBehaviour
     [SerializeField] private GameObject rewardSlotPrefab;
     private bool isLastFightAWin;
     private string[] lastFightNames;
+
+    private string lastFightLand;
+    private int lastFightStage;
     private bool levelUP;
 
     private List<Item> rewardItems = new List<Item>();
@@ -52,7 +56,10 @@ public class RewardSystem : MonoBehaviour
             int rewardXP = GetXpReward();
             AddXpToCharacter(rewardXP);
             UpdateXpDisplay(rewardXP);
+            StartCoroutine(UpdateMonsterHuntStage(
+            CharacterData.Instance.Id, lastFightLand, lastFightStage + 1));
         }
+
         UpdateRewardsSlots();
 
     }
@@ -61,6 +68,10 @@ public class RewardSystem : MonoBehaviour
     {
         lastFightNames = FightData.Instance.GetLastFightResultNames();
         isLastFightAWin = FightData.Instance.GetLastFightResultWinOrLoss();
+        lastFightLand = FightData.Instance.GetLastFightResultLand();
+        lastFightStage = FightData.Instance.GetLastFightResultStage();
+        Debug.Log("lastfight land and stage: " + lastFightLand + lastFightStage);
+
     }
 
     public Item GetWeaponReward()
@@ -158,9 +169,10 @@ public class RewardSystem : MonoBehaviour
         foreach (Item item in rewardItems)
         {
             if (item.itemType == ItemType.OneHandWeapon || item.itemType == ItemType.TwoHandWeapon)
-                if (Inventory.Instance.GetWeapons().Count < 12)
+                if (Inventory.Instance.GetWeapons().Count < 20)
                 {
                     Inventory.Instance.AddWeaponToInventory(item);
+                    Inventory.Instance.shortcutWeaponIndexes.Add(-1);
                 }
                 else { }
             else if (item.itemType == ItemType.Consumable)
@@ -299,6 +311,41 @@ public class RewardSystem : MonoBehaviour
         {
 
             SceneController.instance.LoadScene("LevelUp");
+        }
+    }
+
+    public IEnumerator UpdateMonsterHuntStage(int characterId, string map, int newStage)
+    {
+        var dto = new UpdateMonsterHuntStageDTO
+        {
+            characterId = characterId,
+            map = map,
+            newStage = newStage
+        };
+
+        string json = JsonUtility.ToJson(dto);
+        Debug.Log("📦 JSON som skickas: " + json); // Kontrollera att den innehåller alla fält
+
+        byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
+
+        UnityWebRequest request = new UnityWebRequest("http://localhost:5000/api/monsterhunt", "PUT");
+        request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+        request.downloadHandler = new DownloadHandlerBuffer();
+        request.SetRequestHeader("Content-Type", "application/json");
+
+        string token = PlayerPrefs.GetString("jwt");
+        request.SetRequestHeader("Authorization", $"Bearer {token}");
+
+        yield return request.SendWebRequest();
+
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            Debug.Log("✅ Stage uppdaterades!");
+        }
+        else
+        {
+            Debug.LogError("❌ Misslyckades uppdatera stage: " + request.error);
+            Debug.Log("Svar från server: " + request.downloadHandler.text);
         }
     }
 }

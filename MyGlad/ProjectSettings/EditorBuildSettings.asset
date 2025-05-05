@@ -15,7 +15,7 @@ EditorBuildSettings:
     path: Assets/Scenes/Base.unity
     guid: ca4a61eec2975be4f9b0253c55fcbcaa
   - enabled: 1
-    path: Assets/Scenes/MonsterHunt.unity
+    path: Assets/Scenes/MonsterHuntForest.unity
     guid: 095cfea2497beef48bb555df9ff4b1d8
   - enabled: 1
     path: Assets/Scenes/Battle.unity
@@ -35,4 +35,22 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/ChooseCharacter.unity
     guid: c5df60c398edb0a42a3be9106c25326a
+  - enabled: 1
+    path: Assets/Scenes/ChooseLands.unity
+    guid: 7faf04ea07f3c094585868d455c30ece
+  - enabled: 1
+    path: Assets/Scenes/MonsterHuntFrostlands.unity
+    guid: 6a10512eb058c974da7d98cf53f31d9c
+  - enabled: 1
+    path: Assets/Scenes/MonsterHuntSavannah.unity
+    guid: 7d76a6c8b8892c04ebfb0d5bd7eb0fd1
+  - enabled: 1
+    path: Assets/Scenes/MonsterHuntJungle.unity
+    guid: f491285a8c80f8842b0f55d38665b954
+  - enabled: 1
+    path: Assets/Scenes/MonsterHuntSwamp.unity
+    guid: 6bfb609c487e43e40a9ed7990bc8219e
+  - enabled: 1
+    path: Assets/Scenes/MonsterHuntDesert.unity
+    guid: 55e99006e9a3cd842828a286a3cf6747
   m_configObjects: {}

@@ -45,6 +45,11 @@ app.MapGet("/api/characters/random", CharacterRoutes.GetRandomCharacterName);
 app.MapGet("/api/users/me", UserServiceRoutes.GetUserInfo).RequireAuthorization();
 app.MapGet("/api/user/characters", UserServiceRoutes.GetUserCharacters).RequireAuthorization();
 app.MapPost("/api/user/characters", CharacterRoutes.LinkCharacterToUser).RequireAuthorization();
+app.MapGet("/api/characters/energy", CharacterRoutes.UpdateCharacterEnergy).RequireAuthorization();
+app.MapPost("/api/characters/useenergy", CharacterRoutes.UseEnergy).RequireAuthorization();
+app.MapGet("/api/monsterhunt", MonsterHuntRoutes.GetMonsterHuntInfo).RequireAuthorization();
+app.MapPut("/api/monsterhunt", MonsterHuntRoutes.UpdateMonsterHuntStage).RequireAuthorization();
+app.MapPost("/api/monsterhunt", MonsterHuntRoutes.AddMonsterHuntInfo).RequireAuthorization();
 app.MapPost("/api/auth/google", (
     HttpRequest request,
     NpgsqlDataSource db,

@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6478961335050794fbd1bd02aedb4313, type: 3}
+  m_Name: ItemFrostSpear
+  m_EditorClassIdentifier: 
+  itemName: Frost Spear
+  itemIcon: {fileID: 0}
+  itemSprite: {fileID: 0}
+  equippedPositionOffset: {x: 0, y: 0, z: 0}
+  equippedRotation: {x: 0, y: 0, z: 0}
+  equippedScale: {x: 0, y: 0, z: 0}
+  description: 
+  itemType: 0
+  abilityType: 0
+  durability: 0
+  healthRestorationAmount: 0
+  strength: 0
+  agility: 0
+  intellect: 0
+  health: 0
+  attackDamage: 0
+  dodgeRate: 0
+  critRate: 0
+  stunRate: 0

@@ -11,6 +11,9 @@ public class FightData : MonoBehaviour
     private List<bool> fightHistoryWinOrLoss = new List<bool>();
     private List<string[]> fightHistoryNames = new List<string[]>();
 
+    private List<string> fightHistoryLand = new List<string>();
+    private List<int> fightHistoryStage = new List<int>();
+
     private void Awake()
     {
         if (Instance == null)
@@ -31,6 +34,14 @@ public class FightData : MonoBehaviour
     {
         fightHistoryNames.Add(names);
     }
+    public void AddFightResultLand(string land)
+    {
+        fightHistoryLand.Add(land);
+    }
+    public void AddFightResultStage(int stage)
+    {
+        fightHistoryStage.Add(stage);
+    }
 
     // Metod för att hämta alla stridsresultat
     public bool GetFightResultWinOrLoss(int index)
@@ -40,6 +51,14 @@ public class FightData : MonoBehaviour
     public string[] GetFightResultNames(int index)
     {
         return fightHistoryNames[index];
+    }
+    public string GetFightResultLand(int index)
+    {
+        return fightHistoryLand[index];
+    }
+    public int GetFightResultStage(int index)
+    {
+        return fightHistoryStage[index];
     }
     public string[] GetLastFightResultNames()
     {
@@ -63,6 +82,29 @@ public class FightData : MonoBehaviour
         else
         {
             return false; // Returnera false om det inte finns några strider (default)
+        }
+    }
+    public string GetLastFightResultLand()
+    {
+        if (fightHistoryLand.Count > 0)
+        {
+            return fightHistoryLand[fightHistoryLand.Count - 1]; // Hämta senaste vinst/förlust
+        }
+        else
+        {
+            return null; // Returnera false om det inte finns några strider (default)
+        }
+    }
+
+    public int GetLastFightResultStage()
+    {
+        if (fightHistoryStage.Count > 0)
+        {
+            return fightHistoryStage[fightHistoryStage.Count - 1]; // Hämta senaste vinst/förlust
+        }
+        else
+        {
+            return -1; // Returnera false om det inte finns några strider (default)
         }
     }
 

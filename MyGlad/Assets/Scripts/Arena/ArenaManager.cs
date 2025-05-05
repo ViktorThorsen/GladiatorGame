@@ -17,6 +17,8 @@ public class ArenaManager : MonoBehaviour
     [SerializeField] GameObject characterPrefab;
     [SerializeField] Transform parentObj;
 
+    [SerializeField] private GameObject loadingScreen;
+
     private void Awake()
     {
         if (Instance == null)
@@ -37,6 +39,7 @@ public class ArenaManager : MonoBehaviour
 
     private IEnumerator GetRandomNameAndLoadCharacter()
     {
+        loadingScreen.SetActive(true);
         int currentId = PlayerPrefs.GetInt("characterId");
         int randomId = currentId;
 
@@ -82,6 +85,7 @@ public class ArenaManager : MonoBehaviour
 
         // Ladda ny karaktär
         yield return StartCoroutine(LoadAndCreateGladiator(randomId));
+        loadingScreen.SetActive(false);
     }
 
     public void OnChangeCharacterButtonClicked()

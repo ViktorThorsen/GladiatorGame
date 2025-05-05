@@ -133,10 +133,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   monsterName: Pig
-  health: 25
-  attackDamage: 10
+  health: 50
+  attackDamage: 5
   lifeSteal: 0
-  dodgeRate: 0
+  dodgeRate: 1
   critRate: 1
   stunRate: 1
   initiative: 5

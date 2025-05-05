@@ -1029,7 +1029,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   monsterName: Duck
-  health: 400
+  health: 30
   attackDamage: 5
   lifeSteal: 0
   dodgeRate: 5
@@ -1037,7 +1037,7 @@ MonoBehaviour:
   stunRate: 0
   initiative: 0
   scale: {x: 0.3, y: 0.3, z: 1}
-  xpReward: 100
+  xpReward: 50
   itemreward: 0
 --- !u!1 &8446231648422537207
 GameObject:

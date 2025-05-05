@@ -19,6 +19,11 @@ public class InventoryBattleHandler : MonoBehaviour
     private List<Item> weaponInventory;
     private List<Item> consumableInventory;
 
+    private bool equipedFromShortcut0 = false;
+    private bool equipedFromShortcut1 = false;
+    private bool equipedFromShortcut2 = false;
+    private bool equipedFromShortcut3 = false;
+
 
     public List<Item> GetCombatWeaponInventory()
     {
@@ -109,16 +114,71 @@ public class InventoryBattleHandler : MonoBehaviour
         yield return new WaitForSeconds(delay);
 
         // Check if there are any available items in the combat inventory
-        if (weaponInventory.Count == 0)
+        if (weaponInventory.TrueForAll(w => w == null))
         {
             playerMovement.IsMoving = true;
             yield break;
         }
 
-        // Get a random item from the combat inventory
-        int randomIndex = Random.Range(0, weaponInventory.Count);
-        Item itemToEquip = weaponInventory[randomIndex];
+        Item itemToEquip = null;
+        int indexToRemove = -1;
 
+
+        // Kontrollera lägst tröskel först (25%)
+        if (!equipedFromShortcut2 && playerHealthManager.CurrentHealth <= playerHealthManager.maxHealth * 0.25f)
+        {
+            int shortcutWeaponIndex = Inventory.Instance.shortcutWeaponIndexes.FindIndex(slot => slot == 2);
+            if (shortcutWeaponIndex != -1 && shortcutWeaponIndex < weaponInventory.Count)
+            {
+                if (weaponInventory[shortcutWeaponIndex] != null)
+                {
+                    itemToEquip = weaponInventory[shortcutWeaponIndex];
+                    indexToRemove = shortcutWeaponIndex;
+                }
+            }
+            equipedFromShortcut2 = true;
+        }
+        // Kontrollera 50%
+        else if (!equipedFromShortcut1 && playerHealthManager.CurrentHealth <= playerHealthManager.maxHealth * 0.5f)
+        {
+            int shortcutWeaponIndex = Inventory.Instance.shortcutWeaponIndexes.FindIndex(slot => slot == 1);
+            if (shortcutWeaponIndex != -1 && shortcutWeaponIndex < weaponInventory.Count)
+            {
+                if (weaponInventory[shortcutWeaponIndex] != null)
+                {
+                    itemToEquip = weaponInventory[shortcutWeaponIndex];
+                    indexToRemove = shortcutWeaponIndex;
+                }
+            }
+            equipedFromShortcut1 = true;
+        }
+        // Kontrollera 75%
+        else if (!equipedFromShortcut0 && playerHealthManager.CurrentHealth <= playerHealthManager.maxHealth * 0.75f)
+        {
+            int shortcutWeaponIndex = Inventory.Instance.shortcutWeaponIndexes.FindIndex(slot => slot == 0);
+            if (shortcutWeaponIndex != -1 && shortcutWeaponIndex < weaponInventory.Count)
+            {
+                if (weaponInventory[shortcutWeaponIndex] != null)
+                {
+                    itemToEquip = weaponInventory[shortcutWeaponIndex];
+                    indexToRemove = shortcutWeaponIndex;
+                }
+            }
+            equipedFromShortcut0 = true;
+        }
+
+        if (itemToEquip == null)
+        {
+            for (int i = 0; i < weaponInventory.Count; i++)
+            {
+                if (weaponInventory[i] != null)
+                {
+                    itemToEquip = weaponInventory[i];
+                    indexToRemove = i;
+                    break;
+                }
+            }
+        }
 
 
         // Check if the item has a sprite
@@ -148,7 +208,7 @@ public class InventoryBattleHandler : MonoBehaviour
                 IsWeaponEquipped = true;
 
                 // Remove the item from the combat inventory to mark it as used
-                weaponInventory.RemoveAt(randomIndex);
+                weaponInventory[indexToRemove] = null;
                 gameManager.UpdateBattleInventorySlots();
             }
             else

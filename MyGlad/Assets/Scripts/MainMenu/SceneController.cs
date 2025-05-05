@@ -41,6 +41,26 @@ public class SceneController : MonoBehaviour
             SceneManager.LoadSceneAsync(sceneName);
             currentSceneName = sceneName;
         }
+    }
+    public void Logout()
+    {
+        // Ta bort JWT och annan sparad info
+        PlayerPrefs.DeleteKey("jwt");
+        PlayerPrefs.DeleteKey("id");
+        PlayerPrefs.DeleteKey("characterId");
+        PlayerPrefs.Save();
 
+        // Rensa ev. singleton-instansobjekt
+        if (CharacterData.Instance != null)
+        {
+            Destroy(CharacterData.Instance.gameObject);
+        }
+        if (FightData.Instance != null)
+        {
+            Destroy(FightData.Instance.gameObject);
+        }
+
+        // Ladda huvudmenyn
+        SceneManager.LoadScene("MainMenu"); // Ersätt med rätt scen-namn
     }
 }

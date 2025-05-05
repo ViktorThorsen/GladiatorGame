@@ -115,9 +115,18 @@ public class ArenaEnemyInventoryBattleHandler : MonoBehaviour
             yield break;
         }
 
-        // Get a random item from the combat inventory
-        int randomIndex = Random.Range(0, weaponInventory.Count);
-        Item itemToEquip = weaponInventory[randomIndex];
+        Item itemToEquip = null;
+        int indexToRemove = -1;
+
+        for (int i = 0; i < weaponInventory.Count; i++)
+        {
+            if (weaponInventory[i] != null)
+            {
+                itemToEquip = weaponInventory[i];
+                indexToRemove = i;
+                break;
+            }
+        }
 
 
 
@@ -148,7 +157,7 @@ public class ArenaEnemyInventoryBattleHandler : MonoBehaviour
                 IsWeaponEquipped = true;
 
                 // Remove the item from the combat inventory to mark it as used
-                weaponInventory.RemoveAt(randomIndex);
+                weaponInventory.RemoveAt(indexToRemove);
                 gameManager.UpdateBattleInventorySlots();
             }
             else
