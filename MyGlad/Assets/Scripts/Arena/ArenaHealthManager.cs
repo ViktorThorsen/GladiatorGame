@@ -10,7 +10,7 @@ using Cinemachine;
 public class ArenaHealthManager : MonoBehaviour
 {
     private Animator anim;
-    private int maxHealth;
+    public int maxHealth;
     private int currentHealth;
     private ParticleSystem hitParticles;
     private Transform hitParticleTransform;
@@ -18,10 +18,6 @@ public class ArenaHealthManager : MonoBehaviour
     private Transform healthSliderParent;
     private GameObject thisUnit;
     private ArenaGameManager gameManager;
-
-
-    public GameObject damageTextPrefab; // Reference to the txtCombat prefab
-    public Transform combatTextParent;
     [SerializeField] private CameraShakeManager cameraShakeManager;
 
     public bool IsPosioned;
@@ -122,27 +118,39 @@ public class ArenaHealthManager : MonoBehaviour
                 healthBar.value = currentHealth; // Sätt sliderns nuvarande värde
             }
 
-            // Gemensam logik för att ställa in text och partikeleffekter
-            combatTextParent = thisUnit.transform.Find("CombatText");
-            damageTextPrefab = gameManager.damageTextPrefab;
             hitParticleTransform = thisUnit.transform.Find("HitParticles/hitParticles");
             hitParticles = hitParticleTransform.GetComponent<ParticleSystem>();
             cameraShakeManager = FindObjectOfType<CameraShakeManager>();
         }
     }
 
-    public void ReduceHealth(int damage, string type, GameObject doneBy)
+    public void ReduceHealth(int damage, string type, GameObject doneBy, bool IsCrit)
     {
         if (type == "Normal")
         {
             currentHealth -= damage;
             cameraShakeManager.CameraShake();
-            ShowCombatText(damage, "Damage");
+            if (IsCrit)
+            {
+                CombatTextManager.Instance.SpawnText(damage.ToString() + " Critical Strike", thisUnit.transform.position + Vector3.up * 1.5f, "#FFFFFF");
+            }
+            else
+            {
+                CombatTextManager.Instance.SpawnText(damage.ToString(), thisUnit.transform.position + Vector3.up * 1.5f, "#FFFFFF");
+            }
             hitParticles.transform.position = thisUnit.transform.position;
             ParticleSystem.MainModule mainModule = hitParticles.main;  // Access the main module
             mainModule.startColor = Color.white;
             hitParticles.Play();
             UpdateHealthUI();
+            ReplayData.Instance.AddAction(new MatchEventDTO
+            {
+                Turn = gameManager.RoundsCount,
+                Actor = GetCharacterType(doneBy?.tag ?? ""),
+                Action = IsCrit ? "crit" : "attack",
+                Target = GetCharacterType(thisUnit.tag),
+                Value = damage
+            });
             if (currentHealth <= 0)
             {
                 anim.SetBool("stunned", false);
@@ -156,7 +164,7 @@ public class ArenaHealthManager : MonoBehaviour
         else if (type == "Venom")
         {
             currentHealth -= damage;
-            ShowCombatText(damage, "Damage");
+            CombatTextManager.Instance.SpawnText(damage.ToString(), thisUnit.transform.position + Vector3.up * 1.5f, "#FFFFFF");
             hitParticles.transform.position = thisUnit.transform.position;
             ParticleSystem.MainModule mainModule = hitParticles.main;  // Access the main module
             mainModule.startColor = Color.green;
@@ -177,7 +185,7 @@ public class ArenaHealthManager : MonoBehaviour
     public void IncreaseHealth(int health)
     {
         currentHealth += health;
-        ShowCombatText(health, "Heal"); // Visa positiv text när hälsan ökar
+        CombatTextManager.Instance.SpawnText(health.ToString(), thisUnit.transform.position + Vector3.up * 1.5f, "#00FF00", 1.5f);
         UpdateHealthUI();
         if (currentHealth >= maxHealth)
         {
@@ -189,6 +197,15 @@ public class ArenaHealthManager : MonoBehaviour
     {
         startVenomRounds = gameManager.RoundsCount;
         IsPosioned = true;
+        ReplayData.Instance.AddAction(new MatchEventDTO
+        {
+            Turn = gameManager.RoundsCount,
+            Actor = CharacterType.None,
+            Action = "venom", // betyder att aktören applicerade venom
+            Target = GetCharacterType(thisUnit.tag),
+            Value = 0
+        });
+
     }
     public void RemoveVemon()
     {
@@ -201,7 +218,7 @@ public class ArenaHealthManager : MonoBehaviour
             else
             {
                 SkillBattleHandler skillBattleHandler = thisUnit.GetComponent<SkillBattleHandler>();
-                ReduceHealth(skillBattleHandler.VenomousTouch(), "Venom", null);
+                ReduceHealth(skillBattleHandler.VenomousTouch(), "Venom", null, false);
             }
         }
     }
@@ -224,37 +241,6 @@ public class ArenaHealthManager : MonoBehaviour
             // Set the fill color to the default green (00FF0B) when health is greater than 0
             healthFillImage.color = new Color(0f, 1f, 0.043f, 1f); // Opaque green
         }
-    }
-
-    public void ShowCombatText(int amount, string text)
-    {
-        string showText = "";
-        if (text == "Damage") { showText = amount.ToString(); }
-        else if (text == "Heal") { showText = "+" + amount.ToString(); }
-        else { showText = text; }
-
-        GameObject damageTextInstance = Instantiate(damageTextPrefab, combatTextParent);
-
-        TMP_Text damageText = damageTextInstance.GetComponent<TMP_Text>();
-        damageText.text = showText;
-
-        // Change text color based on type
-        if (text == "Heal")
-        {
-            damageText.color = Color.green; // Green for healing
-        }
-        else if (text == "Damage")
-        {
-            damageText.color = Color.white; // Red for damage
-        }
-        else
-        {
-            damageText.color = Color.white; // Default color
-        }
-
-
-        // Start animating the damage text based on type
-        StartCoroutine(AnimateDamageText(damageTextInstance, text));
     }
 
     // Coroutine to animate the damage text
@@ -286,5 +272,21 @@ public class ArenaHealthManager : MonoBehaviour
 
         // Destroy the damage text instance after the animation completes
         Destroy(damageTextInstance);
+    }
+
+    private CharacterType GetCharacterType(string tag)
+    {
+        return tag switch
+        {
+            "Player" => CharacterType.Player,
+            "EnemyGlad" => CharacterType.EnemyGlad,
+            "EnemyPet1" => CharacterType.EnemyPet1,
+            "EnemyPet2" => CharacterType.EnemyPet2,
+            "EnemyPet3" => CharacterType.EnemyPet3,
+            "Pet1" => CharacterType.Pet1,
+            "Pet2" => CharacterType.Pet2,
+            "Pet3" => CharacterType.Pet3,
+            _ => CharacterType.None
+        };
     }
 }

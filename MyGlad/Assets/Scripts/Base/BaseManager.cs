@@ -16,10 +16,10 @@ public class BaseManager : MonoBehaviour
     [SerializeField] private TMP_Text strText;
     [SerializeField] private TMP_Text agiText;
     [SerializeField] private TMP_Text intText;
-    [SerializeField] private TMP_Text ADText;
-    [SerializeField] private TMP_Text DRText;
-    [SerializeField] private TMP_Text CRText;
-    [SerializeField] private TMP_Text SRText;
+    [SerializeField] private TMP_Text PreText;
+    [SerializeField] private TMP_Text DefText;
+    [SerializeField] private TMP_Text FortText;
+    [SerializeField] private TMP_Text HelText;
     [SerializeField] private Slider xpBar;
 
 
@@ -62,9 +62,29 @@ public class BaseManager : MonoBehaviour
         {
             Destroy(MonsterHuntManager.Instance.gameObject);
         }
+        if (ReplayCharacterData.Instance != null)
+        {
+            Destroy(ReplayCharacterData.Instance.gameObject);
+        }
+        if (ReplayEnemyGladData.Instance != null)
+        {
+            Destroy(ReplayEnemyGladData.Instance.gameObject);
+        }
+        if (ReplayManager.Instance != null)
+        {
+            Destroy(ReplayManager.Instance.gameObject);
+        }
         if (ChooseLandsManager.Instance != null)
         {
             Destroy(ChooseLandsManager.Instance.gameObject);
+        }
+        if (ReplayData.Instance != null)
+        {
+            Destroy(ReplayData.Instance.gameObject);
+        }
+        if (ReplayGameManager.Instance != null)
+        {
+            Destroy(ReplayGameManager.Instance.gameObject);
         }
         string token = PlayerPrefs.GetString("jwt", null);
         int userid = PlayerPrefs.GetInt("id");
@@ -120,16 +140,15 @@ public class BaseManager : MonoBehaviour
             if (characterObject != null)
             {
                 lvlText.text = CharacterData.Instance.Level.ToString();
-                healthText.text += CharacterData.Instance.Health.ToString();
+                healthText.text = CharacterData.Instance.Health.ToString();
 
-                strText.text += CharacterData.Instance.Strength.ToString();
-                agiText.text += CharacterData.Instance.Agility.ToString();
-                intText.text += CharacterData.Instance.Intellect.ToString();
-
-                ADText.text += CharacterData.Instance.AttackDamage.ToString();
-                DRText.text += CharacterData.Instance.DodgeRate.ToString();
-                CRText.text += CharacterData.Instance.CritRate.ToString();
-                SRText.text += CharacterData.Instance.StunRate.ToString();
+                strText.text = CharacterData.Instance.Strength.ToString();
+                agiText.text = CharacterData.Instance.Agility.ToString();
+                intText.text = CharacterData.Instance.Intellect.ToString();
+                HelText.text = CharacterData.Instance.Health.ToString();
+                PreText.text = CharacterData.Instance.HitRate.ToString();
+                DefText.text = CharacterData.Instance.Defense.ToString();
+                FortText.text = CharacterData.Instance.Fortune.ToString();
             }
             else
             {
@@ -143,17 +162,19 @@ public class BaseManager : MonoBehaviour
             {
                 UpdatePetSlots();
             }
-            Debug.Log("Innan Energy fetch " + CharacterData.Instance.Energy);
-            bool energySuccess = false;
-            yield return StartCoroutine(CharacterData.Instance.FetchCharacterEnergy(success => energySuccess = success));
-
-            if (!energySuccess)
+            if (!CharacterData.Instance.CreatedNow)
             {
-                Debug.LogWarning("❌ Energin kunde inte hämtas – loggar ut.");
-                SceneController.instance.Logout();
-                yield break;
-            }
+                Debug.Log("Innan Energy fetch " + CharacterData.Instance.Energy);
+                bool energySuccess = false;
+                yield return StartCoroutine(CharacterData.Instance.FetchCharacterEnergy(success => energySuccess = success));
 
+                if (!energySuccess)
+                {
+                    Debug.LogWarning("❌ Energin kunde inte hämtas – loggar ut.");
+                    SceneController.instance.Logout();
+                    yield break;
+                }
+            }
             energyText.text = $"{CharacterData.Instance.Energy} / 10";
             yield return StartCoroutine(SaveCharacter());
 

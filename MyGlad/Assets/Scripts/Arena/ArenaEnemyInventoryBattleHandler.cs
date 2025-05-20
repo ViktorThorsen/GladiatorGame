@@ -19,6 +19,11 @@ public class ArenaEnemyInventoryBattleHandler : MonoBehaviour
     private List<Item> weaponInventory;
     private List<Item> consumableInventory;
 
+    private bool equipedFromShortcut0 = false;
+    private bool equipedFromShortcut1 = false;
+    private bool equipedFromShortcut2 = false;
+    private bool equipedFromShortcut3 = false;
+
 
     public List<Item> GetCombatWeaponInventory()
     {
@@ -87,6 +92,14 @@ public class ArenaEnemyInventoryBattleHandler : MonoBehaviour
                 consumableSocket.localScale = itemToConsume.equippedScale;
                 consumableSocket.localEulerAngles = itemToConsume.equippedRotation;
                 consumableInventory.RemoveAt(randomIndex);
+                ReplayData.Instance.AddAction(new MatchEventDTO
+                {
+                    Turn = gameManager.RoundsCount,
+                    Actor = CharacterType.EnemyGlad,
+                    Action = "ConsumableUsed",
+                    Target = CharacterType.EnemyGlad,
+                    Value = randomIndex
+                });
                 gameManager.UpdateBattleInventorySlots();
                 if (itemToConsume.abilityType == abilityType.heal)
                 {
@@ -109,7 +122,7 @@ public class ArenaEnemyInventoryBattleHandler : MonoBehaviour
         yield return new WaitForSeconds(delay);
 
         // Check if there are any available items in the combat inventory
-        if (weaponInventory.Count == 0)
+        if (weaponInventory.TrueForAll(w => w == null))
         {
             playerMovement.IsMoving = true;
             yield break;
@@ -118,16 +131,94 @@ public class ArenaEnemyInventoryBattleHandler : MonoBehaviour
         Item itemToEquip = null;
         int indexToRemove = -1;
 
-        for (int i = 0; i < weaponInventory.Count; i++)
+
+        // Kontrollera lägst tröskel först (25%)
+        if (!equipedFromShortcut2 && playerHealthManager.CurrentHealth <= playerHealthManager.maxHealth * 0.25f)
         {
-            if (weaponInventory[i] != null)
+            int shortcutWeaponIndex = EnemyInventory.Instance.shortcutWeaponIndexes.FindIndex(slot => slot == 2);
+            if (shortcutWeaponIndex != -1 && shortcutWeaponIndex < weaponInventory.Count)
             {
-                itemToEquip = weaponInventory[i];
-                indexToRemove = i;
-                break;
+                if (weaponInventory[shortcutWeaponIndex] != null)
+                {
+                    itemToEquip = weaponInventory[shortcutWeaponIndex];
+                    indexToRemove = shortcutWeaponIndex;
+                    ReplayData.Instance.AddAction(new MatchEventDTO
+                    {
+                        Turn = gameManager.RoundsCount,
+                        Actor = CharacterType.EnemyGlad,
+                        Action = "WeaponEquipped",
+                        Target = CharacterType.EnemyGlad,
+                        Value = indexToRemove
+                    });
+                }
             }
+            equipedFromShortcut2 = true;
+        }
+        // Kontrollera 50%
+        else if (!equipedFromShortcut1 && playerHealthManager.CurrentHealth <= playerHealthManager.maxHealth * 0.5f)
+        {
+            int shortcutWeaponIndex = EnemyInventory.Instance.shortcutWeaponIndexes.FindIndex(slot => slot == 1);
+            if (shortcutWeaponIndex != -1 && shortcutWeaponIndex < weaponInventory.Count)
+            {
+                if (weaponInventory[shortcutWeaponIndex] != null)
+                {
+                    itemToEquip = weaponInventory[shortcutWeaponIndex];
+                    indexToRemove = shortcutWeaponIndex;
+                    ReplayData.Instance.AddAction(new MatchEventDTO
+                    {
+                        Turn = gameManager.RoundsCount,
+                        Actor = CharacterType.EnemyGlad,
+                        Action = "WeaponEquipped",
+                        Target = CharacterType.EnemyGlad,
+                        Value = indexToRemove
+                    });
+                }
+            }
+            equipedFromShortcut1 = true;
+        }
+        // Kontrollera 75%
+        else if (!equipedFromShortcut0 && playerHealthManager.CurrentHealth <= playerHealthManager.maxHealth * 0.75f)
+        {
+            int shortcutWeaponIndex = EnemyInventory.Instance.shortcutWeaponIndexes.FindIndex(slot => slot == 0);
+            if (shortcutWeaponIndex != -1 && shortcutWeaponIndex < weaponInventory.Count)
+            {
+                if (weaponInventory[shortcutWeaponIndex] != null)
+                {
+                    itemToEquip = weaponInventory[shortcutWeaponIndex];
+                    indexToRemove = shortcutWeaponIndex;
+                    ReplayData.Instance.AddAction(new MatchEventDTO
+                    {
+                        Turn = gameManager.RoundsCount,
+                        Actor = CharacterType.EnemyGlad,
+                        Action = "WeaponEquipped",
+                        Target = CharacterType.EnemyGlad,
+                        Value = indexToRemove
+                    });
+                }
+            }
+            equipedFromShortcut0 = true;
         }
 
+        if (itemToEquip == null)
+        {
+            for (int i = 0; i < weaponInventory.Count; i++)
+            {
+                if (weaponInventory[i] != null)
+                {
+                    itemToEquip = weaponInventory[i];
+                    indexToRemove = i;
+                    ReplayData.Instance.AddAction(new MatchEventDTO
+                    {
+                        Turn = gameManager.RoundsCount,
+                        Actor = CharacterType.EnemyGlad,
+                        Action = "WeaponEquipped",
+                        Target = CharacterType.EnemyGlad,
+                        Value = i
+                    });
+                    break;
+                }
+            }
+        }
 
 
         // Check if the item has a sprite
@@ -150,14 +241,15 @@ public class ArenaEnemyInventoryBattleHandler : MonoBehaviour
                     currentWeapon.agility,
                     currentWeapon.intellect,
                     currentWeapon.health,
-                    currentWeapon.attackDamage,
-                    currentWeapon.dodgeRate,
-                    currentWeapon.critRate,
-                    currentWeapon.stunRate);
+                    currentWeapon.hit,
+                    currentWeapon.defense,
+                    0,
+                    currentWeapon.stunRate,
+                    currentWeapon.lifesteal);
                 IsWeaponEquipped = true;
 
                 // Remove the item from the combat inventory to mark it as used
-                weaponInventory.RemoveAt(indexToRemove);
+                weaponInventory[indexToRemove] = null;
                 gameManager.UpdateBattleInventorySlots();
             }
             else
@@ -205,10 +297,11 @@ public class ArenaEnemyInventoryBattleHandler : MonoBehaviour
                     currentWeapon.agility,
                     currentWeapon.intellect,
                     currentWeapon.health,
-                    currentWeapon.attackDamage,
-                    currentWeapon.dodgeRate,
-                    currentWeapon.critRate,
-                    currentWeapon.stunRate);
+                    currentWeapon.hit,
+                    currentWeapon.defense,
+                    0,
+                    currentWeapon.stunRate,
+                    currentWeapon.lifesteal);
             currentWeapon = null;
             IsWeaponEquipped = false;
         }

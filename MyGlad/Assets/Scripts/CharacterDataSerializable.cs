@@ -8,12 +8,13 @@ public class CharacterDataSerializable
     public int xp;
 
     public int health;
-    public int attackDamage;
     public int lifeSteal;
     public int dodgeRate;
     public int critRate;
     public int stunRate;
-    public int initiative;
+    public int hitRate;
+    public int fortune;
+    public int defense;
 
     public int strength;
     public int agility;
@@ -46,7 +47,6 @@ public class ConsumableDataSerializable
 {
     public List<string> consumableNames = new List<string>();
 }
-
 public class CharacterWrapper
 {
     public CharacterDataSerializable character;

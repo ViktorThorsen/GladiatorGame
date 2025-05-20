@@ -201,10 +201,11 @@ public class InventoryBattleHandler : MonoBehaviour
                     currentWeapon.agility,
                     currentWeapon.intellect,
                     currentWeapon.health,
-                    currentWeapon.attackDamage,
-                    currentWeapon.dodgeRate,
-                    currentWeapon.critRate,
-                    currentWeapon.stunRate);
+                    currentWeapon.hit,
+                    currentWeapon.defense,
+                    0,
+                    currentWeapon.stunRate,
+                    currentWeapon.lifesteal);
                 IsWeaponEquipped = true;
 
                 // Remove the item from the combat inventory to mark it as used
@@ -256,10 +257,11 @@ public class InventoryBattleHandler : MonoBehaviour
                     currentWeapon.agility,
                     currentWeapon.intellect,
                     currentWeapon.health,
-                    currentWeapon.attackDamage,
-                    currentWeapon.dodgeRate,
-                    currentWeapon.critRate,
-                    currentWeapon.stunRate);
+                    currentWeapon.hit,
+                    currentWeapon.defense,
+                    0,
+                    currentWeapon.stunRate,
+                    currentWeapon.lifesteal);
             currentWeapon = null;
             IsWeaponEquipped = false;
         }

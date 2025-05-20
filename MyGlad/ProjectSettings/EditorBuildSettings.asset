@@ -53,4 +53,7 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/MonsterHuntDesert.unity
     guid: 55e99006e9a3cd842828a286a3cf6747
+  - enabled: 1
+    path: Assets/Scenes/Replay.unity
+    guid: 78893ec04288616449ee4724a85fea59
   m_configObjects: {}

@@ -1,0 +1,90 @@
+using UnityEngine;
+using UnityEngine.Networking;
+using TMPro;
+using System.Collections;
+using System.Collections.Generic;
+using Newtonsoft.Json;
+using UnityEngine.UI;
+
+public class ReplayManager : MonoBehaviour
+{
+    public static ReplayManager Instance { get; private set; }
+    public GameObject replayItemPrefab;
+    public Transform replayListParent;
+    [SerializeField] private GameObject historyPanel;
+
+    private bool isHistoryVisible = false;
+
+    public ReplayPayload selectedReplay;
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject); // Så den inte försvinner mellan scener
+    }
+
+    void Start()
+    {
+        LoadReplays();
+    }
+
+    public void ToggleHistoryPanel()
+    {
+        isHistoryVisible = !isHistoryVisible;
+        historyPanel.SetActive(isHistoryVisible);
+    }
+
+    public void LoadReplays()
+    {
+        StartCoroutine(FetchReplays());
+    }
+
+    IEnumerator FetchReplays()
+    {
+        int characterId = PlayerPrefs.GetInt("characterId");
+        UnityWebRequest request = UnityWebRequest.Get($"http://localhost:5000/api/replays/character?characterId={characterId}");
+        request.SetRequestHeader("Content-Type", "application/json");
+
+        yield return request.SendWebRequest();
+
+        if (request.result != UnityWebRequest.Result.Success)
+        {
+            Debug.LogError("❌ Failed to fetch replays: " + request.error);
+            yield break;
+        }
+
+        var json = request.downloadHandler.text;
+        List<ReplayPayload> replays = JsonConvert.DeserializeObject<List<ReplayPayload>>(json);
+
+        foreach (var replay in replays)
+        {
+            GameObject item = Instantiate(replayItemPrefab, replayListParent);
+            TMP_Text text = item.GetComponentInChildren<TMP_Text>();
+            Button button = item.GetComponentInChildren<Button>();
+
+            // Bestäm om spelaren vann
+            bool isWin = replay.winner == CharacterData.Instance.CharName;
+            string result = isWin ? "Won" : "Lost";
+
+            text.text = $"{replay.mapName} | {result}";
+
+            button.onClick.AddListener(() =>
+            {
+                Debug.Log("▶ Showing replay...");
+                selectedReplay = replay;
+                PlayReplay();
+            });
+        }
+    }
+    public void PlayReplay()
+    {
+        UnityEngine.SceneManagement.SceneManager.LoadScene("Replay");
+    }
+}
+
+

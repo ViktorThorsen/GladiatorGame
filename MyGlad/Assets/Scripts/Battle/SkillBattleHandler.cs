@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using System.Linq;
 
 
 public class SkillBattleHandler : MonoBehaviour
@@ -28,7 +29,7 @@ public class SkillBattleHandler : MonoBehaviour
     public int Berserk(GameObject character)
     {
         berserkUsed = true;
-        int attackDamage = CharacterData.Instance.AttackDamage;
+        int strength = CharacterData.Instance.Strength;
 
         // Get all SpriteRenderer components in the character and its children
         SpriteRenderer[] spriteRenderers = character.GetComponentsInChildren<SpriteRenderer>();
@@ -42,7 +43,7 @@ public class SkillBattleHandler : MonoBehaviour
                 spriteRenderer.color = Color.red;  // Set color to red (or any other color)
             }
         }
-        return attackDamage;
+        return strength;
     }
     public void EndBerserk(GameObject character)
     {
@@ -61,8 +62,8 @@ public class SkillBattleHandler : MonoBehaviour
 
     public int VenomousTouch()
     {
-        int attackDamage = CharacterData.Instance.AttackDamage;
-        double venomDmg = attackDamage * 0.01;
+        int strength = CharacterData.Instance.Strength;
+        double venomDmg = strength * 0.01;
         int venom = (int)Math.Floor(venomDmg);
         if (venom < 1)
         {
@@ -96,7 +97,7 @@ public class SkillBattleHandler : MonoBehaviour
         enemyMovement.MoveEnemyToRight(0.5f);
 
         // Deal damage to the enemy
-        characterToCounterHealthManager.ReduceHealth(movement.CalculateRandomDamage(CharacterData.Instance.AttackDamage), "Normal", thisUnit);
+        characterToCounterHealthManager.ReduceHealth(movement.CalculateRandomDamage(CharacterData.Instance.Strength), "Normal", thisUnit, false);
 
         // Start the coroutine and pass the callback for when the attack is finished
         StartCoroutine(StopHitWithDelay(anim, onCounterAttackFinished));
@@ -153,12 +154,76 @@ public class SkillBattleHandler : MonoBehaviour
         if (thisUnit.tag == "Player")
         {
             ArenaPlayerMovement movement = thisUnit.GetComponent<ArenaPlayerMovement>();
-            characterToCounterHealthManager.ReduceHealth(movement.CalculateRandomDamage(CharacterData.Instance.AttackDamage), "Normal", thisUnit);
+            characterToCounterHealthManager.ReduceHealth(movement.CalculateRandomDamage(CharacterData.Instance.Strength), "Normal", thisUnit, false);
         }
         else if (thisUnit.tag == "EnemyGlad")
         {
             ArenaEnemyPlayerMovement movement = thisUnit.GetComponent<ArenaEnemyPlayerMovement>();
-            characterToCounterHealthManager.ReduceHealth(movement.CalculateRandomDamage(CharacterData.Instance.AttackDamage), "Normal", thisUnit);
+            characterToCounterHealthManager.ReduceHealth(movement.CalculateRandomDamage(EnemyGladiatorData.Instance.Strength), "Normal", thisUnit, false);
+        }
+
+        // Start the coroutine and pass the callback for when the attack is finished
+        StartCoroutine(StopHitWithDelay(anim, onCounterAttackFinished));
+
+        return true;
+    }
+
+    public bool ReplayCounterStrike(GameObject enemy, System.Action onCounterAttackFinished)
+    {
+        ReplayHealthManager characterToCounterHealthManager = enemy.GetComponent<ReplayHealthManager>();
+        Animator anim = GetComponent<Animator>();
+
+        // Trigger the hit animation
+        anim.SetTrigger("hit");
+
+
+        if (thisUnit.tag == "Player")
+        {
+            ReplayPlayerMovement movement = thisUnit.GetComponent<ReplayPlayerMovement>();
+            movement.MovePlayerToRight(0.5f);
+        }
+        else if (thisUnit.tag == "EnemyGlad")
+        {
+            ReplayEnemyPlayerMovement movement = thisUnit.GetComponent<ReplayEnemyPlayerMovement>();
+            movement.MovePlayerToLeft(0.5f);
+        }
+
+        if (thisUnit.tag == "Player")
+        {
+            if (enemy.tag == "EnemyGlad")
+            {
+                ReplayEnemyPlayerMovement enemyMovement = enemy.GetComponent<ReplayEnemyPlayerMovement>();
+                enemyMovement.MovePlayerToRight(0.5f);
+            }
+            else if (enemy.tag == "EnemyPet1" && enemy.tag == "EnemyPet2" && enemy.tag == "EnemyPet3")
+            {
+                ReplayEnemyPetMovement enemyPetMovement = enemy.GetComponent<ReplayEnemyPetMovement>();
+                enemyPetMovement.MovePetToRight(0.5f);
+            }
+
+        }
+        else if (thisUnit.tag == "EnemyGlad")
+        {
+            if (enemy.tag == "Player")
+            {
+                ReplayPlayerMovement enemyMovement = enemy.GetComponent<ReplayPlayerMovement>();
+                enemyMovement.MovePlayerToLeft(0.5f);
+            }
+            else if (enemy.tag == "Pet1" && enemy.tag == "Pet2" && enemy.tag == "Pet3")
+            {
+                ReplayPetMovement enemyPetMovement = enemy.GetComponent<ReplayPetMovement>();
+                enemyPetMovement.MovePetToLeft(0.5f);
+            }
+        }
+        if (thisUnit.tag == "Player")
+        {
+            ReplayPlayerMovement movement = thisUnit.GetComponent<ReplayPlayerMovement>();
+            characterToCounterHealthManager.ReduceHealth(GetCounterAttackDamage(), "Normal", thisUnit, false);
+        }
+        else if (thisUnit.tag == "EnemyGlad")
+        {
+            ReplayEnemyPlayerMovement movement = thisUnit.GetComponent<ReplayEnemyPlayerMovement>();
+            characterToCounterHealthManager.ReduceHealth(GetCounterAttackDamage(), "Normal", thisUnit, false);
         }
 
         // Start the coroutine and pass the callback for when the attack is finished
@@ -177,6 +242,20 @@ public class SkillBattleHandler : MonoBehaviour
 
         // Call the callback to move back after the counterattack is done
         onCounterAttackFinished?.Invoke();
+    }
+
+    private int GetCounterAttackDamage()
+    {
+        var replay = ReplayManager.Instance.selectedReplay;
+        int currentTurn = ReplayGameManager.Instance.RoundsCount;
+
+        var actionsThisTurn = replay.actions
+            .Where(a => a.Turn == currentTurn)
+            .ToList();
+
+        var lastAction = actionsThisTurn.Last();
+
+        return lastAction.Value;
     }
 }
 

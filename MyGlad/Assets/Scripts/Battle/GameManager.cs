@@ -9,6 +9,7 @@ using Unity.VisualScripting;
 using System.Runtime.InteropServices.WindowsRuntime;
 using UnityEngine.TextCore.Text;
 using UnityEditor.Timeline.Actions;
+using System.Linq;
 
 public class GameManager : MonoBehaviour
 {
@@ -48,7 +49,6 @@ public class GameManager : MonoBehaviour
     private bool initialDelayCompleted;
     private bool rollTime;
     private bool isGameOver;
-    [SerializeField] public GameObject damageTextPrefab;
     [SerializeField] public GameObject healthSliderPrefab;
 
     private int roundsCount;
@@ -666,7 +666,11 @@ public class GameManager : MonoBehaviour
         {
             return PlayerAction.UseConsumable;
         }
-        else if (roll < 70 && inventoryBattleHandler.GetCombatWeaponInventory().Count > 0 && !inventoryBattleHandler.IsWeaponEquipped)
+        else if (
+    roll < 70 &&
+    inventoryBattleHandler.GetCombatWeaponInventory().Any(w => w != null) &&
+    !inventoryBattleHandler.IsWeaponEquipped
+)
         {
             return PlayerAction.EquipWeapon;
         }

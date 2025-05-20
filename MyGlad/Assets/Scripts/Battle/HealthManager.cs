@@ -22,7 +22,6 @@ public class HealthManager : MonoBehaviour
 
 
     public GameObject damageTextPrefab; // Reference to the txtCombat prefab
-    public Transform combatTextParent;
     [SerializeField] private CameraShakeManager cameraShakeManager;
 
     public bool IsPosioned;
@@ -115,21 +114,28 @@ public class HealthManager : MonoBehaviour
             }
 
             // Gemensam logik för att ställa in text och partikeleffekter
-            combatTextParent = thisUnit.transform.Find("CombatText");
-            damageTextPrefab = gameManager.damageTextPrefab;
+
             hitParticleTransform = thisUnit.transform.Find("HitParticles/hitParticles");
             hitParticles = hitParticleTransform.GetComponent<ParticleSystem>();
             cameraShakeManager = FindObjectOfType<CameraShakeManager>();
         }
     }
 
-    public void ReduceHealth(int damage, string type, GameObject doneBy)
+    public void ReduceHealth(int damage, string type, GameObject doneBy, bool IsCrit)
     {
         if (type == "Normal")
         {
             currentHealth -= damage;
             cameraShakeManager.CameraShake();
-            ShowCombatText(damage, "Damage");
+            if (IsCrit)
+            {
+                CombatTextManager.Instance.SpawnText(damage.ToString() + " Critical Strike", thisUnit.transform.position + Vector3.up * 1.5f, "#FFFFFF");
+            }
+            else
+            {
+                CombatTextManager.Instance.SpawnText(damage.ToString(), thisUnit.transform.position + Vector3.up * 1.5f, "#FFFFFF");
+            }
+
             hitParticles.transform.position = thisUnit.transform.position;
             ParticleSystem.MainModule mainModule = hitParticles.main;  // Access the main module
             mainModule.startColor = Color.white;
@@ -148,7 +154,7 @@ public class HealthManager : MonoBehaviour
         else if (type == "Venom")
         {
             currentHealth -= damage;
-            ShowCombatText(damage, "Damage");
+            CombatTextManager.Instance.SpawnText(damage.ToString(), thisUnit.transform.position + Vector3.up * 1.5f, "#FFFFFF");
             hitParticles.transform.position = thisUnit.transform.position;
             ParticleSystem.MainModule mainModule = hitParticles.main;  // Access the main module
             mainModule.startColor = Color.green;
@@ -169,7 +175,7 @@ public class HealthManager : MonoBehaviour
     public void IncreaseHealth(int health)
     {
         currentHealth += health;
-        ShowCombatText(health, "Heal"); // Visa positiv text när hälsan ökar
+        CombatTextManager.Instance.SpawnText(health.ToString(), thisUnit.transform.position + Vector3.up * 1.5f, "#00FF00", 1.5f);
         UpdateHealthUI();
         if (currentHealth >= maxHealth)
         {
@@ -193,7 +199,7 @@ public class HealthManager : MonoBehaviour
             else
             {
                 SkillBattleHandler skillBattleHandler = thisUnit.GetComponent<SkillBattleHandler>();
-                ReduceHealth(skillBattleHandler.VenomousTouch(), "Venom", null);
+                ReduceHealth(skillBattleHandler.VenomousTouch(), "Venom", null, false);
             }
         }
     }
@@ -216,37 +222,6 @@ public class HealthManager : MonoBehaviour
             // Set the fill color to the default green (00FF0B) when health is greater than 0
             healthFillImage.color = new Color(0f, 1f, 0.043f, 1f); // Opaque green
         }
-    }
-
-    public void ShowCombatText(int amount, string text)
-    {
-        string showText = "";
-        if (text == "Damage") { showText = amount.ToString(); }
-        else if (text == "Heal") { showText = "+" + amount.ToString(); }
-        else { showText = text; }
-
-        GameObject damageTextInstance = Instantiate(damageTextPrefab, combatTextParent);
-
-        TMP_Text damageText = damageTextInstance.GetComponent<TMP_Text>();
-        damageText.text = showText;
-
-        // Change text color based on type
-        if (text == "Heal")
-        {
-            damageText.color = Color.green; // Green for healing
-        }
-        else if (text == "Damage")
-        {
-            damageText.color = Color.white; // Red for damage
-        }
-        else
-        {
-            damageText.color = Color.white; // Default color
-        }
-
-
-        // Start animating the damage text based on type
-        StartCoroutine(AnimateDamageText(damageTextInstance, text));
     }
 
     // Coroutine to animate the damage text

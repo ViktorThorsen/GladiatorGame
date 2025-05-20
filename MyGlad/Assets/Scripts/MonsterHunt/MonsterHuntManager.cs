@@ -1,8 +1,10 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.UI;
 
 public class MonsterHuntManager : MonoBehaviour
 {
@@ -10,6 +12,8 @@ public class MonsterHuntManager : MonoBehaviour
     [SerializeField] private List<UnityEngine.UI.Button> stageButtons;
     [SerializeField] private UnityEngine.UI.ScrollRect scrollRect;
     [SerializeField] private RectTransform contentRect;
+
+    [SerializeField] private Button playbutton;
 
     // Use a List instead of an array to store multiple monster names
     private List<string> selectedMonsterNames = new List<string>();
@@ -25,6 +29,7 @@ public class MonsterHuntManager : MonoBehaviour
 
     public int currentStage;
     public int selectedStage;
+
 
     [SerializeField] private SpriteRenderer map;
     [SerializeField] private BackgroundImageDataBase backgroundImageDataBase;
@@ -43,6 +48,7 @@ public class MonsterHuntManager : MonoBehaviour
     }
     public void Start()
     {
+        playbutton.interactable = false;
         switch (ChooseLandsManager.Instance.ChoosedLand)
         {
             case "Forest":
@@ -76,12 +82,17 @@ public class MonsterHuntManager : MonoBehaviour
     }
 
     // Method to select a monster and add its name to the list
-    public void SelectMonster(string name)
+    public void SelectMonster(string names)
     {
-
+        playbutton.interactable = true;
         selectedMonsterNames.Clear();
-        // Add the selected monster's name to the list (allow duplicates)
-        selectedMonsterNames.Add(name);
+
+        string[] nameArray = names.Split(',');
+
+        foreach (string name in nameArray)
+        {
+            selectedMonsterNames.Add(name.Trim()); // Trim för att ta bort ev. mellanslag
+        }
     }
 
     public void SetState(string state)
@@ -110,7 +121,13 @@ public class MonsterHuntManager : MonoBehaviour
 
     public void OnStartMatchButtonClicked()
     {
-        TryStartMatch();
+        if (selectedStage > 0)
+        { TryStartMatch(); }
+        else
+        {
+
+        }
+
     }
 
     public void TryStartMatch()
@@ -138,7 +155,11 @@ public class MonsterHuntManager : MonoBehaviour
 
     public void OnBackButtonClick()
     {
-        SceneController.instance.LoadScene("Base"); // Load the character selection scene
+        if (ChooseLandsManager.Instance != null)
+        {
+            Destroy(ChooseLandsManager.Instance.gameObject);
+        }
+        SceneController.instance.LoadScene("ChooseLands"); // Load the character selection scene
     }
 
     private void ShowNoEnergyPopup()

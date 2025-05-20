@@ -20,11 +20,19 @@ public class LevelUpManager : MonoBehaviour
     [SerializeField] private TMP_Text strText;
     [SerializeField] private TMP_Text agiText;
     [SerializeField] private TMP_Text intText;
+    [SerializeField] private TMP_Text healthText;
+    [SerializeField] private TMP_Text defText;
+    [SerializeField] private TMP_Text precText;
+    [SerializeField] private TMP_Text fortText;
 
     [SerializeField] private TMP_Text levelText;
     private int strToAdd;
     private int agiToAdd;
     private int intToAdd;
+    private int healthToAdd;
+    private int defToAdd;
+    private int precToAdd;
+    private int fortToAdd;
 
 
 
@@ -34,10 +42,18 @@ public class LevelUpManager : MonoBehaviour
         strToAdd = 0;
         agiToAdd = 0;
         intToAdd = 0;
-        availablePoints = 3;
+        defToAdd = 0;
+        healthToAdd = 0;
+        precToAdd = 0;
+        fortToAdd = 0;
+        availablePoints = 5;
         strText.text = CharacterData.Instance.Strength.ToString();
         agiText.text = CharacterData.Instance.Agility.ToString();
         intText.text = CharacterData.Instance.Intellect.ToString();
+        healthText.text = CharacterData.Instance.Health.ToString();
+        defText.text = CharacterData.Instance.Defense.ToString();
+        precText.text = CharacterData.Instance.HitRate.ToString();
+        fortText.text = CharacterData.Instance.Fortune.ToString();
         levelText.text = "LVL." + CharacterData.Instance.Level;
         GameObject characterObject = CharacterManager.InstantiateCharacter(
             CharacterData.Instance,
@@ -127,6 +143,46 @@ public class LevelUpManager : MonoBehaviour
             availablePointsText.text = availablePoints.ToString();
         }
     }
+    public void IncreaseHealth()
+    {
+        if (availablePoints > 0)
+        {
+            healthToAdd += 5;
+            availablePoints--;
+            healthText.text = (healthToAdd + CharacterData.Instance.Health).ToString();
+            availablePointsText.text = availablePoints.ToString();
+        }
+    }
+    public void IncreaseDef()
+    {
+        if (availablePoints > 0)
+        {
+            defToAdd++;
+            availablePoints--;
+            defText.text = (defToAdd + CharacterData.Instance.Defense).ToString();
+            availablePointsText.text = availablePoints.ToString();
+        }
+    }
+    public void IncreasePrec()
+    {
+        if (availablePoints > 0)
+        {
+            precToAdd++;
+            availablePoints--;
+            precText.text = (precToAdd + CharacterData.Instance.HitRate).ToString();
+            availablePointsText.text = availablePoints.ToString();
+        }
+    }
+    public void IncreaseFortune()
+    {
+        if (availablePoints > 0)
+        {
+            fortToAdd++;
+            availablePoints--;
+            fortText.text = (fortToAdd + CharacterData.Instance.Fortune).ToString();
+            availablePointsText.text = availablePoints.ToString();
+        }
+    }
 
     public void DecreaseStrength()
     {
@@ -158,9 +214,49 @@ public class LevelUpManager : MonoBehaviour
             availablePointsText.text = availablePoints.ToString();
         }
     }
+    public void DecreaseHealth()
+    {
+        if (healthToAdd > 0)
+        {
+            healthToAdd -= 5;
+            availablePoints++;
+            healthText.text = (healthToAdd + CharacterData.Instance.Health).ToString();
+            availablePointsText.text = availablePoints.ToString();
+        }
+    }
+    public void DecreaseDefense()
+    {
+        if (defToAdd > 0)
+        {
+            defToAdd--;
+            availablePoints++;
+            defText.text = (defToAdd + CharacterData.Instance.Defense).ToString();
+            availablePointsText.text = availablePoints.ToString();
+        }
+    }
+    public void DecreasePrecision()
+    {
+        if (precToAdd > 0)
+        {
+            precToAdd--;
+            availablePoints++;
+            precText.text = (precToAdd + CharacterData.Instance.HitRate).ToString();
+            availablePointsText.text = availablePoints.ToString();
+        }
+    }
+    public void DecreaseFortune()
+    {
+        if (fortToAdd > 0)
+        {
+            fortToAdd--;
+            availablePoints++;
+            fortText.text = (fortToAdd + CharacterData.Instance.Fortune).ToString();
+            availablePointsText.text = availablePoints.ToString();
+        }
+    }
     public void AddStatsAndSwitchScene()
     {
-        CharacterData.Instance.AddStrAgiInt(strToAdd, agiToAdd, intToAdd);
+        CharacterData.Instance.AddStrAgiInt(strToAdd, agiToAdd, intToAdd, healthToAdd, precToAdd, defToAdd, fortToAdd, 0, 0);
 
         Inventory.Instance.AddSkillToInventory(newSkill);
         SceneController.instance.LoadScene("Base");

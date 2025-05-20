@@ -22,12 +22,11 @@ public class Item : ScriptableObject
     public int agility;
     public int intellect;
     public int health;
-    public int attackDamage;
-    public int dodgeRate;
-    public int critRate;
+    public int hit;
+    public int defense;
+    public int fortune;
     public int stunRate;
-
-
+    public int lifesteal;
 
 
     // Method to use the item

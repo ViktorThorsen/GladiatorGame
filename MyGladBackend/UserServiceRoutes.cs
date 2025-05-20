@@ -18,7 +18,7 @@ public static class UserServiceRoutes
 
 #if DEBUG
         // MOCKAD användare i utvecklingsläge
-        email = "galt@gmail.com";
+        email = "jesus@gmail.com";
 #else
         var payload = await GoogleJsonWebSignature.ValidateAsync(body.IdToken);
         email = payload.Email;

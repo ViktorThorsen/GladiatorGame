@@ -19,6 +19,13 @@ public class ChooseLandsManager : MonoBehaviour
             Destroy(gameObject);
         }
     }
+    void Start()
+    {
+        if (MonsterHuntManager.Instance != null)
+        {
+            Destroy(MonsterHuntManager.Instance.gameObject);
+        }
+    }
     public void Forest()
     {
         ChoosedLand = "Forest";
@@ -53,5 +60,10 @@ public class ChooseLandsManager : MonoBehaviour
     {
         ChoosedLand = "Savannah";
         SceneController.instance.LoadScene("MonsterHuntSavannah");
+    }
+
+    public void OnBackButtonClick()
+    {
+        SceneController.instance.LoadScene("Base"); // Load the character selection scene
     }
 }

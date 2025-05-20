@@ -154,7 +154,15 @@ public class EnemyMovement : MonoBehaviour
                     playerMovement.MovePlayerToLeft(0.5f);
                     bool playerStunned = CalculateStun();
                     if (playerStunned) { playerMovement.Stun(); }
-                    playerHealthManager.ReduceHealth(CalculateRandomDamage(monsterstats.AttackDamage), "Normal", enemy);
+                    int damage = CalculateRandomDamage(monsterstats.AttackDamage);
+                    int randomValue = Random.Range(0, 100);
+                    bool isCrit = false;
+                    if (randomValue < monsterstats.CritRate)
+                    {
+                        damage = damage * 2;
+                        isCrit = true;
+                    }
+                    playerHealthManager.ReduceHealth(damage, "Normal", enemy, isCrit);
                 }
 
 
@@ -163,7 +171,15 @@ public class EnemyMovement : MonoBehaviour
                     petMovement.MovePetToLeft(0.5f);
                     bool playerStunned = CalculateStun();
                     if (playerStunned) { petMovement.Stun(); }
-                    playerHealthManager.ReduceHealth(CalculateRandomDamage(monsterstats.AttackDamage), "Normal", enemy);
+                    int damage = CalculateRandomDamage(monsterstats.AttackDamage);
+                    int randomValue = Random.Range(0, 100);
+                    bool isCrit = false;
+                    if (randomValue < monsterstats.CritRate)
+                    {
+                        damage = damage * 2;
+                        isCrit = true;
+                    }
+                    playerHealthManager.ReduceHealth(damage, "Normal", enemy, isCrit);
                 }
             }
         }
@@ -191,7 +207,15 @@ public class EnemyMovement : MonoBehaviour
             else
             {
                 if (player.tag == "Player") { playerMovement.MovePlayerToLeft(0.5f); } else { petMovement.MovePetToLeft(0.5f); }
-                playerHealthManager.ReduceHealth(CalculateRandomDamage(monsterstats.AttackDamage), "Normal", enemy);
+                int damage = CalculateRandomDamage(monsterstats.AttackDamage);
+                int randomValue = Random.Range(0, 100);
+                bool isCrit = false;
+                if (randomValue < monsterstats.CritRate)
+                {
+                    damage = damage * 2;
+                    isCrit = true;
+                }
+                playerHealthManager.ReduceHealth(damage, "Normal", enemy, isCrit);
             }
 
             yield return new WaitForSeconds(0.5f);
@@ -217,7 +241,15 @@ public class EnemyMovement : MonoBehaviour
                 else
                 {
                     if (player.tag == "Player") { playerMovement.MovePlayerToLeft(0.5f); } else { petMovement.MovePetToLeft(0.5f); }
-                    playerHealthManager.ReduceHealth(CalculateRandomDamage(monsterstats.AttackDamage), "Normal", enemy);
+                    int damage = CalculateRandomDamage(monsterstats.AttackDamage);
+                    int randomValue = Random.Range(0, 100);
+                    bool isCrit = false;
+                    if (randomValue < monsterstats.CritRate)
+                    {
+                        damage = damage * 2;
+                        isCrit = true;
+                    }
+                    playerHealthManager.ReduceHealth(damage, "Normal", enemy, isCrit);
                 }
 
                 yield return new WaitForSeconds(0.5f);
@@ -243,7 +275,15 @@ public class EnemyMovement : MonoBehaviour
                     else
                     {
                         if (player.tag == "Player") { playerMovement.MovePlayerToLeft(0.5f); } else { petMovement.MovePetToLeft(0.5f); }
-                        playerHealthManager.ReduceHealth(CalculateRandomDamage(monsterstats.AttackDamage), "Normal", enemy);
+                        int damage = CalculateRandomDamage(monsterstats.AttackDamage);
+                        int randomValue = Random.Range(0, 100);
+                        bool isCrit = false;
+                        if (randomValue < monsterstats.CritRate)
+                        {
+                            damage = damage * 2;
+                            isCrit = true;
+                        }
+                        playerHealthManager.ReduceHealth(damage, "Normal", enemy, isCrit);
                     }
 
                     yield return new WaitForSeconds(0.5f);
@@ -446,7 +486,7 @@ public class EnemyMovement : MonoBehaviour
     }
     public void Stun()
     {
-        enemyHealthManager.ShowCombatText(0, "Stunned");
+        CombatTextManager.Instance.SpawnText("Stunned", enemy.transform.position + Vector3.up * 1.5f, "#FFFFFF");
         IsStunned = true;
         anim.SetBool("stunned", true);
         StunnedAtRound = gameManager.RoundsCount;
@@ -462,7 +502,6 @@ public class EnemyMovement : MonoBehaviour
 
     private int CalculateRandomDamage(int baseDamage)
     {
-        int outDmg;
         // Calculate a random damage between baseDamage - 2 and baseDamage + 2
         int minDamage = Mathf.RoundToInt(baseDamage * 0.9f);
         int maxDamage = Mathf.RoundToInt(baseDamage * 1.1f);
@@ -470,14 +509,7 @@ public class EnemyMovement : MonoBehaviour
         // Ensure the minimum damage is at least 1
         if (minDamage < 1) { minDamage = 1; }
         int randomDmg = Random.Range(minDamage, maxDamage);
-        int randomValue = Random.Range(0, 100);
-        if (randomValue < monsterstats.CritRate)
-        {
-            outDmg = randomDmg * 2;
-            enemyHealthManager.ShowCombatText(0, "Critical Strike");
-        }
-        else { outDmg = randomDmg; }
-        return outDmg; // Random.Range is inclusive for integers
+        return randomDmg; // Random.Range is inclusive for integers
     }
     private void FlipTowards(Vector2 targetPosition)
     {
@@ -575,8 +607,7 @@ public class EnemyMovement : MonoBehaviour
 
     IEnumerator DodgeMove(Vector3 targetPosition, float dodgeDirection)
     {
-
-        enemyHealthManager.ShowCombatText(0, "Dodge!");
+        CombatTextManager.Instance.SpawnText("Dodge", enemy.transform.position + Vector3.up * 1.5f, "#FFFFFF");
         // Instantly set the player's position to the dodge target position
         transform.position = targetPosition;
 

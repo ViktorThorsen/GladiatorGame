@@ -13,18 +13,43 @@ public class CreateCharacter : MonoBehaviour
     private int strength;
     private int agility;
     private int intellect;
+    private int health;
+    private int hitChance;
+    private int defense;
+    private int fortune;
+
     [SerializeField] private TMP_Text strText;
     [SerializeField] private TMP_Text agiText;
     [SerializeField] private TMP_Text intText;
+    [SerializeField] private TMP_Text healthText;
+    [SerializeField] private TMP_Text hitText;
+    [SerializeField] private TMP_Text defenseText;
+    [SerializeField] private TMP_Text fortuneText;
+    [SerializeField] private TMP_Text pointsToSpendText;
     [SerializeField] private TMP_InputField nameInput;
     public SwitchPart switchPart;        // The SwitchPart component assigned in the Inspector
+    int pointsToSpend;
 
     void Start()
     {
         // Initialize the stats
-        strength = 1;
-        agility = 1;
-        intellect = 1;
+        strength = 0;
+        strText.text = strength.ToString();
+        agility = 0;
+        agiText.text = agility.ToString();
+        intellect = 0;
+        intText.text = intellect.ToString();
+        health = 0;
+        int healthString = health + 50;
+        healthText.text = healthString.ToString();
+        hitChance = 0;
+        hitText.text = hitChance.ToString();
+        defense = 0;
+        defenseText.text = defense.ToString();
+        fortune = 0;
+        fortuneText.text = fortune.ToString();
+        pointsToSpend = 10;
+        pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
 
         // Assign switchPart from the characterPrefab
         if (characterPrefab != null)
@@ -49,22 +74,154 @@ public class CreateCharacter : MonoBehaviour
 
     public void IncreaseStrength()
     {
-        strength++;
-        strText.text = strength.ToString();
+        if (pointsToSpend > 0)
+        {
+            pointsToSpend--;
+            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            strength++;
+            strText.text = strength.ToString();
+        }
+
     }
 
     public void IncreaseAgility()
     {
-        agility++;
-        agiText.text = agility.ToString();
+        if (pointsToSpend > 0)
+        {
+            pointsToSpend--;
+            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            agility++;
+            agiText.text = agility.ToString();
+        }
     }
 
     public void IncreaseIntellect()
     {
-        intellect++;
-        intText.text = intellect.ToString();
+        if (pointsToSpend > 0)
+        {
+            pointsToSpend--;
+            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            intellect++;
+            intText.text = intellect.ToString();
+        }
+    }
+    public void IncreaseHealth()
+    {
+        if (pointsToSpend > 0)
+        {
+            pointsToSpend--;
+            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            health++;
+            int healthString = (health * 5) + 50;
+            healthText.text = healthString.ToString();
+        }
+    }
+    public void IncreaseHit()
+    {
+        if (pointsToSpend > 0)
+        {
+            pointsToSpend--;
+            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            hitChance++;
+            hitText.text = hitChance.ToString();
+        }
+    }
+    public void IncreaseDefense()
+    {
+        if (pointsToSpend > 0)
+        {
+            pointsToSpend--;
+            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            defense++;
+            defenseText.text = defense.ToString();
+        }
+    }
+    public void IncreaseFortune()
+    {
+        if (pointsToSpend > 0)
+        {
+            pointsToSpend--;
+            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            fortune++;
+            fortuneText.text = fortune.ToString();
+        }
     }
 
+    public void DecreaseStrength()
+    {
+        if (strength != 0)
+        {
+            pointsToSpend++;
+            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            strength--;
+            strText.text = strength.ToString();
+        }
+    }
+
+    public void DecreaseAgility()
+    {
+        if (agility != 0)
+        {
+            pointsToSpend++;
+            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            agility--;
+            agiText.text = agility.ToString();
+        }
+    }
+
+    public void DecreaseIntellect()
+    {
+        if (intellect != 0)
+        {
+            pointsToSpend++;
+            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            intellect--;
+            intText.text = intellect.ToString();
+        }
+    }
+    public void DecreaseHealth()
+    {
+        if (health != 0)
+        {
+            pointsToSpend++;
+            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            health--;
+            int healthString = (health * 5) + 50;
+            healthText.text = healthString.ToString();
+        }
+    }
+    public void DecreaseHit()
+    {
+        if (hitChance != 0)
+        {
+            pointsToSpend++;
+            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            hitChance--;
+            hitText.text = hitChance.ToString();
+        }
+    }
+    public void DecreaseDefense()
+    {
+        if (defense != 0)
+        {
+            pointsToSpend++;
+            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            defense--;
+            defenseText.text = defense.ToString();
+        }
+
+    }
+    public void DecreaseFortune()
+    {
+        if (fortune != 0)
+        {
+            pointsToSpend++;
+            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            fortune--;
+            fortuneText.text = fortune.ToString();
+        }
+
+    }
     public void Create()
     {
         // Additional creation logic if necessary
@@ -78,7 +235,7 @@ public class CreateCharacter : MonoBehaviour
             return;
         }
         characterData.CharName = nameInput.text;
-        characterData.AddStrAgiInt(strength, agility, intellect);
+        characterData.AddStrAgiInt(strength, agility, intellect, health, hitChance, defense, fortune, 0, 0);
 
         // Retrieve the current labels from SwitchPart and save them to the ScriptableObject
         List<string> currentBodyPartLabels = new List<string>();

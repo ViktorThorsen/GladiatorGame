@@ -50,6 +50,8 @@ app.MapPost("/api/characters/useenergy", CharacterRoutes.UseEnergy).RequireAutho
 app.MapGet("/api/monsterhunt", MonsterHuntRoutes.GetMonsterHuntInfo).RequireAuthorization();
 app.MapPut("/api/monsterhunt", MonsterHuntRoutes.UpdateMonsterHuntStage).RequireAuthorization();
 app.MapPost("/api/monsterhunt", MonsterHuntRoutes.AddMonsterHuntInfo).RequireAuthorization();
+app.MapPost("/api/replays", ReplayRoutes.SaveReplay).RequireAuthorization();
+app.MapGet("/api/replays/character", ReplayRoutes.GetReplaysForCharacter);
 app.MapPost("/api/auth/google", (
     HttpRequest request,
     NpgsqlDataSource db,

@@ -1175,10 +1175,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   monsterName: Lion
   health: 500
-  attackDamage: 20
+  attackDamage: 5
   lifeSteal: 5
   dodgeRate: 10
-  critRate: 10
+  critRate: 70
   stunRate: 0
   initiative: 0
   scale: {x: 0.4, y: 0.4, z: 1}

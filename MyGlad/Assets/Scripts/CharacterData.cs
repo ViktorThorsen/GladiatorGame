@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Collections;
 using System;
+using System.Collections.Generic;
 public class CharacterData : MonoBehaviour
 {
     public static CharacterData Instance { get; private set; }
@@ -17,20 +18,29 @@ public class CharacterData : MonoBehaviour
     [SerializeField] private int xp;
     [SerializeField] private int energy;
     [SerializeField] private int health;
-    [SerializeField] private int attackDamage;
+    [SerializeField] private int hitRate;
     [SerializeField] private int lifeSteal;
     [SerializeField] private int dodgeRate;
     [SerializeField] private int critRate;
     [SerializeField] private int stunRate;
+    [SerializeField] private int fortune;
+    [SerializeField] private int intellect;
 
-    [SerializeField] private int initiative;
-
+    //Just for Show
     [SerializeField] private int strength;
     [SerializeField] private int agility;
-    [SerializeField] private int intellect;
+    [SerializeField] private int defense;
+
 
     [SerializeField] private string[] bodyPartLabels;
 
+    private bool createdNow = false;
+
+    public bool CreatedNow
+    {
+        get { return createdNow; }
+        set { createdNow = value; }
+    }
     public int Id
     {
         get { return id; }
@@ -67,11 +77,15 @@ public class CharacterData : MonoBehaviour
         get { return health; }
         set { health = value; }
     }
-
-    public int AttackDamage
+    public int Defense
     {
-        get { return attackDamage; }
-        set { attackDamage = value; }
+        get { return defense; }
+        set { defense = value; }
+    }
+    public int HitRate
+    {
+        get { return hitRate; }
+        set { hitRate = value; }
     }
 
     public int LifeSteal
@@ -98,10 +112,10 @@ public class CharacterData : MonoBehaviour
         set { stunRate = value; }
     }
 
-    public int Initiative
+    public int Fortune
     {
-        get { return initiative; }
-        set { initiative = value; }
+        get { return fortune; }
+        set { fortune = value; }
     }
 
     public int Strength
@@ -131,16 +145,42 @@ public class CharacterData : MonoBehaviour
 
 
     // AddStrAgiInt method
-    public void AddStrAgiInt(int str, int agi, int inte)
+    public void AddStrAgiInt(int str, int agi, int inte, int health, int hit, int defense, int fortu, int stun, int lifeSt)
     {
-        Health += str * 5;
-        AttackDamage += str * 5;
-        DodgeRate += agi * 5;
-        CritRate += agi * 5;
-        Initiative += inte * 5;
+        Health += health * 5;
+
         Strength += str;
+        if (hitRate - str / 2 >= 0)
+        {
+            hitRate -= str / 2;
+        }
+
+        DodgeRate += agi;
+        critRate += agi;
+
+        if (hitRate - agi / 2 >= 0)
+        {
+            hitRate -= agi / 2;
+        }
         Agility += agi;
-        Intellect += inte;
+
+        intellect += inte;
+
+        if (hitRate + hit >= 0)
+        {
+            HitRate += hit;
+        }
+
+        Fortune += fortu;
+
+        StunRate += stun;
+
+        LifeSteal += lifeSt;
+
+        DodgeRate += defense;
+        Defense += defense;
+
+
     }
 
     private void Awake()
@@ -157,34 +197,27 @@ public class CharacterData : MonoBehaviour
         BaseStats();
     }
 
-    public void AddEquipStats(int str, int agi, int inte, int health, int attack, int dodge, int crit, int stun)
+    public void AddEquipStats(int str, int agi, int inte, int health, int hit, int defense, int fortu, int stun, int lifeSt)
     {
-        AddStrAgiInt(str, agi, inte);
-        Health += health;
-        AttackDamage += attack;
-        DodgeRate += dodge;
-        CritRate += crit;
-        StunRate += stun;
+        AddStrAgiInt(str, agi, inte, health, hit, defense, fortu, stun, lifeSt);
     }
 
-    public void RemoveEquipStats(int str, int agi, int inte, int health, int attack, int dodge, int crit, int stun)
+    public void RemoveEquipStats(int str, int agi, int inte, int health, int hit, int defense, int fortu, int stun, int lifeSt)
     {
         // Reverse the stats added by the AddStrAgiInt method
-        Health -= str * 5;
-        AttackDamage -= str * 5;
-        DodgeRate -= agi * 5;
-        CritRate -= agi * 5;
-        Initiative -= inte * 5;
+        Health -= health * 5;
         Strength -= str;
-        Agility -= agi;
-        Intellect -= inte;
-
-        // Reverse the additional stats added by the AddEquipStats method
-        Health -= health;
-        AttackDamage -= attack;
-        DodgeRate -= dodge;
-        CritRate -= crit;
+        hitRate += str / 2;
+        DodgeRate -= agi;
+        critRate -= agi;
+        hitRate += agi / 2;
+        intellect -= inte;
+        HitRate -= hit;
+        DodgeRate -= defense;
+        Defense -= defense;
+        Fortune -= fortu;
         StunRate -= stun;
+        LifeSteal -= lifeSt;
 
     }
 
@@ -192,13 +225,17 @@ public class CharacterData : MonoBehaviour
     {
         Level = 1;
         Xp = 0;
-        Health = 100;
+        Health = 50;
         Energy = 10;
-        attackDamage = 20;
-        dodgeRate = 1;
-        critRate = 1;
-        initiative = 0;
-        stunRate = 1;
+        Strength = 1;
+        dodgeRate = 0;
+        critRate = 0;
+        stunRate = 0;
+        intellect = 0;
+        HitRate = 0;
+        Fortune = 0;
+        StunRate = 0;
+        Defense = 0;
     }
 
     // Method to save the character data
@@ -216,15 +253,16 @@ public class CharacterData : MonoBehaviour
             level = this.level,
             xp = this.xp,
             health = this.health,
-            attackDamage = this.attackDamage,
             lifeSteal = this.lifeSteal,
             dodgeRate = this.dodgeRate,
             critRate = this.critRate,
             stunRate = this.stunRate,
-            initiative = this.initiative,
+            hitRate = this.hitRate,
+            fortune = this.fortune,
             strength = this.strength,
             agility = this.agility,
             intellect = this.intellect,
+            defense = this.Defense
         };
         BodyPartsDataSerializable bodyPartsData = new BodyPartsDataSerializable
         {
@@ -355,12 +393,13 @@ public class CharacterData : MonoBehaviour
             level = data.character.level;
             xp = data.character.xp;
             health = data.character.health;
-            attackDamage = data.character.attackDamage;
             lifeSteal = data.character.lifeSteal;
             dodgeRate = data.character.dodgeRate;
             critRate = data.character.critRate;
             stunRate = data.character.stunRate;
-            initiative = data.character.initiative;
+            fortune = data.character.fortune;
+            hitRate = data.character.hitRate;
+            defense = data.character.defense;
             strength = data.character.strength;
             agility = data.character.agility;
             intellect = data.character.intellect;

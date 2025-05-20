@@ -13,21 +13,22 @@ MonoBehaviour:
   m_Name: ItemFrostSpear
   m_EditorClassIdentifier: 
   itemName: Frost Spear
-  itemIcon: {fileID: 0}
-  itemSprite: {fileID: 0}
-  equippedPositionOffset: {x: 0, y: 0, z: 0}
-  equippedRotation: {x: 0, y: 0, z: 0}
-  equippedScale: {x: 0, y: 0, z: 0}
+  itemIcon: {fileID: 21300000, guid: 1d87f45ce0093f845a759190dca7bb13, type: 3}
+  itemSprite: {fileID: 21300000, guid: 1d87f45ce0093f845a759190dca7bb13, type: 3}
+  equippedPositionOffset: {x: 1.35, y: 1.03, z: 0}
+  equippedRotation: {x: 0, y: 0, z: 321.04745}
+  equippedScale: {x: 1.02, y: 1.02, z: 1.02}
   description: 
   itemType: 0
   abilityType: 0
-  durability: 0
-  healthRestorationAmount: 0
-  strength: 0
+  durability: 5
+  healthRestorationAmount: 5
+  strength: 50
   agility: 0
-  intellect: 0
+  intellect: 20
   health: 0
-  attackDamage: 0
-  dodgeRate: 0
-  critRate: 0
+  hit: 0
+  defense: 0
+  fortune: 0
   stunRate: 0
+  lifesteal: 0

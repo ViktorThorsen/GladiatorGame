@@ -15,11 +15,9 @@ public class CharacterRoutes
         PetsDTO pets, WeaponsDTO weapons, ConsumablesDTO consumables, ShortcutDTO shortcuts
     );
 
-    public record CharacterDTO(
-    string charName, int level, int xp, int health,
-    int attackDamage, int lifeSteal, int dodgeRate, int critRate, int stunRate,
-    int initiative, int strength, int agility, int intellect
-);
+    public record CharacterDTO(string charName, int level, int xp, int health, int defense,
+                    int lifeSteal, int dodgeRate, int critRate, int stunRate, int hitRate,
+                    int strength, int agility, int intellect, int fortune);
     public record CharacterBodyPartsDTO(
         string hair, string eyes, string chest, string legs
     );
@@ -66,24 +64,25 @@ public class CharacterRoutes
                 using var updateCmd = db.CreateCommand(@"
         UPDATE characters SET
             level = @level, xp = @xp, health = @health,
-            attack_damage = @ad, life_steal = @ls,
+            defense = @def, life_steal = @ls,
             dodge_rate = @dr, crit_rate = @cr,
-            stun_rate = @sr, initiative = @ini,
-            strength = @str, agility = @agi, intellect = @int
+            stun_rate = @sr, hit_rate = @hit,
+            strength = @str, agility = @agi, intellect = @int, fortune = @for
         WHERE id = @id");
 
                 updateCmd.Parameters.AddWithValue("level", wrapper.character.level);
                 updateCmd.Parameters.AddWithValue("xp", wrapper.character.xp);
                 updateCmd.Parameters.AddWithValue("health", wrapper.character.health);
-                updateCmd.Parameters.AddWithValue("ad", wrapper.character.attackDamage);
+                updateCmd.Parameters.AddWithValue("def", wrapper.character.defense);
                 updateCmd.Parameters.AddWithValue("ls", wrapper.character.lifeSteal);
                 updateCmd.Parameters.AddWithValue("dr", wrapper.character.dodgeRate);
                 updateCmd.Parameters.AddWithValue("cr", wrapper.character.critRate);
                 updateCmd.Parameters.AddWithValue("sr", wrapper.character.stunRate);
-                updateCmd.Parameters.AddWithValue("ini", wrapper.character.initiative);
+                updateCmd.Parameters.AddWithValue("hit", wrapper.character.hitRate);
                 updateCmd.Parameters.AddWithValue("str", wrapper.character.strength);
                 updateCmd.Parameters.AddWithValue("agi", wrapper.character.agility);
                 updateCmd.Parameters.AddWithValue("int", wrapper.character.intellect);
+                updateCmd.Parameters.AddWithValue("for", wrapper.character.fortune);
                 updateCmd.Parameters.AddWithValue("id", characterId);
 
                 await updateCmd.ExecuteNonQueryAsync();
@@ -92,26 +91,30 @@ public class CharacterRoutes
             {
                 // 1. Lägg till karaktären
                 using var cmd = db.CreateCommand(@"
-            INSERT INTO characters (
-                name, level, xp, health, attack_damage, life_steal,
-                dodge_rate, crit_rate, stun_rate, initiative, strength, agility, intellect
-            ) VALUES (
-                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
-            ) RETURNING id");
-
-                cmd.Parameters.AddWithValue(wrapper.character.charName);
-                cmd.Parameters.AddWithValue(wrapper.character.level);
-                cmd.Parameters.AddWithValue(wrapper.character.xp);
-                cmd.Parameters.AddWithValue(wrapper.character.health);
-                cmd.Parameters.AddWithValue(wrapper.character.attackDamage);
-                cmd.Parameters.AddWithValue(wrapper.character.lifeSteal);
-                cmd.Parameters.AddWithValue(wrapper.character.dodgeRate);
-                cmd.Parameters.AddWithValue(wrapper.character.critRate);
-                cmd.Parameters.AddWithValue(wrapper.character.stunRate);
-                cmd.Parameters.AddWithValue(wrapper.character.initiative);
-                cmd.Parameters.AddWithValue(wrapper.character.strength);
-                cmd.Parameters.AddWithValue(wrapper.character.agility);
-                cmd.Parameters.AddWithValue(wrapper.character.intellect);
+        INSERT INTO characters (
+            name, level, xp, health, defense, life_steal,
+            dodge_rate, crit_rate, stun_rate, hit_rate,
+            strength, agility, intellect, fortune
+        ) VALUES (
+            @name, @level, @xp, @health, @def, @ls,
+            @dr, @cr, @sr, @hit,
+            @str, @agi, @int, @for
+        ) RETURNING id");
+                cmd.Parameters.AddWithValue("name", wrapper.character.charName);
+                cmd.Parameters.AddWithValue("level", wrapper.character.level);
+                cmd.Parameters.AddWithValue("xp", wrapper.character.xp);
+                cmd.Parameters.AddWithValue("health", wrapper.character.health);
+                cmd.Parameters.AddWithValue("def", wrapper.character.defense);
+                cmd.Parameters.AddWithValue("ls", wrapper.character.lifeSteal);
+                cmd.Parameters.AddWithValue("dr", wrapper.character.dodgeRate);
+                cmd.Parameters.AddWithValue("cr", wrapper.character.critRate);
+                cmd.Parameters.AddWithValue("sr", wrapper.character.stunRate);
+                cmd.Parameters.AddWithValue("hit", wrapper.character.hitRate);
+                cmd.Parameters.AddWithValue("str", wrapper.character.strength);
+                cmd.Parameters.AddWithValue("agi", wrapper.character.agility);
+                cmd.Parameters.AddWithValue("int", wrapper.character.intellect);
+                cmd.Parameters.AddWithValue("for", wrapper.character.fortune);
+                cmd.Parameters.AddWithValue("id", characterId);
 
 
                 await using (var reader = await cmd.ExecuteReaderAsync())
@@ -412,8 +415,13 @@ public class CharacterRoutes
         // Hämta karaktärsinfo från characters-tabellen baserat på gladiatorId
         await using (var cmd = db.CreateCommand())
         {
-            cmd.CommandText = @"SELECT id, name, level, xp, health, attack_damage, life_steal, dodge_rate, crit_rate, stun_rate, initiative, strength, agility, intellect
-                            FROM public.characters WHERE id = @id";
+            cmd.CommandText = @"
+    SELECT id, name, level, xp, health, defense, life_steal,
+           dodge_rate, crit_rate, stun_rate, hit_rate,
+           strength, agility, intellect, fortune
+    FROM public.characters
+    WHERE id = @id";
+
             cmd.Parameters.AddWithValue("id", characterId);
 
             await using var reader = await cmd.ExecuteReaderAsync();
@@ -425,15 +433,16 @@ public class CharacterRoutes
                 level: reader.GetInt32(2),
                 xp: reader.GetInt32(3),
                 health: reader.GetInt32(4),
-                attackDamage: reader.GetInt32(5),
+                defense: reader.GetInt32(5),
                 lifeSteal: reader.GetInt32(6),
                 dodgeRate: reader.GetInt32(7),
                 critRate: reader.GetInt32(8),
                 stunRate: reader.GetInt32(9),
-                initiative: reader.GetInt32(10),
+                hitRate: reader.GetInt32(10),
                 strength: reader.GetInt32(11),
                 agility: reader.GetInt32(12),
-                intellect: reader.GetInt32(13)
+                intellect: reader.GetInt32(13),
+                fortune: reader.GetInt32(14)
             );
 
             // Hämta övriga kopplade resurser

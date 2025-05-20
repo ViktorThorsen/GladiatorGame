@@ -343,8 +343,7 @@ Transform:
   m_LocalPosition: {x: 0.095066234, y: 0.38997892, z: -15.74239}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 902436667}
+  m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &502001135
@@ -655,6 +654,50 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 697928728}
   m_CullTransparentMesh: 1
+--- !u!1 &815664664
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 815664666}
+  - component: {fileID: 815664665}
+  m_Layer: 0
+  m_Name: ReplayData
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &815664665
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 815664664}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6e90619bda76d874b918d92a74a4662d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!4 &815664666
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 815664664}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.9167757, y: 1.3472009, z: 0.15151119}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &844505865
 GameObject:
   m_ObjectHideFlags: 0
@@ -780,7 +823,7 @@ Transform:
   m_GameObject: {fileID: 902436666}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 923.4049, y: 487.33173, z: 21.359707}
+  m_LocalPosition: {x: 923.5, y: 487.7217, z: 5.617317}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -793,7 +836,7 @@ Transform:
   - {fileID: 661838311}
   - {fileID: 1217369117}
   - {fileID: 1304588117}
-  m_Father: {fileID: 502001134}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1122265589
 GameObject:
@@ -1282,6 +1325,51 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1666162478}
   m_CullTransparentMesh: 1
+--- !u!1 &1830220178
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1830220180}
+  - component: {fileID: 1830220179}
+  m_Layer: 0
+  m_Name: CombatTextManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1830220179
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1830220178}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 91e41afd0da925345bb9b40db3637a9d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  combatTextPrefab: {fileID: 3082294142688105602, guid: 111279791c3a41949a5133daf603428b, type: 3}
+--- !u!4 &1830220180
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1830220178}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 516.99207, y: 363.07355, z: -5.9439287}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1849873993
 GameObject:
   m_ObjectHideFlags: 0
@@ -1715,7 +1803,6 @@ MonoBehaviour:
   - {fileID: 1217369117}
   - {fileID: 1304588117}
   rightPositionsAvailable: 
-  damageTextPrefab: {fileID: 8725755031961343085, guid: 111279791c3a41949a5133daf603428b, type: 3}
   healthSliderPrefab: {fileID: 8130419591889827515, guid: e451fcbfcb8ad0648aae5f585a94ee90, type: 3}
 --- !u!1 &2062259611
 GameObject:
@@ -1931,8 +2018,11 @@ SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 502001134}
+  - {fileID: 902436667}
   - {fileID: 1599788582}
   - {fileID: 2117813819}
   - {fileID: 1449602736}
   - {fileID: 1849873996}
   - {fileID: 2032360888}
+  - {fileID: 1830220180}
+  - {fileID: 815664666}

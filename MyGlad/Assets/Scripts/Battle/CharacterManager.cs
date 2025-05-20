@@ -155,4 +155,77 @@ public class CharacterManager : MonoBehaviour
         // Return the instantiated character object
         return characterObject;
     }
+    public static GameObject InstantiateReplayCharacter(
+    CharacterWrapper dto,
+    GameObject characterPrefab,
+    Transform parentObj,
+    Transform charPos,
+    Vector3 scale)
+    {
+        GameObject characterObject = Instantiate(characterPrefab);
+
+        // Parent
+        if (parentObj != null)
+            characterObject.transform.SetParent(parentObj.transform, false);
+        else
+            return null;
+
+        // Position & rotation
+        if (charPos != null)
+        {
+            characterObject.transform.position = charPos.position;
+            characterObject.transform.rotation = charPos.rotation;
+        }
+        else
+            return null;
+
+        // Scale
+        characterObject.transform.localScale = scale;
+
+        // === SORTERING: Canvases ===
+        Canvas[] internalCanvases = characterObject.GetComponentsInChildren<Canvas>();
+        foreach (Canvas canvas in internalCanvases)
+        {
+            canvas.sortingLayerName = "firstFront";
+            canvas.sortingOrder = 0;
+            canvas.overrideSorting = true;
+        }
+
+        // === SORTERING: Trails ===
+        TrailRenderer[] internalTrail = characterObject.GetComponentsInChildren<TrailRenderer>();
+        foreach (TrailRenderer trail in internalTrail)
+        {
+            trail.sortingLayerName = "firstFront";
+            trail.sortingOrder = 0;
+            var trailRenderer = trail.GetComponent<Renderer>();
+            if (trailRenderer != null)
+            {
+                trailRenderer.sortingLayerName = "firstFront";
+                trailRenderer.sortingOrder = 0;
+            }
+        }
+
+        // === BODY PARTS ===
+        SwitchPart switchPart = characterObject.GetComponent<SwitchPart>();
+        if (switchPart != null && dto.bodyPartLabels != null)
+        {
+            string[] parts = new string[]
+            {
+            dto.bodyPartLabels.hair,
+            dto.bodyPartLabels.eyes,
+            dto.bodyPartLabels.chest,
+            dto.bodyPartLabels.legs
+            };
+
+            for (int i = 0; i < parts.Length && i < switchPart.bodyParts.Length; i++)
+            {
+                switchPart.bodyParts[i].SwitchParts(new string[] { parts[i] });
+            }
+        }
+
+        // TODO: Du kan lägga till komponenter här om du vill att replay-karaktärer ska kunna röra sig, visa HP, etc.
+
+        return characterObject;
+    }
+
 }

@@ -143,6 +143,14 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
             if (enemy.tag == "Player") { enemyPlayerMovement.Dodge(); } else { enemyPetMovement.Dodge(); }
             yield return new WaitForSeconds(0.5f); // Wait for dodge animation to complete
             anim.SetTrigger("stophit");
+            ReplayData.Instance.AddAction(new MatchEventDTO
+            {
+                Turn = gameManager.RoundsCount,
+                Actor = GetCharacterType(enemy.tag), //Den som dodgar
+                Action = "dodge",
+                Target = CharacterType.EnemyGlad,
+                Value = 0
+            });
             MoveBackToRandomStart(); // Stop combo and move back to start
             yield break; // End the coroutine here
         }
@@ -160,7 +168,16 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                     {
                         ApplyVenom();
                     }
-                    enemyHealthManager.ReduceHealth(CalculateRandomDamage(EnemyGladiatorData.Instance.AttackDamage + berserkDamage), "Normal", player);
+                    int damage = CalculateRandomDamage(EnemyGladiatorData.Instance.Strength);
+                    bool isCrit = false;
+                    int randomValue = Random.Range(0, 100);
+                    if (randomValue < EnemyGladiatorData.Instance.CritRate)
+                    {
+                        isCrit = true;
+                        damage = damage * 2;
+
+                    }
+                    enemyHealthManager.ReduceHealth(damage + berserkDamage, "Normal", player, isCrit);
                     RollForDestroyWeapon();
 
                 }
@@ -174,7 +191,16 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                     {
                         ApplyVenom();
                     }
-                    enemyHealthManager.ReduceHealth(CalculateRandomDamage(EnemyGladiatorData.Instance.AttackDamage + berserkDamage), "Normal", player);
+                    int damage = CalculateRandomDamage(EnemyGladiatorData.Instance.Strength);
+                    bool isCrit = false;
+                    int randomValue = Random.Range(0, 100);
+                    if (randomValue < EnemyGladiatorData.Instance.CritRate)
+                    {
+                        isCrit = true;
+                        damage = damage * 2;
+
+                    }
+                    enemyHealthManager.ReduceHealth(damage + berserkDamage, "Normal", player, isCrit);
                     RollForDestroyWeapon();
                 }
             }
@@ -197,6 +223,14 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                 if (enemy.tag == "Player") { enemyPlayerMovement.Dodge(); } else { enemyPetMovement.Dodge(); }
                 yield return new WaitForSeconds(0.5f); // Wait for dodge animation to complete
                 anim.SetTrigger("stophit");
+                ReplayData.Instance.AddAction(new MatchEventDTO
+                {
+                    Turn = gameManager.RoundsCount,
+                    Actor = GetCharacterType(enemy.tag), //Den som dodgar
+                    Action = "dodge",
+                    Target = CharacterType.EnemyGlad,
+                    Value = 0
+                });
                 MoveBackToRandomStart(); // Stop combo and move back to start
                 yield break; // End the coroutine here
             }
@@ -212,7 +246,16 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                     {
                         ApplyVenom();
                     }
-                    enemyHealthManager.ReduceHealth(CalculateRandomDamage(EnemyGladiatorData.Instance.AttackDamage + berserkDamage), "Normal", player);
+                    int damage = CalculateRandomDamage(EnemyGladiatorData.Instance.Strength);
+                    bool isCrit = false;
+                    int randomValue = Random.Range(0, 100);
+                    if (randomValue < EnemyGladiatorData.Instance.CritRate)
+                    {
+                        isCrit = true;
+                        damage = damage * 2;
+
+                    }
+                    enemyHealthManager.ReduceHealth(damage + berserkDamage, "Normal", player, isCrit);
                     RollForDestroyWeapon();
                 }
                 else
@@ -225,7 +268,16 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                     {
                         ApplyVenom();
                     }
-                    enemyHealthManager.ReduceHealth(CalculateRandomDamage(EnemyGladiatorData.Instance.AttackDamage + berserkDamage), "Normal", player);
+                    int damage = CalculateRandomDamage(EnemyGladiatorData.Instance.Strength);
+                    bool isCrit = false;
+                    int randomValue = Random.Range(0, 100);
+                    if (randomValue < EnemyGladiatorData.Instance.CritRate)
+                    {
+                        isCrit = true;
+                        damage = damage * 2;
+
+                    }
+                    enemyHealthManager.ReduceHealth(damage + berserkDamage, "Normal", player, isCrit);
                     RollForDestroyWeapon();
 
                 }
@@ -248,6 +300,14 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                     if (enemy.tag == "Player") { enemyPlayerMovement.Dodge(); } else { enemyPetMovement.Dodge(); }
                     yield return new WaitForSeconds(0.5f); // Wait for dodge animation to complete
                     anim.SetTrigger("stophit");
+                    ReplayData.Instance.AddAction(new MatchEventDTO
+                    {
+                        Turn = gameManager.RoundsCount,
+                        Actor = GetCharacterType(enemy.tag), //Den som dodgar
+                        Action = "dodge",
+                        Target = CharacterType.EnemyGlad,
+                        Value = 0
+                    });
                     MoveBackToRandomStart(); // Stop combo and move back to start
                     yield break; // End the coroutine here
                 }
@@ -263,7 +323,16 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                         {
                             ApplyVenom();
                         }
-                        enemyHealthManager.ReduceHealth(CalculateRandomDamage(EnemyGladiatorData.Instance.AttackDamage + berserkDamage), "Normal", player);
+                        int damage = CalculateRandomDamage(EnemyGladiatorData.Instance.Strength);
+                        bool isCrit = false;
+                        int randomValue = Random.Range(0, 100);
+                        if (randomValue < EnemyGladiatorData.Instance.CritRate)
+                        {
+                            isCrit = true;
+                            damage = damage * 2;
+
+                        }
+                        enemyHealthManager.ReduceHealth(damage + berserkDamage, "Normal", player, isCrit);
                         RollForDestroyWeapon();
 
                     }
@@ -277,7 +346,16 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                         {
                             ApplyVenom();
                         }
-                        enemyHealthManager.ReduceHealth(CalculateRandomDamage(EnemyGladiatorData.Instance.AttackDamage + berserkDamage), "Normal", player);
+                        int damage = CalculateRandomDamage(EnemyGladiatorData.Instance.Strength);
+                        bool isCrit = false;
+                        int randomValue = Random.Range(0, 100);
+                        if (randomValue < EnemyGladiatorData.Instance.CritRate)
+                        {
+                            isCrit = true;
+                            damage = damage * 2;
+
+                        }
+                        enemyHealthManager.ReduceHealth(damage + berserkDamage, "Normal", player, isCrit);
                         RollForDestroyWeapon();
 
                     }
@@ -300,6 +378,14 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                         if (enemy.tag == "Player") { enemyPlayerMovement.Dodge(); } else { enemyPetMovement.Dodge(); }
                         yield return new WaitForSeconds(0.5f); // Wait for dodge animation to complete
                         anim.SetTrigger("stophit");
+                        ReplayData.Instance.AddAction(new MatchEventDTO
+                        {
+                            Turn = gameManager.RoundsCount,
+                            Actor = GetCharacterType(enemy.tag), //Den som dodgar
+                            Action = "dodge",
+                            Target = CharacterType.EnemyGlad,
+                            Value = 0
+                        });
                         MoveBackToRandomStart(); // Stop combo and move back to start
                         yield break; // End the coroutine here
                     }
@@ -315,7 +401,16 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                             {
                                 ApplyVenom();
                             }
-                            enemyHealthManager.ReduceHealth(CalculateRandomDamage(EnemyGladiatorData.Instance.AttackDamage + berserkDamage), "Normal", player);
+                            int damage = CalculateRandomDamage(EnemyGladiatorData.Instance.Strength);
+                            bool isCrit = false;
+                            int randomValue = Random.Range(0, 100);
+                            if (randomValue < EnemyGladiatorData.Instance.CritRate)
+                            {
+                                isCrit = true;
+                                damage = damage * 2;
+
+                            }
+                            enemyHealthManager.ReduceHealth(damage + berserkDamage, "Normal", player, isCrit);
                             RollForDestroyWeapon();
 
                         }
@@ -329,7 +424,16 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                             {
                                 ApplyVenom();
                             }
-                            enemyHealthManager.ReduceHealth(CalculateRandomDamage(EnemyGladiatorData.Instance.AttackDamage + berserkDamage), "Normal", player);
+                            int damage = CalculateRandomDamage(EnemyGladiatorData.Instance.Strength);
+                            bool isCrit = false;
+                            int randomValue = Random.Range(0, 100);
+                            if (randomValue < EnemyGladiatorData.Instance.CritRate)
+                            {
+                                isCrit = true;
+                                damage = damage * 2;
+
+                            }
+                            enemyHealthManager.ReduceHealth(damage + berserkDamage, "Normal", player, isCrit);
                             RollForDestroyWeapon();
 
                         }
@@ -560,9 +664,17 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
     }
     public void Stun()
     {
-        playerHealthManager.ShowCombatText(0, "Stunned");
+        CombatTextManager.Instance.SpawnText("Stunned", player.transform.position + Vector3.up * 1.5f, "#FFFFFF");
         isStunned = true;
         anim.SetBool("stunned", true);
+        ReplayData.Instance.AddAction(new MatchEventDTO
+        {
+            Turn = gameManager.RoundsCount,
+            Actor = CharacterType.EnemyGlad,
+            Action = "stunned",
+            Target = CharacterType.None,
+            Value = 0
+        });
         StunnedAtRound = gameManager.RoundsCount;
     }
     public void RemoveStun()
@@ -591,7 +703,6 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
 
     public int CalculateRandomDamage(int baseDamage)
     {
-        int outDmg;
         // Calculate a random damage between baseDamage - 2 and baseDamage + 2
         int minDamage = baseDamage - 2;
         int maxDamage = baseDamage + 2;
@@ -599,14 +710,7 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
         // Ensure the minimum damage is at least 1
         if (minDamage < 1) { minDamage = 1; }
         int randomDmg = Random.Range(minDamage, maxDamage + 1);
-        int randomValue = Random.Range(0, 100);
-        if (randomValue < EnemyGladiatorData.Instance.CritRate)
-        {
-            outDmg = randomDmg * 2;
-            playerHealthManager.ShowCombatText(0, "Critical Strike");
-        }
-        else { outDmg = randomDmg; }
-        return outDmg; // Random.Range is inclusive for integers
+        return randomDmg; // Random.Range is inclusive for integers
     }
 
     public void MoveBackToRandomStart()
@@ -665,6 +769,14 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
             if (randomWeaponDurabilityNumber == 0)
             {
                 playerInventoryBattleHandler.DestroyWeapon();
+                ReplayData.Instance.AddAction(new MatchEventDTO
+                {
+                    Turn = gameManager.RoundsCount,
+                    Actor = CharacterType.EnemyGlad,
+                    Action = "weapondestroyed",
+                    Target = CharacterType.EnemyGlad,
+                    Value = 0
+                });
             }
         }
     }
@@ -692,10 +804,26 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
     {
 
         // Instantly set the player's position to the dodge target position
-        playerHealthManager.ShowCombatText(0, "Dodge!");
+        CombatTextManager.Instance.SpawnText("Dodge", player.transform.position + Vector3.up * 1.5f, "#FFFFFF");
         transform.position = targetPosition;
 
         yield return null; // Yield to ensure any other logic can complete if necessary
+    }
+
+    private CharacterType GetCharacterType(string tag)
+    {
+        return tag switch
+        {
+            "Player" => CharacterType.Player,
+            "EnemyGlad" => CharacterType.EnemyGlad,
+            "EnemyPet1" => CharacterType.EnemyPet1,
+            "EnemyPet2" => CharacterType.EnemyPet2,
+            "EnemyPet3" => CharacterType.EnemyPet3,
+            "Pet1" => CharacterType.Pet1,
+            "Pet2" => CharacterType.Pet2,
+            "Pet3" => CharacterType.Pet3,
+            _ => CharacterType.None
+        };
     }
 }
 

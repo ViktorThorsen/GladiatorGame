@@ -49,11 +49,9 @@ public class ArenaGameManager : MonoBehaviour
     private bool initialDelayCompleted;
     private bool rollTime;
     private bool isGameOver;
-    [SerializeField] public GameObject damageTextPrefab;
     [SerializeField] public GameObject healthSliderPrefab;
 
     private int roundsCount;
-
 
     public bool IsGameOver
     {
@@ -71,19 +69,6 @@ public class ArenaGameManager : MonoBehaviour
     {
         get { return roundsCount; }
         set { roundsCount = value; }
-    }
-
-    public enum CharacterType
-    {
-        Player = 1,
-        EnemyGlad = 2,
-        EnemyPet1 = 3,
-        EnemyPet2 = 4,
-        EnemyPet3 = 5,
-        Pet1 = 6,
-        Pet2 = 7,
-        Pet3 = 8,
-        None
     }
 
     // Define PlayerAction enum for different player actions
@@ -162,13 +147,17 @@ public class ArenaGameManager : MonoBehaviour
 
     void Start()
     {
+        Destroy(ReplayManager.Instance.gameObject);
+        ReplayData.Instance.SaveReplaySnapshotCharacters();
         BattleBackground battlebackgroundImage = backgroundImageDataBase.GetBattleBackgroundByName(GetEnemyBackground());
         if (battlebackgroundImage != null)
         {
+            ReplayData.Instance.MapName = GetEnemyBackground();
             backgroundImage.sprite = battlebackgroundImage.backgroundImage;
         }
         else
         {
+            ReplayData.Instance.MapName = "Forest";
             Debug.LogWarning("Background image not found for state: ");
         }
         // Initialize availability arrays
@@ -679,6 +668,8 @@ public class ArenaGameManager : MonoBehaviour
             var highest = rolls.OrderByDescending(r => r.Value).First();
             rollTime = false;
             roundsCount++;
+
+
             return highest.Key;
         }
 
@@ -830,7 +821,11 @@ public class ArenaGameManager : MonoBehaviour
         {
             return PlayerAction.UseConsumable;
         }
-        else if (roll < 70 && inventoryBattleHandler.GetCombatWeaponInventory().Count > 0 && !inventoryBattleHandler.IsWeaponEquipped)
+        else if (
+    roll < 70 &&
+    inventoryBattleHandler.GetCombatWeaponInventory().Any(w => w != null) &&
+    !inventoryBattleHandler.IsWeaponEquipped
+)
         {
             return PlayerAction.EquipWeapon;
         }
@@ -858,6 +853,15 @@ public class ArenaGameManager : MonoBehaviour
 
         if (!isGameOver)
         {
+            string winnerName = winnerTag switch
+            {
+                "Player" => CharacterData.Instance.CharName,
+                "EnemyGlad" => EnemyGladiatorData.Instance.CharName,
+                _ => "Unknown"
+            };
+
+            ReplayData.Instance.Winner = winnerName;
+            StartCoroutine(ReplayData.Instance.SendReplayToBackend());
             isGameOver = true;
             inventoryBattleHandler.DestroyWeapon();
             List<string> listOfNames = new List<string>(); // Skapa en lista för att lagra monster-namnen
@@ -928,7 +932,6 @@ public class ArenaGameManager : MonoBehaviour
         {
             Destroy(child.gameObject);
         }
-        // Iterate over each item in the combat inventory
         foreach (Item item in inventoryBattleHandler.GetCombatWeaponInventory())
         {
             // Instantiate a new inventory slot from the prefab
@@ -937,8 +940,17 @@ public class ArenaGameManager : MonoBehaviour
             // Get the Image component from the slot
             Image slotImage = newSlot.GetComponent<Image>();
 
-            // Set the sprite of the image to the item's sprite
-            slotImage.sprite = item.itemSprite;
+            if (item != null)
+            {
+                // Set the sprite of the image to the item's sprite
+                slotImage.sprite = item.itemSprite;
+            }
+            else
+            {
+                // Inget vapen i denna slot, gör den t.ex. grå eller transparent
+                slotImage.sprite = null;
+                slotImage.color = new Color(1f, 1f, 1f, 0.3f); // halvtransparent grå
+            }
         }
         foreach (Item item in inventoryBattleHandler.GetCombatConsumableInventory())
         {
@@ -959,9 +971,19 @@ public class ArenaGameManager : MonoBehaviour
             // Get the Image component from the slot
             Image slotImage = newSlot.GetComponent<Image>();
 
-            // Set the sprite of the image to the item's sprite
-            slotImage.sprite = item.itemSprite;
+            if (item != null)
+            {
+                // Set the sprite of the image to the item's sprite
+                slotImage.sprite = item.itemSprite;
+            }
+            else
+            {
+                // Inget vapen i denna slot, gör den t.ex. grå eller transparent
+                slotImage.sprite = null;
+                slotImage.color = new Color(1f, 1f, 1f, 0.3f); // halvtransparent grå
+            }
         }
+
         foreach (Item item in enemyGladInventoryBattleHandler.GetCombatConsumableInventory())
         {
             // Instantiate a new inventory slot from the prefab

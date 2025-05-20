@@ -167,7 +167,15 @@ public class PlayerMovement : MonoBehaviour
                 {
                     ApplyVenom();
                 }
-                enemyHealthManager.ReduceHealth(CalculateRandomDamage(CharacterData.Instance.AttackDamage + berserkDamage), "Normal", player);
+                int damage = CalculateRandomDamage(CharacterData.Instance.Strength);
+                bool isCrit = false;
+                int randomValue = Random.Range(0, 100);
+                if (randomValue < CharacterData.Instance.CritRate)
+                {
+                    isCrit = true;
+                    damage = damage * 2;
+                }
+                enemyHealthManager.ReduceHealth(damage + berserkDamage, "Normal", player, isCrit);
                 RollForDestroyWeapon();
             }
         }
@@ -195,7 +203,15 @@ public class PlayerMovement : MonoBehaviour
             else
             {
                 enemyMovement.MoveEnemyToRight(0.5f);
-                enemyHealthManager.ReduceHealth(CalculateRandomDamage(CharacterData.Instance.AttackDamage + berserkDamage), "Normal", player);
+                int damage = CalculateRandomDamage(CharacterData.Instance.Strength);
+                bool isCrit = false;
+                int randomValue = Random.Range(0, 100);
+                if (randomValue < CharacterData.Instance.CritRate)
+                {
+                    isCrit = true;
+                    damage = damage * 2;
+                }
+                enemyHealthManager.ReduceHealth(damage + berserkDamage, "Normal", player, isCrit);
                 RollForDestroyWeapon();
             }
 
@@ -222,7 +238,15 @@ public class PlayerMovement : MonoBehaviour
                 else
                 {
                     enemyMovement.MoveEnemyToRight(0.5f);
-                    enemyHealthManager.ReduceHealth(CalculateRandomDamage(CharacterData.Instance.AttackDamage + berserkDamage), "Normal", player);
+                    int damage = CalculateRandomDamage(CharacterData.Instance.Strength);
+                    bool isCrit = false;
+                    int randomValue = Random.Range(0, 100);
+                    if (randomValue < CharacterData.Instance.CritRate)
+                    {
+                        isCrit = true;
+                        damage = damage * 2;
+                    }
+                    enemyHealthManager.ReduceHealth(damage + berserkDamage, "Normal", player, isCrit);
                     RollForDestroyWeapon();
                 }
 
@@ -249,7 +273,15 @@ public class PlayerMovement : MonoBehaviour
                     else
                     {
                         enemyMovement.MoveEnemyToRight(0.5f);
-                        enemyHealthManager.ReduceHealth(CalculateRandomDamage(CharacterData.Instance.AttackDamage + berserkDamage), "Normal", player);
+                        int damage = CalculateRandomDamage(CharacterData.Instance.Strength);
+                        bool isCrit = false;
+                        int randomValue = Random.Range(0, 100);
+                        if (randomValue < CharacterData.Instance.CritRate)
+                        {
+                            isCrit = true;
+                            damage = damage * 2;
+                        }
+                        enemyHealthManager.ReduceHealth(damage + berserkDamage, "Normal", player, isCrit);
                         RollForDestroyWeapon();
                     }
 
@@ -356,7 +388,7 @@ public class PlayerMovement : MonoBehaviour
     }
     public void Stun()
     {
-        playerHealthManager.ShowCombatText(0, "Stunned");
+        CombatTextManager.Instance.SpawnText("Stunned", player.transform.position + Vector3.up * 1.5f, "#FFFFFF");
         isStunned = true;
         anim.SetBool("stunned", true);
         StunnedAtRound = gameManager.RoundsCount;
@@ -387,7 +419,6 @@ public class PlayerMovement : MonoBehaviour
 
     public int CalculateRandomDamage(int baseDamage)
     {
-        int outDmg;
         // Calculate a random damage between baseDamage - 2 and baseDamage + 2
         int minDamage = baseDamage - 2;
         int maxDamage = baseDamage + 2;
@@ -395,14 +426,7 @@ public class PlayerMovement : MonoBehaviour
         // Ensure the minimum damage is at least 1
         if (minDamage < 1) { minDamage = 1; }
         int randomDmg = Random.Range(minDamage, maxDamage + 1);
-        int randomValue = Random.Range(0, 100);
-        if (randomValue < CharacterData.Instance.CritRate)
-        {
-            outDmg = randomDmg * 2;
-            playerHealthManager.ShowCombatText(0, "Critical Strike");
-        }
-        else { outDmg = randomDmg; }
-        return outDmg; // Random.Range is inclusive for integers
+        return randomDmg; // Random.Range is inclusive for integers
     }
 
     public void MoveBackToRandomStart()
@@ -493,7 +517,7 @@ public class PlayerMovement : MonoBehaviour
     {
 
         // Instantly set the player's position to the dodge target position
-        playerHealthManager.ShowCombatText(0, "Dodge!");
+        CombatTextManager.Instance.SpawnText("Dodge", player.transform.position + Vector3.up * 1.5f, "#FFFFFF");
         transform.position = targetPosition;
 
         yield return null; // Yield to ensure any other logic can complete if necessary

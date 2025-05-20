@@ -18,11 +18,11 @@ public class SettingsManager : MonoBehaviour
     {
         characterData.CharName = "";
         characterData.Health = 0;
-        characterData.AttackDamage = 0;
+
         characterData.LifeSteal = 0;
         characterData.DodgeRate = 0;
         characterData.CritRate = 0;
-        characterData.Initiative = 0;
+
         characterData.Strength = 0;
         characterData.Agility = 0;
         characterData.Intellect = 0;

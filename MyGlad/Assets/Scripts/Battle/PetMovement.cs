@@ -143,7 +143,15 @@ public class PetMovement : MonoBehaviour
             {
                 bool enemyStunned = CalculateStun();
                 if (enemyStunned) { enemyMovement.Stun(); }
-                enemyHealthManager.ReduceHealth(CalculateRandomDamage(monsterStats.AttackDamage), "Normal", pet);
+                int damage = CalculateRandomDamage(monsterStats.AttackDamage);
+                bool IsCrit = false;
+                int randomValue = Random.Range(0, 100);
+                if (randomValue < monsterStats.CritRate)
+                {
+                    IsCrit = true;
+                    damage = damage * 2;
+                }
+                enemyHealthManager.ReduceHealth(damage, "Normal", pet, IsCrit);
 
             }
         }
@@ -174,7 +182,15 @@ public class PetMovement : MonoBehaviour
                 enemyMovement.MoveEnemyToRight(0.5f);
                 if (!gameManager.IsGameOver)
                 {
-                    enemyHealthManager.ReduceHealth(CalculateRandomDamage(monsterStats.AttackDamage), "Normal", pet);
+                    int damage = CalculateRandomDamage(monsterStats.AttackDamage);
+                    bool IsCrit = false;
+                    int randomValue = Random.Range(0, 100);
+                    if (randomValue < monsterStats.CritRate)
+                    {
+                        IsCrit = true;
+                        damage = damage * 2;
+                    }
+                    enemyHealthManager.ReduceHealth(damage, "Normal", pet, IsCrit);
                 }
 
             }
@@ -202,7 +218,15 @@ public class PetMovement : MonoBehaviour
                 else
                 {
                     enemyMovement.MoveEnemyToRight(0.5f);
-                    enemyHealthManager.ReduceHealth(CalculateRandomDamage(monsterStats.AttackDamage), "Normal", pet);
+                    int damage = CalculateRandomDamage(monsterStats.AttackDamage);
+                    bool IsCrit = false;
+                    int randomValue = Random.Range(0, 100);
+                    if (randomValue < monsterStats.CritRate)
+                    {
+                        IsCrit = true;
+                        damage = damage * 2;
+                    }
+                    enemyHealthManager.ReduceHealth(damage, "Normal", pet, IsCrit);
 
                 }
 
@@ -229,7 +253,15 @@ public class PetMovement : MonoBehaviour
                     else
                     {
                         enemyMovement.MoveEnemyToRight(0.5f);
-                        enemyHealthManager.ReduceHealth(CalculateRandomDamage(monsterStats.AttackDamage), "Normal", pet);
+                        int damage = CalculateRandomDamage(monsterStats.AttackDamage);
+                        bool IsCrit = false;
+                        int randomValue = Random.Range(0, 100);
+                        if (randomValue < monsterStats.CritRate)
+                        {
+                            IsCrit = true;
+                            damage = damage * 2;
+                        }
+                        enemyHealthManager.ReduceHealth(damage, "Normal", pet, IsCrit);
 
                     }
 
@@ -357,7 +389,7 @@ public class PetMovement : MonoBehaviour
     }
     public void Stun()
     {
-        petHealthManager.ShowCombatText(0, "Stunned");
+        CombatTextManager.Instance.SpawnText("Stunned", pet.transform.position + Vector3.up * 1.5f, "#FFFFFF");
         isStunned = true;
         anim.SetBool("stunned", true);
         StunnedAtRound = gameManager.RoundsCount;
@@ -383,7 +415,6 @@ public class PetMovement : MonoBehaviour
 
     private int CalculateRandomDamage(int baseDamage)
     {
-        int outDmg;
         // Calculate a random damage between baseDamage - 2 and baseDamage + 2
         int minDamage = baseDamage - 2;
         int maxDamage = baseDamage + 2;
@@ -391,14 +422,7 @@ public class PetMovement : MonoBehaviour
         // Ensure the minimum damage is at least 1
         if (minDamage < 1) { minDamage = 1; }
         int randomDmg = Random.Range(minDamage, maxDamage + 1);
-        int randomValue = Random.Range(0, 100);
-        if (randomValue < monsterStats.CritRate)
-        {
-            outDmg = randomDmg * 2;
-            petHealthManager.ShowCombatText(0, "Critical Strike");
-        }
-        else { outDmg = randomDmg; }
-        return outDmg; // Random.Range is inclusive for integers
+        return randomDmg; // Random.Range is inclusive for integers
     }
 
     public void MoveBackToRandomStart()
@@ -470,7 +494,7 @@ public class PetMovement : MonoBehaviour
     IEnumerator DodgeMove(Vector3 targetPosition, float dodgeDirection)
     {
         // Instantly set the pet's position to the dodge target position
-        petHealthManager.ShowCombatText(0, "Dodge!");
+        CombatTextManager.Instance.SpawnText("Dodge", pet.transform.position + Vector3.up * 1.5f, "#FFFFFF");
         transform.position = targetPosition;
 
         yield return null; // Yield to ensure any other logic can complete if necessary

@@ -135,6 +135,14 @@ public class ArenaPetMovement : MonoBehaviour
             if (enemy.tag == "EnemyGlad") { enemyGladMovement.Dodge(); } else { enemyPetMovement.Dodge(); }
             yield return new WaitForSeconds(0.5f); // Wait for dodge animation to complete
             anim.SetTrigger("stophit");
+            ReplayData.Instance.AddAction(new MatchEventDTO
+            {
+                Turn = gameManager.RoundsCount,
+                Actor = GetCharacterType(enemy.tag), //Den som dodgar
+                Action = "dodge",
+                Target = CharacterType.EnemyGlad,
+                Value = 0
+            });
             MoveBackToRandomStart(); // Stop combo and move back to start
             yield break; // End the coroutine here
         }
@@ -148,7 +156,15 @@ public class ArenaPetMovement : MonoBehaviour
 
                     bool enemyStunned = CalculateStun();
                     if (enemyStunned) { enemyGladMovement.Stun(); }
-                    enemyHealthManager.ReduceHealth(CalculateRandomDamage(monsterStats.AttackDamage), "Normal", enemy);
+                    int damage = CalculateRandomDamage(monsterStats.AttackDamage);
+                    bool isCrit = false;
+                    int randomValue = Random.Range(0, 100);
+                    if (randomValue < monsterStats.CritRate)
+                    {
+                        isCrit = true;
+                        damage = damage * 2;
+                    }
+                    enemyHealthManager.ReduceHealth(monsterStats.AttackDamage, "Normal", pet, isCrit);
                 }
 
 
@@ -159,7 +175,15 @@ public class ArenaPetMovement : MonoBehaviour
 
                     bool playerStunned = CalculateStun();
                     if (playerStunned) { enemyPetMovement.Stun(); }
-                    enemyHealthManager.ReduceHealth(CalculateRandomDamage(monsterStats.AttackDamage), "Normal", enemy);
+                    int damage = CalculateRandomDamage(monsterStats.AttackDamage);
+                    bool isCrit = false;
+                    int randomValue = Random.Range(0, 100);
+                    if (randomValue < monsterStats.CritRate)
+                    {
+                        isCrit = true;
+                        damage = damage * 2;
+                    }
+                    enemyHealthManager.ReduceHealth(monsterStats.AttackDamage, "Normal", pet, isCrit);
                 }
             }
 
@@ -183,6 +207,14 @@ public class ArenaPetMovement : MonoBehaviour
                 if (enemy.tag == "EnemyGlad") { enemyGladMovement.Dodge(); } else { enemyPetMovement.Dodge(); }
                 yield return new WaitForSeconds(0.5f); // Wait for dodge animation to complete
                 anim.SetTrigger("stophit");
+                ReplayData.Instance.AddAction(new MatchEventDTO
+                {
+                    Turn = gameManager.RoundsCount,
+                    Actor = GetCharacterType(enemy.tag), //Den som dodgar
+                    Action = "dodge",
+                    Target = GetCharacterType(pet.tag),
+                    Value = 0
+                });
                 MoveBackToRandomStart(); // Stop combo and move back to start
                 yield break; // End the coroutine here
             }
@@ -193,7 +225,15 @@ public class ArenaPetMovement : MonoBehaviour
                     enemyGladMovement.MovePlayerToRight(0.5f);
                     bool enemyStunned = CalculateStun();
                     if (enemyStunned) { enemyGladMovement.Stun(); }
-                    enemyHealthManager.ReduceHealth(CalculateRandomDamage(monsterStats.AttackDamage), "Normal", enemy);
+                    int damage = CalculateRandomDamage(monsterStats.AttackDamage);
+                    bool isCrit = false;
+                    int randomValue = Random.Range(0, 100);
+                    if (randomValue < monsterStats.CritRate)
+                    {
+                        isCrit = true;
+                        damage = damage * 2;
+                    }
+                    enemyHealthManager.ReduceHealth(monsterStats.AttackDamage, "Normal", pet, isCrit);
                 }
 
 
@@ -202,7 +242,15 @@ public class ArenaPetMovement : MonoBehaviour
                     enemyPetMovement.MovePetToRight(0.5f);
                     bool playerStunned = CalculateStun();
                     if (playerStunned) { enemyPetMovement.Stun(); }
-                    enemyHealthManager.ReduceHealth(CalculateRandomDamage(monsterStats.AttackDamage), "Normal", enemy);
+                    int damage = CalculateRandomDamage(monsterStats.AttackDamage);
+                    bool isCrit = false;
+                    int randomValue = Random.Range(0, 100);
+                    if (randomValue < monsterStats.CritRate)
+                    {
+                        isCrit = true;
+                        damage = damage * 2;
+                    }
+                    enemyHealthManager.ReduceHealth(monsterStats.AttackDamage, "Normal", pet, isCrit);
                 }
             }
 
@@ -223,6 +271,14 @@ public class ArenaPetMovement : MonoBehaviour
                     if (enemy.tag == "EnemyGlad") { enemyGladMovement.Dodge(); } else { enemyPetMovement.Dodge(); }
                     yield return new WaitForSeconds(0.5f); // Wait for dodge animation to complete
                     anim.SetTrigger("stophit");
+                    ReplayData.Instance.AddAction(new MatchEventDTO
+                    {
+                        Turn = gameManager.RoundsCount,
+                        Actor = GetCharacterType(enemy.tag), //Den som dodgar
+                        Action = "dodge",
+                        Target = GetCharacterType(pet.tag),
+                        Value = 0
+                    });
                     MoveBackToRandomStart(); // Stop combo and move back to start
                     yield break; // End the coroutine here
                 }
@@ -233,7 +289,15 @@ public class ArenaPetMovement : MonoBehaviour
                         enemyGladMovement.MovePlayerToRight(0.5f);
                         bool enemyStunned = CalculateStun();
                         if (enemyStunned) { enemyGladMovement.Stun(); }
-                        enemyHealthManager.ReduceHealth(CalculateRandomDamage(monsterStats.AttackDamage), "Normal", enemy);
+                        int damage = CalculateRandomDamage(monsterStats.AttackDamage);
+                        bool isCrit = false;
+                        int randomValue = Random.Range(0, 100);
+                        if (randomValue < monsterStats.CritRate)
+                        {
+                            isCrit = true;
+                            damage = damage * 2;
+                        }
+                        enemyHealthManager.ReduceHealth(monsterStats.AttackDamage, "Normal", pet, isCrit);
                     }
 
 
@@ -242,7 +306,15 @@ public class ArenaPetMovement : MonoBehaviour
                         enemyPetMovement.MovePetToRight(0.5f);
                         bool playerStunned = CalculateStun();
                         if (playerStunned) { enemyPetMovement.Stun(); }
-                        enemyHealthManager.ReduceHealth(CalculateRandomDamage(monsterStats.AttackDamage), "Normal", enemy);
+                        int damage = CalculateRandomDamage(monsterStats.AttackDamage);
+                        bool isCrit = false;
+                        int randomValue = Random.Range(0, 100);
+                        if (randomValue < monsterStats.CritRate)
+                        {
+                            isCrit = true;
+                            damage = damage * 2;
+                        }
+                        enemyHealthManager.ReduceHealth(monsterStats.AttackDamage, "Normal", pet, isCrit);
                     }
                 }
 
@@ -263,6 +335,14 @@ public class ArenaPetMovement : MonoBehaviour
                         if (enemy.tag == "EnemyGlad") { enemyGladMovement.Dodge(); } else { enemyPetMovement.Dodge(); }
                         yield return new WaitForSeconds(0.5f); // Wait for dodge animation to complete
                         anim.SetTrigger("stophit");
+                        ReplayData.Instance.AddAction(new MatchEventDTO
+                        {
+                            Turn = gameManager.RoundsCount,
+                            Actor = GetCharacterType(enemy.tag), //Den som dodgar
+                            Action = "dodge",
+                            Target = GetCharacterType(pet.tag),
+                            Value = 0
+                        });
                         MoveBackToRandomStart(); // Stop combo and move back to start
                         yield break; // End the coroutine here
                     }
@@ -273,7 +353,15 @@ public class ArenaPetMovement : MonoBehaviour
                             enemyGladMovement.MovePlayerToRight(0.5f);
                             bool enemyStunned = CalculateStun();
                             if (enemyStunned) { enemyGladMovement.Stun(); }
-                            enemyHealthManager.ReduceHealth(CalculateRandomDamage(monsterStats.AttackDamage), "Normal", enemy);
+                            int damage = CalculateRandomDamage(monsterStats.AttackDamage);
+                            bool isCrit = false;
+                            int randomValue = Random.Range(0, 100);
+                            if (randomValue < monsterStats.CritRate)
+                            {
+                                isCrit = true;
+                                damage = damage * 2;
+                            }
+                            enemyHealthManager.ReduceHealth(monsterStats.AttackDamage, "Normal", pet, isCrit);
                         }
 
 
@@ -282,7 +370,15 @@ public class ArenaPetMovement : MonoBehaviour
                             enemyPetMovement.MovePetToRight(0.5f);
                             bool playerStunned = CalculateStun();
                             if (playerStunned) { enemyPetMovement.Stun(); }
-                            enemyHealthManager.ReduceHealth(CalculateRandomDamage(monsterStats.AttackDamage), "Normal", enemy);
+                            int damage = CalculateRandomDamage(monsterStats.AttackDamage);
+                            bool isCrit = false;
+                            int randomValue = Random.Range(0, 100);
+                            if (randomValue < monsterStats.CritRate)
+                            {
+                                isCrit = true;
+                                damage = damage * 2;
+                            }
+                            enemyHealthManager.ReduceHealth(monsterStats.AttackDamage, "Normal", pet, isCrit);
                         }
                     }
 
@@ -487,9 +583,17 @@ public class ArenaPetMovement : MonoBehaviour
     }
     public void Stun()
     {
-        petHealthManager.ShowCombatText(0, "Stunned");
+        CombatTextManager.Instance.SpawnText("Stunned", pet.transform.position + Vector3.up * 1.5f, "#FFFFFF");
         isStunned = true;
         anim.SetBool("stunned", true);
+        ReplayData.Instance.AddAction(new MatchEventDTO
+        {
+            Turn = gameManager.RoundsCount,
+            Actor = GetCharacterType(pet.tag),
+            Action = "stunned",
+            Target = CharacterType.None,
+            Value = 0
+        });
         StunnedAtRound = gameManager.RoundsCount;
     }
     public void RemoveStun()
@@ -513,7 +617,7 @@ public class ArenaPetMovement : MonoBehaviour
 
     private int CalculateRandomDamage(int baseDamage)
     {
-        int outDmg;
+
         // Calculate a random damage between baseDamage - 2 and baseDamage + 2
         int minDamage = baseDamage - 2;
         int maxDamage = baseDamage + 2;
@@ -521,14 +625,7 @@ public class ArenaPetMovement : MonoBehaviour
         // Ensure the minimum damage is at least 1
         if (minDamage < 1) { minDamage = 1; }
         int randomDmg = Random.Range(minDamage, maxDamage + 1);
-        int randomValue = Random.Range(0, 100);
-        if (randomValue < monsterStats.CritRate)
-        {
-            outDmg = randomDmg * 2;
-            petHealthManager.ShowCombatText(0, "Critical Strike");
-        }
-        else { outDmg = randomDmg; }
-        return outDmg; // Random.Range is inclusive for integers
+        return randomDmg; // Random.Range is inclusive for integers
     }
 
     public void MoveBackToRandomStart()
@@ -600,9 +697,25 @@ public class ArenaPetMovement : MonoBehaviour
     IEnumerator DodgeMove(Vector3 targetPosition, float dodgeDirection)
     {
         // Instantly set the pet's position to the dodge target position
-        petHealthManager.ShowCombatText(0, "Dodge!");
+        CombatTextManager.Instance.SpawnText("Dodge", pet.transform.position + Vector3.up * 1.5f, "#FFFFFF");
         transform.position = targetPosition;
 
         yield return null; // Yield to ensure any other logic can complete if necessary
+    }
+
+    private CharacterType GetCharacterType(string tag)
+    {
+        return tag switch
+        {
+            "Player" => CharacterType.Player,
+            "EnemyGlad" => CharacterType.EnemyGlad,
+            "EnemyPet1" => CharacterType.EnemyPet1,
+            "EnemyPet2" => CharacterType.EnemyPet2,
+            "EnemyPet3" => CharacterType.EnemyPet3,
+            "Pet1" => CharacterType.Pet1,
+            "Pet2" => CharacterType.Pet2,
+            "Pet3" => CharacterType.Pet3,
+            _ => CharacterType.None
+        };
     }
 }
