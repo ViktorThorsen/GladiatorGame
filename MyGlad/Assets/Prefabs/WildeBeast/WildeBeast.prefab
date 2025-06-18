@@ -6033,16 +6033,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   monsterName: Wildebeast
-  health: 250
+  health: 500
   attackDamage: 20
   lifeSteal: 0
-  dodgeRate: 10
+  dodgeRate: 0
   critRate: 0
   stunRate: 0
+  hitRate: 0
+  defense: 7
   initiative: 0
+  combo: 0
   scale: {x: 0.6, y: 0.6, z: 1}
-  xpReward: 300
-  itemreward: 0
+  xpReward: 800
+  coinReward: 30
+  icon: {fileID: 21300000, guid: c144380c78b86f34d8fdcb8c4eb4a3ac, type: 3}
 --- !u!1 &4312256211534477886
 GameObject:
   m_ObjectHideFlags: 0

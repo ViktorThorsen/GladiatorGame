@@ -47,9 +47,8 @@ public class CreateCharacter : MonoBehaviour
         defense = 0;
         defenseText.text = defense.ToString();
         fortune = 0;
-        fortuneText.text = fortune.ToString();
         pointsToSpend = 10;
-        pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+        pointsToSpendText.text = pointsToSpend.ToString();
 
         // Assign switchPart from the characterPrefab
         if (characterPrefab != null)
@@ -77,7 +76,7 @@ public class CreateCharacter : MonoBehaviour
         if (pointsToSpend > 0)
         {
             pointsToSpend--;
-            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            pointsToSpendText.text = pointsToSpend.ToString();
             strength++;
             strText.text = strength.ToString();
         }
@@ -89,7 +88,7 @@ public class CreateCharacter : MonoBehaviour
         if (pointsToSpend > 0)
         {
             pointsToSpend--;
-            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            pointsToSpendText.text = pointsToSpend.ToString();
             agility++;
             agiText.text = agility.ToString();
         }
@@ -100,7 +99,7 @@ public class CreateCharacter : MonoBehaviour
         if (pointsToSpend > 0)
         {
             pointsToSpend--;
-            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            pointsToSpendText.text = pointsToSpend.ToString();
             intellect++;
             intText.text = intellect.ToString();
         }
@@ -110,7 +109,7 @@ public class CreateCharacter : MonoBehaviour
         if (pointsToSpend > 0)
         {
             pointsToSpend--;
-            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            pointsToSpendText.text = pointsToSpend.ToString();
             health++;
             int healthString = (health * 5) + 50;
             healthText.text = healthString.ToString();
@@ -121,7 +120,7 @@ public class CreateCharacter : MonoBehaviour
         if (pointsToSpend > 0)
         {
             pointsToSpend--;
-            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            pointsToSpendText.text = pointsToSpend.ToString();
             hitChance++;
             hitText.text = hitChance.ToString();
         }
@@ -131,19 +130,9 @@ public class CreateCharacter : MonoBehaviour
         if (pointsToSpend > 0)
         {
             pointsToSpend--;
-            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            pointsToSpendText.text = pointsToSpend.ToString();
             defense++;
             defenseText.text = defense.ToString();
-        }
-    }
-    public void IncreaseFortune()
-    {
-        if (pointsToSpend > 0)
-        {
-            pointsToSpend--;
-            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
-            fortune++;
-            fortuneText.text = fortune.ToString();
         }
     }
 
@@ -152,7 +141,7 @@ public class CreateCharacter : MonoBehaviour
         if (strength != 0)
         {
             pointsToSpend++;
-            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            pointsToSpendText.text = pointsToSpend.ToString();
             strength--;
             strText.text = strength.ToString();
         }
@@ -163,7 +152,7 @@ public class CreateCharacter : MonoBehaviour
         if (agility != 0)
         {
             pointsToSpend++;
-            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            pointsToSpendText.text = pointsToSpend.ToString();
             agility--;
             agiText.text = agility.ToString();
         }
@@ -174,7 +163,7 @@ public class CreateCharacter : MonoBehaviour
         if (intellect != 0)
         {
             pointsToSpend++;
-            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            pointsToSpendText.text = pointsToSpend.ToString();
             intellect--;
             intText.text = intellect.ToString();
         }
@@ -184,7 +173,7 @@ public class CreateCharacter : MonoBehaviour
         if (health != 0)
         {
             pointsToSpend++;
-            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            pointsToSpendText.text = pointsToSpend.ToString();
             health--;
             int healthString = (health * 5) + 50;
             healthText.text = healthString.ToString();
@@ -195,7 +184,7 @@ public class CreateCharacter : MonoBehaviour
         if (hitChance != 0)
         {
             pointsToSpend++;
-            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            pointsToSpendText.text = pointsToSpend.ToString();
             hitChance--;
             hitText.text = hitChance.ToString();
         }
@@ -205,20 +194,9 @@ public class CreateCharacter : MonoBehaviour
         if (defense != 0)
         {
             pointsToSpend++;
-            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
+            pointsToSpendText.text = pointsToSpend.ToString();
             defense--;
             defenseText.text = defense.ToString();
-        }
-
-    }
-    public void DecreaseFortune()
-    {
-        if (fortune != 0)
-        {
-            pointsToSpend++;
-            pointsToSpendText.text = "Avaliable Points: " + pointsToSpend.ToString();
-            fortune--;
-            fortuneText.text = fortune.ToString();
         }
 
     }
@@ -235,7 +213,7 @@ public class CreateCharacter : MonoBehaviour
             return;
         }
         characterData.CharName = nameInput.text;
-        characterData.AddStrAgiInt(strength, agility, intellect, health, hitChance, defense, fortune, 0, 0);
+        characterData.AddStrAgiInt(strength, agility, intellect, health, hitChance, defense, fortune, 0, 0, 0, 0);
 
         // Retrieve the current labels from SwitchPart and save them to the ScriptableObject
         List<string> currentBodyPartLabels = new List<string>();

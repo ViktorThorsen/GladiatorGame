@@ -72,7 +72,7 @@ public class EnemyMovement : MonoBehaviour
         anim = visualTransform.GetComponent<Animator>();
 
         monsterstats = GetComponent<MonsterStats>();
-        enemySpeed = 30;
+        enemySpeed = 40;
         enemyHealthManager = GetComponent<HealthManager>();
 
         screenLeft = Camera.main.ViewportToWorldPoint(new Vector3(0, 0, Camera.main.nearClipPlane));
@@ -113,8 +113,9 @@ public class EnemyMovement : MonoBehaviour
             // Flip visual based on movement direction
             FlipTowards(targetPosition);
 
-            Vector2 newPosition = Vector2.MoveTowards(enemyFeet.position, targetPosition, enemySpeed * Time.deltaTime);
-            transform.position += (Vector3)(newPosition - (Vector2)enemyFeet.position);
+            Vector2 new2DPos = Vector2.MoveTowards(enemyFeet.position, targetPosition, enemySpeed * Time.deltaTime);
+            Vector3 delta = new Vector3(new2DPos.x - enemyFeet.position.x, new2DPos.y - enemyFeet.position.y, 0);
+            transform.position += delta;
             yield return null;
         }
 
@@ -132,17 +133,20 @@ public class EnemyMovement : MonoBehaviour
         // Always trigger the first hit animation and movement
         anim.SetTrigger("hit");
         MoveEnemyToLeft(0.5f);
-        if (monsterstats.LifeSteal > 0)
-        {
-            enemyHealthManager.IncreaseHealth(monsterstats.LifeSteal);
-        }
         // Check if player dodges the first hit
         if (PlayerDodges())
         {
             if (player.tag == "Player") { playerMovement.Dodge(); } else { petMovement.Dodge(); }
             yield return new WaitForSeconds(0.5f); // Wait for dodge animation to complete
             anim.SetTrigger("stophit");
-            MoveBackToRandomStart(); // Stop combo and move back to start
+            if (enemyHealthManager.CurrentHealth > 0) { MoveBackToRandomStart(); }
+            else
+            {
+                anim.SetBool("run", false);
+                moveCoroutine = null;
+                IsMoving = false;
+                gameManager.RollTime = true;
+            }
             yield break; // End the coroutine here
         }
         else
@@ -152,8 +156,6 @@ public class EnemyMovement : MonoBehaviour
                 if (player.tag == "Player")
                 {
                     playerMovement.MovePlayerToLeft(0.5f);
-                    bool playerStunned = CalculateStun();
-                    if (playerStunned) { playerMovement.Stun(); }
                     int damage = CalculateRandomDamage(monsterstats.AttackDamage);
                     int randomValue = Random.Range(0, 100);
                     bool isCrit = false;
@@ -163,14 +165,15 @@ public class EnemyMovement : MonoBehaviour
                         isCrit = true;
                     }
                     playerHealthManager.ReduceHealth(damage, "Normal", enemy, isCrit);
+                    bool playerStunned = CalculateStun();
+                    if (playerStunned && !Inventory.Instance.HasSkill("IronWill")) { playerMovement.Stun(); }
+                    CalcLifesteal(damage);
                 }
 
 
                 else if (player.tag == "Pet1" || player.tag == "Pet2" || player.tag == "Pet3")
                 {
                     petMovement.MovePetToLeft(0.5f);
-                    bool playerStunned = CalculateStun();
-                    if (playerStunned) { petMovement.Stun(); }
                     int damage = CalculateRandomDamage(monsterstats.AttackDamage);
                     int randomValue = Random.Range(0, 100);
                     bool isCrit = false;
@@ -180,67 +183,43 @@ public class EnemyMovement : MonoBehaviour
                         isCrit = true;
                     }
                     playerHealthManager.ReduceHealth(damage, "Normal", enemy, isCrit);
+                    bool playerStunned = CalculateStun();
+                    if (playerStunned) { petMovement.Stun(); }
+                    CalcLifesteal(damage);
                 }
             }
         }
 
         yield return new WaitForSeconds(0.5f);
-        int randomNumber = Random.Range(0, 100);
-        if (randomNumber > 50)
+        int randomNumber = Random.Range(0, 100) + monsterstats.combo;
+        if (enemyHealthManager.CurrentHealth <= 0) { randomNumber = 0; }
+        if (randomNumber > 60)
         {
             // Always trigger the second hit animation and movement
             anim.SetTrigger("hit1");
             MoveEnemyToLeft(0.5f);
-            if (monsterstats.LifeSteal > 0)
-            {
-                enemyHealthManager.IncreaseHealth(monsterstats.LifeSteal);
-            }
+
             // Check if player dodges the second hit
             if (PlayerDodges())
             {
                 if (player.tag == "Player") { playerMovement.Dodge(); } else { petMovement.Dodge(); }
                 yield return new WaitForSeconds(0.5f); // Wait for dodge animation to complete
                 anim.SetTrigger("stophit");
-                MoveBackToRandomStart(); // Stop combo and move back to start
+                if (enemyHealthManager.CurrentHealth > 0) { MoveBackToRandomStart(); }
+                else
+                {
+                    anim.SetBool("run", false);
+                    moveCoroutine = null;
+                    IsMoving = false;
+                    gameManager.RollTime = true;
+                }
                 yield break; // End the coroutine here
             }
             else
             {
-                if (player.tag == "Player") { playerMovement.MovePlayerToLeft(0.5f); } else { petMovement.MovePetToLeft(0.5f); }
-                int damage = CalculateRandomDamage(monsterstats.AttackDamage);
-                int randomValue = Random.Range(0, 100);
-                bool isCrit = false;
-                if (randomValue < monsterstats.CritRate)
+                if (player.tag == "Player")
                 {
-                    damage = damage * 2;
-                    isCrit = true;
-                }
-                playerHealthManager.ReduceHealth(damage, "Normal", enemy, isCrit);
-            }
-
-            yield return new WaitForSeconds(0.5f);
-            int randomNumber1 = Random.Range(0, 100);
-            if (randomNumber1 > 50)
-            {
-                // Always trigger the third hit animation and movement
-                anim.SetTrigger("hit2");
-                MoveEnemyToLeft(0.5f);
-                if (monsterstats.LifeSteal > 0)
-                {
-                    enemyHealthManager.IncreaseHealth(monsterstats.LifeSteal);
-                }
-                // Check if player dodges the third hit
-                if (PlayerDodges())
-                {
-                    if (player.tag == "Player") { playerMovement.Dodge(); } else { petMovement.Dodge(); }
-                    yield return new WaitForSeconds(0.5f); // Wait for dodge animation to complete
-                    anim.SetTrigger("stophit");
-                    MoveBackToRandomStart(); // Stop combo and move back to start
-                    yield break; // End the coroutine here
-                }
-                else
-                {
-                    if (player.tag == "Player") { playerMovement.MovePlayerToLeft(0.5f); } else { petMovement.MovePetToLeft(0.5f); }
+                    playerMovement.MovePlayerToLeft(0.5f);
                     int damage = CalculateRandomDamage(monsterstats.AttackDamage);
                     int randomValue = Random.Range(0, 100);
                     bool isCrit = false;
@@ -250,31 +229,58 @@ public class EnemyMovement : MonoBehaviour
                         isCrit = true;
                     }
                     playerHealthManager.ReduceHealth(damage, "Normal", enemy, isCrit);
+                    bool playerStunned = CalculateStun();
+                    if (playerStunned && !Inventory.Instance.HasSkill("IronWill")) { playerMovement.Stun(); }
+                    CalcLifesteal(damage);
                 }
-
-                yield return new WaitForSeconds(0.5f);
-                int randomNumber2 = Random.Range(0, 100);
-                if (randomNumber2 > 50)
+                else if (player.tag == "Pet1" || player.tag == "Pet2" || player.tag == "Pet3")
                 {
-                    // Always trigger the fourth hit animation and movement
-                    anim.SetTrigger("hit3");
-                    MoveEnemyToLeft(0.5f);
-                    if (monsterstats.LifeSteal > 0)
+                    petMovement.MovePetToLeft(0.5f);
+                    int damage = CalculateRandomDamage(monsterstats.AttackDamage);
+                    int randomValue = Random.Range(0, 100);
+                    bool isCrit = false;
+                    if (randomValue < monsterstats.CritRate)
                     {
-                        enemyHealthManager.IncreaseHealth(monsterstats.LifeSteal);
+                        damage = damage * 2;
+                        isCrit = true;
                     }
-                    // Check if player dodges the fourth hit
-                    if (PlayerDodges())
-                    {
-                        if (player.tag == "Player") { playerMovement.Dodge(); } else { petMovement.Dodge(); }
-                        yield return new WaitForSeconds(0.5f); // Wait for dodge animation to complete
-                        anim.SetTrigger("stophit");
-                        MoveBackToRandomStart(); // Stop combo and move back to start
-                        yield break; // End the coroutine here
-                    }
+                    playerHealthManager.ReduceHealth(damage, "Normal", enemy, isCrit);
+                    bool playerStunned = CalculateStun();
+                    if (playerStunned) { petMovement.Stun(); }
+                    CalcLifesteal(damage);
+                }
+            }
+
+            yield return new WaitForSeconds(0.5f);
+            int randomNumber1 = Random.Range(0, 100) + monsterstats.combo;
+            if (enemyHealthManager.CurrentHealth <= 0) { randomNumber1 = 0; }
+            if (randomNumber1 > 60)
+            {
+                // Always trigger the third hit animation and movement
+                anim.SetTrigger("hit2");
+                MoveEnemyToLeft(0.5f);
+
+                // Check if player dodges the third hit
+                if (PlayerDodges())
+                {
+                    if (player.tag == "Player") { playerMovement.Dodge(); } else { petMovement.Dodge(); }
+                    yield return new WaitForSeconds(0.5f); // Wait for dodge animation to complete
+                    anim.SetTrigger("stophit");
+                    if (enemyHealthManager.CurrentHealth > 0) { MoveBackToRandomStart(); }
                     else
                     {
-                        if (player.tag == "Player") { playerMovement.MovePlayerToLeft(0.5f); } else { petMovement.MovePetToLeft(0.5f); }
+                        anim.SetBool("run", false);
+                        moveCoroutine = null;
+                        IsMoving = false;
+                        gameManager.RollTime = true;
+                    }
+                    yield break; // End the coroutine here
+                }
+                else
+                {
+                    if (player.tag == "Player")
+                    {
+                        playerMovement.MovePlayerToLeft(0.5f);
                         int damage = CalculateRandomDamage(monsterstats.AttackDamage);
                         int randomValue = Random.Range(0, 100);
                         bool isCrit = false;
@@ -284,13 +290,97 @@ public class EnemyMovement : MonoBehaviour
                             isCrit = true;
                         }
                         playerHealthManager.ReduceHealth(damage, "Normal", enemy, isCrit);
+                        bool playerStunned = CalculateStun();
+                        if (playerStunned && !Inventory.Instance.HasSkill("IronWill")) { playerMovement.Stun(); }
+                        CalcLifesteal(damage);
+                    }
+                    else if (player.tag == "Pet1" || player.tag == "Pet2" || player.tag == "Pet3")
+                    {
+                        petMovement.MovePetToLeft(0.5f);
+                        int damage = CalculateRandomDamage(monsterstats.AttackDamage);
+                        int randomValue = Random.Range(0, 100);
+                        bool isCrit = false;
+                        if (randomValue < monsterstats.CritRate)
+                        {
+                            damage = damage * 2;
+                            isCrit = true;
+                        }
+                        playerHealthManager.ReduceHealth(damage, "Normal", enemy, isCrit);
+                        bool playerStunned = CalculateStun();
+                        if (playerStunned) { petMovement.Stun(); }
+                        CalcLifesteal(damage);
+                    }
+                }
+
+                yield return new WaitForSeconds(0.5f);
+                int randomNumber2 = Random.Range(0, 100) + monsterstats.combo;
+                if (enemyHealthManager.CurrentHealth <= 0) { randomNumber2 = 0; }
+                if (randomNumber2 > 60)
+                {
+                    // Always trigger the fourth hit animation and movement
+                    anim.SetTrigger("hit3");
+                    MoveEnemyToLeft(0.5f);
+
+                    // Check if player dodges the fourth hit
+                    if (PlayerDodges())
+                    {
+                        if (player.tag == "Player") { playerMovement.Dodge(); } else { petMovement.Dodge(); }
+                        yield return new WaitForSeconds(0.5f); // Wait for dodge animation to complete
+                        anim.SetTrigger("stophit");
+                        if (enemyHealthManager.CurrentHealth > 0)
+                        {
+                            MoveBackToRandomStart();
+                        }
+                        else
+                        {
+                            anim.SetBool("run", false);
+                            moveCoroutine = null;
+                            IsMoving = false;
+                            gameManager.RollTime = true;
+                        } // Stop combo and move back to start
+                        yield break; // End the coroutine here
+                    }
+                    else
+                    {
+                        if (player.tag == "Player")
+                        {
+                            playerMovement.MovePlayerToLeft(0.5f);
+                            int damage = CalculateRandomDamage(monsterstats.AttackDamage);
+                            int randomValue = Random.Range(0, 100);
+                            bool isCrit = false;
+                            if (randomValue < monsterstats.CritRate)
+                            {
+                                damage = damage * 2;
+                                isCrit = true;
+                            }
+                            playerHealthManager.ReduceHealth(damage, "Normal", enemy, isCrit);
+                            bool playerStunned = CalculateStun();
+                            if (playerStunned && !Inventory.Instance.HasSkill("IronWill")) { playerMovement.Stun(); }
+                            CalcLifesteal(damage);
+                        }
+                        else if (player.tag == "Pet1" || player.tag == "Pet2" || player.tag == "Pet3")
+                        {
+                            petMovement.MovePetToLeft(0.5f);
+                            int damage = CalculateRandomDamage(monsterstats.AttackDamage);
+                            int randomValue = Random.Range(0, 100);
+                            bool isCrit = false;
+                            if (randomValue < monsterstats.CritRate)
+                            {
+                                damage = damage * 2;
+                                isCrit = true;
+                            }
+                            playerHealthManager.ReduceHealth(damage, "Normal", enemy, isCrit);
+                            bool playerStunned = CalculateStun();
+                            if (playerStunned) { petMovement.Stun(); }
+                            CalcLifesteal(damage);
+                        }
                     }
 
                     yield return new WaitForSeconds(0.5f);
                     anim.SetTrigger("stophit");
                     yield return new WaitForSeconds(0.05f);
                     int randomNumberCounter = Random.Range(0, 100);
-                    if (randomNumberCounter > 50 && player.tag == "Player" && Inventory.Instance.HasSkill("CounterStrike") && !gameManager.IsGameOver)
+                    if (randomNumberCounter > 50 && player.tag == "Player" && Inventory.Instance.HasSkill("CounterStrike") && !gameManager.IsGameOver && !playerMovement.IsStunned)
                     {
                         SkillBattleHandler playerSkills = player.GetComponent<SkillBattleHandler>();
 
@@ -310,7 +400,15 @@ public class EnemyMovement : MonoBehaviour
                             }
                         });
                     }
-                    else { MoveBackToRandomStart(); }
+                    else if (enemyHealthManager.CurrentHealth > 0)
+                    { MoveBackToRandomStart(); }
+                    else
+                    {
+                        anim.SetBool("run", false);
+                        moveCoroutine = null;
+                        IsMoving = false;
+                        gameManager.RollTime = true;
+                    }
 
                 }
                 else
@@ -318,7 +416,7 @@ public class EnemyMovement : MonoBehaviour
                     anim.SetTrigger("stophit");
                     yield return new WaitForSeconds(0.05f);
                     int randomNumberCounter = Random.Range(0, 100);
-                    if (randomNumberCounter > 50 && player.tag == "Player" && Inventory.Instance.HasSkill("CounterStrike") && !gameManager.IsGameOver)
+                    if (randomNumberCounter > 50 && player.tag == "Player" && Inventory.Instance.HasSkill("CounterStrike") && !gameManager.IsGameOver && !playerMovement.IsStunned)
                     {
                         SkillBattleHandler playerSkills = player.GetComponent<SkillBattleHandler>();
 
@@ -338,9 +436,16 @@ public class EnemyMovement : MonoBehaviour
                             }
                         });
                     }
-                    else
+                    else if (enemyHealthManager.CurrentHealth > 0)
                     {
                         MoveBackToRandomStart();
+                    }
+                    else
+                    {
+                        anim.SetBool("run", false);
+                        moveCoroutine = null;
+                        IsMoving = false;
+                        gameManager.RollTime = true;
                     }
                 }
             }
@@ -349,7 +454,7 @@ public class EnemyMovement : MonoBehaviour
                 anim.SetTrigger("stophit");
                 yield return new WaitForSeconds(0.05f);
                 int randomNumberCounter = Random.Range(0, 100);
-                if (randomNumberCounter > 50 && player.tag == "Player" && Inventory.Instance.HasSkill("CounterStrike") && !gameManager.IsGameOver)
+                if (randomNumberCounter > 50 && player.tag == "Player" && Inventory.Instance.HasSkill("CounterStrike") && !gameManager.IsGameOver && !playerMovement.IsStunned)
                 {
                     SkillBattleHandler playerSkills = player.GetComponent<SkillBattleHandler>();
 
@@ -369,9 +474,16 @@ public class EnemyMovement : MonoBehaviour
                         }
                     });
                 }
-                else
+                else if (enemyHealthManager.CurrentHealth > 0)
                 {
                     MoveBackToRandomStart();
+                }
+                else
+                {
+                    anim.SetBool("run", false);
+                    moveCoroutine = null;
+                    IsMoving = false;
+                    gameManager.RollTime = true;
                 }
             }
         }
@@ -380,7 +492,7 @@ public class EnemyMovement : MonoBehaviour
             anim.SetTrigger("stophit");
             yield return new WaitForSeconds(0.05f);
             int randomNumberCounter = Random.Range(0, 100);
-            if (randomNumberCounter > 50 && player.tag == "Player" && Inventory.Instance.HasSkill("CounterStrike") && !gameManager.IsGameOver)
+            if (randomNumberCounter > 50 && player.tag == "Player" && Inventory.Instance.HasSkill("CounterStrike") && !gameManager.IsGameOver && !playerMovement.IsStunned)
             {
                 SkillBattleHandler playerSkills = player.GetComponent<SkillBattleHandler>();
 
@@ -400,9 +512,16 @@ public class EnemyMovement : MonoBehaviour
                     }
                 });
             }
-            else
+            else if (enemyHealthManager.CurrentHealth > 0)
             {
                 MoveBackToRandomStart();
+            }
+            else
+            {
+                anim.SetBool("run", false);
+                moveCoroutine = null;
+                IsMoving = false;
+                gameManager.RollTime = true;
             }
 
         }
@@ -475,6 +594,23 @@ public class EnemyMovement : MonoBehaviour
             transform.position = newPosition;
         }
     }
+    private void CalcLifesteal(int damage)
+    {
+        int baseLifeSteal = monsterstats.LifeSteal;
+
+        if (baseLifeSteal > 0)
+        {
+            float lifeStealMultiplier = baseLifeSteal / 100f;
+
+            int vampBonus = Mathf.RoundToInt(damage * lifeStealMultiplier);
+            if (vampBonus < 1)
+            {
+                vampBonus = 1;
+            }
+
+            enemyHealthManager.IncreaseHealth(vampBonus);
+        }
+    }
     private bool CalculateStun()
     {
         int randomValue = Random.Range(0, 100);
@@ -486,7 +622,6 @@ public class EnemyMovement : MonoBehaviour
     }
     public void Stun()
     {
-        CombatTextManager.Instance.SpawnText("Stunned", enemy.transform.position + Vector3.up * 1.5f, "#FFFFFF");
         IsStunned = true;
         anim.SetBool("stunned", true);
         StunnedAtRound = gameManager.RoundsCount;
@@ -509,6 +644,23 @@ public class EnemyMovement : MonoBehaviour
         // Ensure the minimum damage is at least 1
         if (minDamage < 1) { minDamage = 1; }
         int randomDmg = Random.Range(minDamage, maxDamage);
+        if (player.tag == "Player")
+        {
+            randomDmg = randomDmg - CharacterData.Instance.Defense;
+            if (randomDmg < 1)
+            {
+                randomDmg = 1;
+            }
+        }
+        else
+        {
+            MonsterStats petstats = player.GetComponent<MonsterStats>();
+            randomDmg = randomDmg - petstats.defense;
+            if (randomDmg < 1)
+            {
+                randomDmg = 1;
+            }
+        }
         return randomDmg; // Random.Range is inclusive for integers
     }
     private void FlipTowards(Vector2 targetPosition)
@@ -549,7 +701,7 @@ public class EnemyMovement : MonoBehaviour
         }
     }
 
-    IEnumerator MoveBackToStart(Vector2 targetPosition)
+    IEnumerator MoveBackToStart(Vector3 targetPosition)
     {
         float tolerance = 0.1f;
 
@@ -559,7 +711,8 @@ public class EnemyMovement : MonoBehaviour
             FlipTowards(targetPosition);
 
             anim.SetBool("run", true);
-            enemy.transform.position = Vector2.MoveTowards(enemy.transform.position, targetPosition, enemySpeed * Time.deltaTime);
+            Vector2 new2DPos = Vector2.MoveTowards(enemy.transform.position, targetPosition, enemySpeed * Time.deltaTime);
+            enemy.transform.position = new Vector3(new2DPos.x, new2DPos.y, enemy.transform.position.z);
             yield return null;
         }
         visualTransform.localRotation = Quaternion.Euler(0, 0, 0);
@@ -572,45 +725,71 @@ public class EnemyMovement : MonoBehaviour
     // Method to make player dodge
     private bool PlayerDodges()
     {
-        if (player.tag == "Player")
+        HealthManager arenaHealthManager = enemy.GetComponent<HealthManager>();
+        if (!arenaHealthManager.IsDead)
         {
-            int dodgeChance = CharacterData.Instance.DodgeRate; // Assume dodge chance is 30%
-            int randomValue = Random.Range(0, 100);
-            return randomValue < dodgeChance;
+            if (player.tag == "Player")
+            {
+                if (playerMovement.IsStunned)
+                {
+                    return false;
+                }
+                else
+                {
+                    int dodgeChance = CharacterData.Instance.DodgeRate; // Assume dodge chance is 30%
+                    int randomValue = Random.Range(0, 100);
+                    dodgeChance = dodgeChance - monsterstats.hitRate;
+                    return randomValue < dodgeChance;
+                }
+            }
+            else
+            {
+                if (petMovement.IsStunned)
+                {
+                    return false;
+                }
+                else
+                {
+                    MonsterStats petstats = player.GetComponent<MonsterStats>();
+                    int dodgeChance = petstats.DodgeRate; // Assume dodge chance is 30%
+                    int randomValue = Random.Range(0, 100);
+                    dodgeChance = dodgeChance - monsterstats.hitRate;
+                    return randomValue < dodgeChance;
+                }
+            }
         }
-        else
-        {
-            MonsterStats petstats = player.GetComponent<MonsterStats>();
-            int dodgeChance = petstats.DodgeRate; // Assume dodge chance is 30%
-            int randomValue = Random.Range(0, 100);
-            return randomValue < dodgeChance;
-        }
+        else return false;
     }
 
     public void Dodge()
     {
-        // Calculate the center Y position of the screen using the top and bottom edges
         float screenBottomY = Camera.main.ViewportToWorldPoint(new Vector3(0, 0, Camera.main.nearClipPlane)).y;
         float screenTopY = Camera.main.ViewportToWorldPoint(new Vector3(0, 1, Camera.main.nearClipPlane)).y;
         float screenCenterY = (screenBottomY + screenTopY) / 2;
 
-        // Determine dodge direction: dodge up if below center, down if above
-        float dodgeDistance = 1f; // Customize dodge distance
-        float dodgeDirection = transform.position.y < screenCenterY ? 1f : -1f; // Dodge up if below center, down if above
+        float dodgeDistance = 1f;
+        float dodgeDirection = transform.position.y < screenCenterY ? 1f : -1f;
 
-        // Calculate the dodge target position based on direction and distance
-        Vector2 dodgePosition = new Vector2(transform.position.x, transform.position.y + dodgeDirection * dodgeDistance);
+        // ✅ Bevara Z-positionen!
+        Vector3 dodgePosition = new Vector3(transform.position.x, transform.position.y + dodgeDirection * dodgeDistance, transform.position.z);
 
-        // Move the enemy to the dodge position over time
-        StartCoroutine(DodgeMove(dodgePosition, dodgeDirection));
+        StartCoroutine(DodgeMove(dodgePosition));
     }
 
-    IEnumerator DodgeMove(Vector3 targetPosition, float dodgeDirection)
+    IEnumerator DodgeMove(Vector3 targetPosition)
     {
-        CombatTextManager.Instance.SpawnText("Dodge", enemy.transform.position + Vector3.up * 1.5f, "#FFFFFF");
-        // Instantly set the player's position to the dodge target position
-        transform.position = targetPosition;
 
-        yield return null; // Yield to ensure any other logic can complete if necessary
+        float duration = 0.15f;
+        float elapsed = 0f;
+        Vector3 startPosition = transform.position;
+
+        while (elapsed < duration)
+        {
+            transform.position = Vector3.Lerp(startPosition, targetPosition, elapsed / duration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        transform.position = targetPosition;
     }
 }

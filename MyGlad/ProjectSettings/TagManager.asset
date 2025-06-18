@@ -77,3 +77,6 @@ TagManager:
   - name: firstFront
     uniqueID: 11266975
     locked: 0
+  - name: combatText
+    uniqueID: 3018580293
+    locked: 0

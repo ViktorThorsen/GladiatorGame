@@ -21,6 +21,9 @@ public class EnemyGladiatorData : MonoBehaviour
     [SerializeField] private int stunRate;
     [SerializeField] private int fortune;
     [SerializeField] private int intellect;
+    [SerializeField] public int precision;
+    [SerializeField] public int initiative;
+    [SerializeField] public int combo;
 
     //Just for Show
     [SerializeField] private int strength;
@@ -129,21 +132,42 @@ public class EnemyGladiatorData : MonoBehaviour
 
 
     // AddStrAgiInt method
-    public void AddStrAgiInt(int str, int agi, int inte, int health, int hit, int defense, int fortu, int stun, int lifeSt)
+    public void AddStrAgiInt(int str, int agi, int inte, int health, int hit, int defense, int fortu, int stun, int lifeSt, int ini, int comb)
     {
         Health += health * 5;
+
         Strength += str;
-        hitRate -= str / 2;
+        if (hitRate - str / 2 >= 0)
+        {
+            hitRate -= str / 2;
+        }
+
         DodgeRate += agi;
         critRate += agi;
-        hitRate -= agi / 2;
+
+        if (hitRate - agi / 2 >= 0)
+        {
+            hitRate -= agi / 2;
+        }
+        Agility += agi;
+
         intellect += inte;
-        HitRate += hit;
-        DodgeRate += defense;
+
+        if (hitRate + hit >= 0)
+        {
+            HitRate += hit;
+        }
+
         Fortune += fortu;
+
         StunRate += stun;
+
         LifeSteal += lifeSt;
+
         Defense += defense;
+        precision += hit;
+        initiative += ini;
+        combo += combo;
     }
 
     private void Awake()
@@ -160,12 +184,12 @@ public class EnemyGladiatorData : MonoBehaviour
         BaseStats();
     }
 
-    public void AddEquipStats(int str, int agi, int inte, int health, int hit, int defense, int fortu, int stun, int lifeSt)
+    public void AddEquipStats(int str, int agi, int inte, int health, int hit, int defense, int fortu, int stun, int lifeSt, int ini, int comb)
     {
-        AddStrAgiInt(str, agi, inte, health, hit, defense, fortu, stun, lifeSt);
+        AddStrAgiInt(str, agi, inte, health, hit, defense, fortu, stun, lifeSt, ini, comb);
     }
 
-    public void RemoveEquipStats(int str, int agi, int inte, int health, int hit, int defense, int fortu, int stun, int lifeSt)
+    public void RemoveEquipStats(int str, int agi, int inte, int health, int hit, int defense, int fortu, int stun, int lifeSt, int ini, int comb)
     {
         // Reverse the stats added by the AddStrAgiInt method
         Health -= health * 5;
@@ -176,11 +200,13 @@ public class EnemyGladiatorData : MonoBehaviour
         hitRate += agi / 2;
         intellect -= inte;
         HitRate -= hit;
-        DodgeRate -= defense;
         Defense -= defense;
         Fortune -= fortu;
         StunRate -= stun;
         LifeSteal -= lifeSt;
+        precision -= hit;
+        initiative -= initiative;
+        combo -= comb;
 
     }
 
@@ -199,6 +225,9 @@ public class EnemyGladiatorData : MonoBehaviour
         Fortune = 0;
         StunRate = 0;
         Defense = 0;
+        precision = 0;
+        initiative = 0;
+        combo = 0;
     }
 
     // Method to save the EnemyGladiator data
@@ -225,7 +254,10 @@ public class EnemyGladiatorData : MonoBehaviour
             strength = this.strength,
             agility = this.agility,
             intellect = this.intellect,
-            defense = this.Defense
+            defense = this.Defense,
+            precision = this.precision,
+            initiative = this.initiative,
+            combo = this.combo
         };
         BodyPartsDataSerializable bodyPartsData = new BodyPartsDataSerializable
         {
@@ -237,7 +269,12 @@ public class EnemyGladiatorData : MonoBehaviour
 
         SkillDataSerializable skillData = new SkillDataSerializable
         {
-            skillNames = Inventory.Instance.GetSkills().Select(skill => skill.skillName).ToList()
+            skills = Inventory.Instance.GetSkills()
+        .Select(skill => new SkillEntrySerializable
+        {
+            skillName = skill.skillName,
+            level = skill.level
+        }).ToList()
         };
 
         PetDataSerializable petData = new PetDataSerializable
@@ -322,6 +359,9 @@ public class EnemyGladiatorData : MonoBehaviour
             strength = data.character.strength;
             agility = data.character.agility;
             intellect = data.character.intellect;
+            precision = data.character.precision;
+            initiative = data.character.initiative;
+            combo = data.character.combo;
 
             // === Kroppsdelar ===
             bodyPartLabels = new string[]
@@ -335,10 +375,13 @@ public class EnemyGladiatorData : MonoBehaviour
             // === Inventering ===
             EnemyInventory.Instance.ClearInventory();
 
-            foreach (string skillName in data.skills.skillNames)
+            foreach (var skillEntry in data.skills.skills)
             {
-                var skill = skillDataBase.GetSkillByName(skillName);
-                if (skill != null) EnemyInventory.Instance.AddSkillToInventory(skill);
+                var skill = skillDataBase.GetSkillByName(skillEntry.skillName);
+                if (skill != null)
+                {
+                    EnemyInventory.Instance.AddSkillInstanceToInventory(new SkillInstance(skillEntry.skillName, skillEntry.level));
+                }
             }
 
             foreach (string petName in data.pets.petNames)

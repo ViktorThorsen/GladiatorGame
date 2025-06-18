@@ -1,5 +1,6 @@
 using Npgsql;
 namespace server;
+
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Google.Apis.Auth;
@@ -18,7 +19,7 @@ public static class UserServiceRoutes
 
 #if DEBUG
         // MOCKAD användare i utvecklingsläge
-        email = "jesus@gmail.com";
+        email = "sam@gmail.com";
 #else
         var payload = await GoogleJsonWebSignature.ValidateAsync(body.IdToken);
         email = payload.Email;

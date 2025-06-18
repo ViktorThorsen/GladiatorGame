@@ -17,6 +17,10 @@ public class CharacterData : MonoBehaviour
     [SerializeField] private int level;
     [SerializeField] private int xp;
     [SerializeField] private int energy;
+    [SerializeField] public int coins;
+
+    [SerializeField] public int valor;
+
     [SerializeField] private int health;
     [SerializeField] private int hitRate;
     [SerializeField] private int lifeSteal;
@@ -25,6 +29,11 @@ public class CharacterData : MonoBehaviour
     [SerializeField] private int stunRate;
     [SerializeField] private int fortune;
     [SerializeField] private int intellect;
+
+    [SerializeField] public int precision;
+
+    [SerializeField] public int initiative;
+    [SerializeField] public int combo;
 
     //Just for Show
     [SerializeField] private int strength;
@@ -35,6 +44,8 @@ public class CharacterData : MonoBehaviour
     [SerializeField] private string[] bodyPartLabels;
 
     private bool createdNow = false;
+
+    public bool needUpdate = false;
 
     public bool CreatedNow
     {
@@ -145,41 +156,22 @@ public class CharacterData : MonoBehaviour
 
 
     // AddStrAgiInt method
-    public void AddStrAgiInt(int str, int agi, int inte, int health, int hit, int defense, int fortu, int stun, int lifeSt)
+    public void AddStrAgiInt(int str, int agi, int inte, int health, int hit, int defense, int fortu, int stun, int lifeSt, int ini, int comb)
     {
         Health += health * 5;
-
         Strength += str;
-        if (hitRate - str / 2 >= 0)
-        {
-            hitRate -= str / 2;
-        }
-
         DodgeRate += agi;
         critRate += agi;
-
-        if (hitRate - agi / 2 >= 0)
-        {
-            hitRate -= agi / 2;
-        }
         Agility += agi;
-
         intellect += inte;
-
-        if (hitRate + hit >= 0)
-        {
-            HitRate += hit;
-        }
-
         Fortune += fortu;
-
         StunRate += stun;
-
         LifeSteal += lifeSt;
-
-        DodgeRate += defense;
+        hitRate += hit;
         Defense += defense;
-
+        precision += hit;
+        initiative += ini;
+        combo += comb;
 
     }
 
@@ -197,27 +189,28 @@ public class CharacterData : MonoBehaviour
         BaseStats();
     }
 
-    public void AddEquipStats(int str, int agi, int inte, int health, int hit, int defense, int fortu, int stun, int lifeSt)
+    public void AddEquipStats(int str, int agi, int inte, int health, int hit, int defense, int fortu, int stun, int lifeSt, int ini, int comb)
     {
-        AddStrAgiInt(str, agi, inte, health, hit, defense, fortu, stun, lifeSt);
+        AddStrAgiInt(str, agi, inte, health, hit, defense, fortu, stun, lifeSt, ini, comb);
     }
 
-    public void RemoveEquipStats(int str, int agi, int inte, int health, int hit, int defense, int fortu, int stun, int lifeSt)
+    public void RemoveEquipStats(int str, int agi, int inte, int health, int hit, int defense, int fortu, int stun, int lifeSt, int ini, int comb)
     {
         // Reverse the stats added by the AddStrAgiInt method
         Health -= health * 5;
         Strength -= str;
-        hitRate += str / 2;
         DodgeRate -= agi;
         critRate -= agi;
-        hitRate += agi / 2;
+        Agility -= agi;
         intellect -= inte;
         HitRate -= hit;
-        DodgeRate -= defense;
         Defense -= defense;
         Fortune -= fortu;
         StunRate -= stun;
         LifeSteal -= lifeSt;
+        precision -= hit;
+        initiative -= ini;
+        combo -= comb;
 
     }
 
@@ -227,7 +220,7 @@ public class CharacterData : MonoBehaviour
         Xp = 0;
         Health = 50;
         Energy = 10;
-        Strength = 1;
+        Strength = 0;
         dodgeRate = 0;
         critRate = 0;
         stunRate = 0;
@@ -236,6 +229,11 @@ public class CharacterData : MonoBehaviour
         Fortune = 0;
         StunRate = 0;
         Defense = 0;
+        coins = 0;
+        valor = 0;
+        precision = 0;
+        initiative = 0;
+        combo = 0;
     }
 
     // Method to save the character data
@@ -252,6 +250,8 @@ public class CharacterData : MonoBehaviour
             charName = this.charName,
             level = this.level,
             xp = this.xp,
+            coins = this.coins,
+            valor = this.valor,
             health = this.health,
             lifeSteal = this.lifeSteal,
             dodgeRate = this.dodgeRate,
@@ -262,7 +262,10 @@ public class CharacterData : MonoBehaviour
             strength = this.strength,
             agility = this.agility,
             intellect = this.intellect,
-            defense = this.Defense
+            defense = this.Defense,
+            precision = this.precision,
+            initiative = this.initiative,
+            combo = this.combo
         };
         BodyPartsDataSerializable bodyPartsData = new BodyPartsDataSerializable
         {
@@ -274,7 +277,12 @@ public class CharacterData : MonoBehaviour
 
         SkillDataSerializable skillData = new SkillDataSerializable
         {
-            skillNames = Inventory.Instance.GetSkills().Select(skill => skill.skillName).ToList()
+            skills = Inventory.Instance.GetSkills()
+        .Select(skill => new SkillEntrySerializable
+        {
+            skillName = skill.skillName,
+            level = skill.level
+        }).ToList()
         };
 
         PetDataSerializable petData = new PetDataSerializable
@@ -403,6 +411,11 @@ public class CharacterData : MonoBehaviour
             strength = data.character.strength;
             agility = data.character.agility;
             intellect = data.character.intellect;
+            coins = data.character.coins;
+            valor = data.character.valor;
+            precision = data.character.precision;
+            initiative = data.character.initiative;
+            combo = data.character.combo;
 
             // === Kroppsdelar ===
             bodyPartLabels = new string[]
@@ -416,10 +429,13 @@ public class CharacterData : MonoBehaviour
             // === Inventering ===
             Inventory.Instance.ClearInventory();
 
-            foreach (string skillName in data.skills.skillNames)
+            foreach (var skillEntry in data.skills.skills)
             {
-                var skill = skillDataBase.GetSkillByName(skillName);
-                if (skill != null) Inventory.Instance.AddSkillToInventory(skill);
+                var skill = skillDataBase.GetSkillByName(skillEntry.skillName);
+                if (skill != null)
+                {
+                    Inventory.Instance.AddSkillInstanceToInventory(new SkillInstance(skillEntry.skillName, skillEntry.level));
+                }
             }
 
             foreach (string petName in data.pets.petNames)
@@ -459,7 +475,6 @@ public class CharacterData : MonoBehaviour
                 var item = itemDataBase.GetConsumableByName(consumableName);
                 if (item != null) Inventory.Instance.AddConsumableToInventory(item);
             }
-
             Debug.Log("Character loaded from backend.");
             onComplete?.Invoke(true);
         }
@@ -494,7 +509,7 @@ public class CharacterData : MonoBehaviour
         }
     }
 
-    public IEnumerator UseEnergyForMatch()
+    public IEnumerator UseEnergyForMatch(Action<bool> callback)
     {
         UnityWebRequest request = UnityWebRequest.PostWwwForm($"http://localhost:5000/api/characters/useenergy?characterid={id}", "");
 
@@ -504,14 +519,29 @@ public class CharacterData : MonoBehaviour
 
         yield return request.SendWebRequest();
 
+        bool success = false;
+
         if (request.result == UnityWebRequest.Result.Success)
         {
+            Debug.Log("🌍 Response text: " + request.downloadHandler.text);
             var response = JsonUtility.FromJson<EnergyResponse>(request.downloadHandler.text);
-            Debug.Log("✅ Energi använd! Ny energi: " + response.energy);
+            Energy = response.energy;
+            success = response.success;
+
+            if (success)
+            {
+                Debug.Log("✅ Energi använd! Ny energi: " + response.energy);
+                Debug.Log("🧪 Response: energy = " + response.energy + ", success = " + response.success);
+            }
+
+            else
+                Debug.LogWarning("❌ Inte tillräcklig energi!");
         }
         else
         {
             Debug.LogError("❌ Kunde inte använda energi: " + request.error);
         }
+
+        callback?.Invoke(success);
     }
 }

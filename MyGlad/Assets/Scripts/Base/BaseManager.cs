@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
 using UnityEngine.Networking;
+using System.Linq;
 
 public class BaseManager : MonoBehaviour
 {
@@ -24,20 +25,33 @@ public class BaseManager : MonoBehaviour
 
 
     [SerializeField] private TMP_Text energyText;
+    [SerializeField] private TMP_Text coinsText;
+    [SerializeField] private TMP_Text valorText;
 
     // Array to hold references to the UI item slots (assign in the Inspector)
     [SerializeField] private GameObject inventoryPopupPanel;
     [SerializeField] private GameObject itemPrefab;
+    [SerializeField] private GameObject skillPrefab;
     [SerializeField] private GameObject statsPopupPanel;
     [SerializeField] private Image[] weaponSlots = new Image[12];
     [SerializeField] private Image[] consumableSlots = new Image[3];
     [SerializeField] private Image[] petSlots = new Image[3];
     [SerializeField] private Image[] shortcutSlots = new Image[3];
 
+    [SerializeField] private Image hair;
+    [SerializeField] private Image eyes;
+    [SerializeField] private Image chest;
+    [SerializeField] private TMP_Text nameText;
+
+    [SerializeField] private ProfileImageDataBase profileImageDataBase;
+
+
     [SerializeField] private GameObject skillImagePrefab;
     [SerializeField] private Transform skillPanel;
 
     [SerializeField] private GameObject loadingScreen;
+
+
 
 
     public GameObject characterPrefab;   // Reference to the character prefab
@@ -50,6 +64,13 @@ public class BaseManager : MonoBehaviour
         public int characterId;
         public CharacterWrapper wrapper;
     }
+
+    void Awake()
+    {
+        if (!SkillDataBase.Instance)
+            skillDataBase.InitializeInstance();
+    }
+
     void Start()
     {
         StartCoroutine(InitCharacterAndUI());
@@ -70,10 +91,7 @@ public class BaseManager : MonoBehaviour
         {
             Destroy(ReplayEnemyGladData.Instance.gameObject);
         }
-        if (ReplayManager.Instance != null)
-        {
-            Destroy(ReplayManager.Instance.gameObject);
-        }
+
         if (ChooseLandsManager.Instance != null)
         {
             Destroy(ChooseLandsManager.Instance.gameObject);
@@ -93,6 +111,7 @@ public class BaseManager : MonoBehaviour
             Debug.Log("✅ Användaren är inloggad, JWT: " + token);
             Debug.Log("✅ Användarens id : " + userid);
             Debug.Log("karaktärens id : " + PlayerPrefs.GetInt("characterId"));
+
 
             if (CharacterData.Instance == null)
             {
@@ -117,6 +136,10 @@ public class BaseManager : MonoBehaviour
                     SceneController.instance.Logout();
                     yield break;
                 }
+                else
+                {
+                    CharacterData.Instance.Id = PlayerPrefs.GetInt("characterId");
+                }
             }
             if (FightData.Instance == null)
             {
@@ -140,15 +163,14 @@ public class BaseManager : MonoBehaviour
             if (characterObject != null)
             {
                 lvlText.text = CharacterData.Instance.Level.ToString();
-                healthText.text = CharacterData.Instance.Health.ToString();
-
                 strText.text = CharacterData.Instance.Strength.ToString();
                 agiText.text = CharacterData.Instance.Agility.ToString();
                 intText.text = CharacterData.Instance.Intellect.ToString();
                 HelText.text = CharacterData.Instance.Health.ToString();
-                PreText.text = CharacterData.Instance.HitRate.ToString();
+                PreText.text = CharacterData.Instance.precision.ToString();
                 DefText.text = CharacterData.Instance.Defense.ToString();
-                FortText.text = CharacterData.Instance.Fortune.ToString();
+                coinsText.text = CharacterData.Instance.coins.ToString();
+                valorText.text = CharacterData.Instance.valor.ToString();
             }
             else
             {
@@ -157,26 +179,39 @@ public class BaseManager : MonoBehaviour
 
             UpdateXpBar();
             UpdateInventorySlots();
+            UpdateProfilePic();
 
-            if (Inventory.Instance.HasSkill("BeastMaster"))
-            {
-                UpdatePetSlots();
-            }
+
+            UpdatePetSlots();
+
             if (!CharacterData.Instance.CreatedNow)
             {
-                Debug.Log("Innan Energy fetch " + CharacterData.Instance.Energy);
                 bool energySuccess = false;
                 yield return StartCoroutine(CharacterData.Instance.FetchCharacterEnergy(success => energySuccess = success));
-
                 if (!energySuccess)
                 {
                     Debug.LogWarning("❌ Energin kunde inte hämtas – loggar ut.");
                     SceneController.instance.Logout();
                     yield break;
                 }
+                else
+                {
+                    energyText.text = $"{CharacterData.Instance.Energy} / 10";
+                    if (CharacterData.Instance.needUpdate)
+                    {
+                        yield return StartCoroutine(SaveCharacter());
+                    }
+                }
+
             }
-            energyText.text = $"{CharacterData.Instance.Energy} / 10";
-            yield return StartCoroutine(SaveCharacter());
+            else if (CharacterData.Instance.CreatedNow)
+            {
+                energyText.text = $"{CharacterData.Instance.Energy} / 10";
+                Debug.Log("sparar karaktär");
+                yield return StartCoroutine(SaveCharacter());
+            }
+
+
 
         }
         else
@@ -227,6 +262,7 @@ public class BaseManager : MonoBehaviour
         if (CharacterData.Instance != null)
         {
             Debug.Log("Saving character data...");
+            CharacterData.Instance.needUpdate = false;
             yield return StartCoroutine(SaveAndLinkCharacter());
         }
         else
@@ -283,6 +319,7 @@ public class BaseManager : MonoBehaviour
     // Method to update the inventory slots in the UI
     private void UpdateInventorySlots()
     {
+        nameText.text = CharacterData.Instance.CharName;
         // Make sure the inventory is not null
         if (Inventory.Instance != null)
         {
@@ -290,48 +327,65 @@ public class BaseManager : MonoBehaviour
             List<Item> weaponItems = Inventory.Instance.GetWeapons();
             List<Item> consumableItems = Inventory.Instance.GetConsumables();
             // Loop through the inventory items and assign to slots
-            for (int i = 0; i < weaponSlots.Length; i++)
+            if (weaponSlots != null)
             {
-                Transform slot = weaponSlots[i].transform;
-
-                // 🧹 Rensa tidigare items i slotten
-                foreach (Transform child in slot)
+                for (int i = 0; i < weaponSlots.Length; i++)
                 {
-                    Destroy(child.gameObject);
-                }
+                    Transform slot = weaponSlots[i].transform;
 
-                // 🪄 Lägg till nytt item om det finns
-                if (i < weaponItems.Count)
-                {
-                    Item item = weaponItems[i];
-
-                    GameObject itemObj = Instantiate(itemPrefab, slot);
-                    itemObj.transform.localPosition = Vector3.zero;
-
-                    Image img = itemObj.GetComponent<Image>();
-                    img.sprite = item.itemIcon;
-
-                    ItemUI itemUI = itemObj.GetComponent<ItemUI>();
-                    if (itemUI != null)
+                    // 🧹 Rensa tidigare items i slotten
+                    foreach (Transform child in slot)
                     {
-                        itemUI.Item = item;
+                        Destroy(child.gameObject);
+                    }
+
+                    // 🪄 Lägg till nytt item om det finns
+                    if (i < weaponItems.Count)
+                    {
+                        Item item = weaponItems[i];
+
+                        GameObject itemObj = Instantiate(itemPrefab, slot);
+                        itemObj.transform.localPosition = Vector3.zero;
+
+                        Image img = itemObj.GetComponent<Image>();
+                        img.sprite = item.itemIcon;
+
+                        ItemUI itemUI = itemObj.GetComponent<ItemUI>();
+                        if (itemUI != null)
+                        {
+                            itemUI.Item = item;
+                        }
                     }
                 }
             }
-            for (int i = 0; i < consumableSlots.Length; i++)
+            if (consumableSlots != null)
             {
-                // If there's an item at this index, assign its sprite to the slot
-                if (i < consumableItems.Count)
+                for (int i = 0; i < consumableSlots.Length; i++)
                 {
-                    Item item = consumableItems[i];
-                    consumableSlots[i].sprite = item.itemIcon;
-                    consumableSlots[i].color = new Color(1, 1, 1, 1); // Make the slot fully visible
-                }
-                else
-                {
-                    // Clear the slot if there's no corresponding item
-                    consumableSlots[i].sprite = null;
-                    consumableSlots[i].color = new Color(60f / 255f, 47f / 255f, 47f / 255f, 0f);
+                    if (consumableSlots[i] == null) continue;
+
+                    Transform slot = consumableSlots[i].transform;
+
+                    foreach (Transform child in slot)
+                    {
+                        Destroy(child.gameObject);
+                    }
+
+                    if (i < consumableItems.Count)
+                    {
+                        Item item = consumableItems[i];
+                        GameObject itemObj = Instantiate(itemPrefab, slot);
+                        itemObj.transform.localPosition = Vector3.zero;
+
+                        Image img = itemObj.GetComponent<Image>();
+                        if (img != null) img.sprite = item.itemIcon;
+
+                        ItemUI itemUI = itemObj.GetComponent<ItemUI>();
+                        if (itemUI != null)
+                        {
+                            itemUI.Item = item;
+                        }
+                    }
                 }
             }
             // Clear any existing slots if necessary
@@ -340,16 +394,26 @@ public class BaseManager : MonoBehaviour
                 Destroy(child.gameObject);
             }
             // Iterate over each item in the combat inventory
-            foreach (Skill skill in Inventory.Instance.GetSkills())
+            foreach (SkillInstance skillInstance in Inventory.Instance.GetSkills())
             {
-                // Instantiate a new inventory slot from the prefab
-                GameObject newSlot = Instantiate(skillImagePrefab, skillPanel);
+                Skill skill = skillDataBase.GetSkillByName(skillInstance.skillName);
+                if (skill == null) continue;
 
-                // Get the Image component from the slot
-                Image slotImage = newSlot.GetComponent<Image>();
+                GameObject newSlot = Instantiate(skillPrefab, skillPanel);
 
-                // Set the sprite of the image to the item's sprite
-                slotImage.sprite = skill.skillIcon;
+                Image skillImage = newSlot.transform.Find("skillImage").GetComponent<Image>();
+                newSlot.transform.Find("Image1").gameObject.SetActive(skillInstance.level == 1);
+                newSlot.transform.Find("Image2").gameObject.SetActive(skillInstance.level == 2);
+                newSlot.transform.Find("Image3").gameObject.SetActive(skillInstance.level == 3);
+
+                skillImage.sprite = skill.skillIcon;
+
+                SkillUI skillUI = newSlot.GetComponent<SkillUI>();
+                if (skillUI != null)
+                {
+                    skillUI.Skill = skill;
+                    skillUI.Level = skillInstance.level; // Lägg till detta om du vill visa nivå t.ex.
+                }
             }
             if (Inventory.Instance.shortcutWeaponIndexes.Count == Inventory.Instance.GetWeapons().Count)
             {
@@ -387,36 +451,40 @@ public class BaseManager : MonoBehaviour
     }
     public void UpdatePetSlots()
     {
-        // If the player has BeastMaster skill, update the pet slots normally
+        // Hämta BeastMaster-skills och nivå
+        var beastMasterSkill = Inventory.Instance.GetSkills()
+            .FirstOrDefault(s => s.skillName == "BeastMaster");
+
+        int maxPetSlots = beastMasterSkill?.level ?? 0;  // 0 om inte finns
         List<GameObject> pets = Inventory.Instance.GetPets();
+
         for (int i = 0; i < petSlots.Length; i++)
         {
-            if (i < pets.Count)
+            if (i < maxPetSlots)
             {
-                GameObject pet = pets[i];
-                if (pet != null)
+                // Aktivera slot
+                petSlots[i].gameObject.SetActive(true);
+
+                if (i < pets.Count && pets[i] != null)
                 {
-                    SpriteRenderer petsprite = pet.GetComponent<SpriteRenderer>();
-                    if (petsprite != null)
-                    {
-                        petSlots[i].sprite = petsprite.sprite;
-                        petSlots[i].color = new Color(1, 1, 1, 1);  // Set full opacity (active)
-                    }
-                    else
-                    {
-                    }
+                    Sprite petsIcon = pets[i].GetComponent<MonsterStats>().icon;
+                    petSlots[i].sprite = petsIcon;
+                    petSlots[i].color = new Color(1, 1, 1, 1); // synlig
                 }
                 else
                 {
+                    petSlots[i].sprite = null;
+                    petSlots[i].color = new Color(1, 1, 1, 0); // tom slot
                 }
             }
             else
             {
-                petSlots[i].sprite = null;
-                petSlots[i].color = new Color(1, 1, 1, 0);
+                // Inaktivera slot utanför tillåten nivå
+                petSlots[i].gameObject.SetActive(false);
             }
         }
     }
+
     public void UpdateXpBar()
     {
         int baseXpRequiredToLevelUp = 100;  // Base XP for level 1
@@ -434,5 +502,20 @@ public class BaseManager : MonoBehaviour
         // Update the color of the XP bar (optional)
         Image xpFillImage = xpBar.fillRect.GetComponent<Image>();
         xpFillImage.color = new Color(0f, 1f, 0.043f, 1f);  // Opaque green
+    }
+
+    public void UpdateProfilePic()
+    {
+        string hairLabel = CharacterData.Instance.BodyPartLabels[0];
+        string eyesLabel = CharacterData.Instance.BodyPartLabels[1];
+        string chestLabel = CharacterData.Instance.BodyPartLabels[2];
+
+        string hairKey = ProfileImageMapper.MapHair(hairLabel);
+        string eyesKey = ProfileImageMapper.MapEyes(eyesLabel);
+        string chestKey = ProfileImageMapper.MapChest(chestLabel);
+
+        hair.sprite = profileImageDataBase.GetProfileImageByName(hairKey).profileImage;
+        eyes.sprite = profileImageDataBase.GetProfileImageByName(eyesKey).profileImage;
+        chest.sprite = profileImageDataBase.GetProfileImageByName(chestKey).profileImage;
     }
 }

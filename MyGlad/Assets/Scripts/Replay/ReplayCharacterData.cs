@@ -25,6 +25,8 @@ public class ReplayCharacterData : MonoBehaviour
     [SerializeField] private int stunRate;
     [SerializeField] private int fortune;
     [SerializeField] private int intellect;
+    [SerializeField] public int precision;
+    [SerializeField] public int initiative;
 
     //Just for Show
     [SerializeField] private int strength;
@@ -145,7 +147,7 @@ public class ReplayCharacterData : MonoBehaviour
 
 
     // AddStrAgiInt method
-    public void AddStrAgiInt(int str, int agi, int inte, int health, int hit, int defense, int fortu, int stun, int lifeSt)
+    public void AddStrAgiInt(int str, int agi, int inte, int health, int hit, int defense, int fortu, int stun, int lifeSt, int ini)
     {
         Health += health * 5;
 
@@ -179,6 +181,8 @@ public class ReplayCharacterData : MonoBehaviour
 
         DodgeRate += defense;
         Defense += defense;
+        precision += hit;
+        initiative += ini;
 
 
     }
@@ -201,6 +205,8 @@ public class ReplayCharacterData : MonoBehaviour
         strength = dto.strength;
         agility = dto.agility;
         intellect = dto.intellect;
+        precision += dto.precision;
+        initiative += dto.initiative;
 
         Debug.Log("✅ ReplayCharacterData: Stats loaded from replay DTO.");
     }
@@ -219,12 +225,12 @@ public class ReplayCharacterData : MonoBehaviour
         BaseStats();
     }
 
-    public void AddEquipStats(int str, int agi, int inte, int health, int hit, int defense, int fortu, int stun, int lifeSt)
+    public void AddEquipStats(int str, int agi, int inte, int health, int hit, int defense, int fortu, int stun, int lifeSt, int ini)
     {
-        AddStrAgiInt(str, agi, inte, health, hit, defense, fortu, stun, lifeSt);
+        AddStrAgiInt(str, agi, inte, health, hit, defense, fortu, stun, lifeSt, ini);
     }
 
-    public void RemoveEquipStats(int str, int agi, int inte, int health, int hit, int defense, int fortu, int stun, int lifeSt)
+    public void RemoveEquipStats(int str, int agi, int inte, int health, int hit, int defense, int fortu, int stun, int lifeSt, int ini)
     {
         // Reverse the stats added by the AddStrAgiInt method
         Health -= health * 5;
@@ -240,6 +246,8 @@ public class ReplayCharacterData : MonoBehaviour
         Fortune -= fortu;
         StunRate -= stun;
         LifeSteal -= lifeSt;
+        precision -= hit;
+        initiative -= ini;
 
     }
 
@@ -258,6 +266,9 @@ public class ReplayCharacterData : MonoBehaviour
         Fortune = 0;
         StunRate = 0;
         Defense = 0;
+        LifeSteal = 0;
+        precision = 0;
+        initiative = 0;
     }
 
 }

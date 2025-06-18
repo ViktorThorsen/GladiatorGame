@@ -8,42 +8,180 @@ using System.Linq;
 public class SkillBattleHandler : MonoBehaviour
 {
     GameObject thisUnit;
-
-
-    public bool berserkUsed;
+    private int davidAgiBonus;
+    private int davidHitBonus;
 
     void Start()
     {
         thisUnit = gameObject;
-        berserkUsed = false;
     }
     public void LifeBlood(GameObject character)
     {
         HealthManager healthManager = character.GetComponent<HealthManager>();
         int maxHealth = CharacterData.Instance.Health;
-        double reg = maxHealth * 0.01;
-        int flooredReg = (int)Math.Floor(reg);
-        healthManager.IncreaseHealth(flooredReg);
+
+        // Hämta skill-level och data
+        var skillInstance = Inventory.Instance.GetSkills().FirstOrDefault(s => s.skillName == "LifeBlood");
+        if (skillInstance == null) return;
+
+        Skill skillData = skillInstance.GetSkillData(); // från databasen
+        int level = skillInstance.level;
+
+        // Hämta rätt procent (100 = 1% osv)
+        int percent = level switch
+        {
+            1 => skillData.effectPercentIncreaseLevel1,
+            2 => skillData.effectPercentIncreaseLevel2,
+            3 => skillData.effectPercentIncreaseLevel3,
+            _ => 0
+        };
+
+        // Beräkna hur mycket liv som ska återställas
+        int regenAmount = Mathf.FloorToInt(maxHealth * (percent / 100f));
+        if (regenAmount < 1)
+        {
+            regenAmount = 1;
+        }
+
+        if (healthManager.CurrentHealth < maxHealth && regenAmount > 0)
+        {
+            healthManager.IncreaseHealth(regenAmount);
+        }
+    }
+    public void ArenaLifeBlood(GameObject character)
+    {
+        ArenaHealthManager healthManager = character.GetComponent<ArenaHealthManager>();
+
+        int maxHealth;
+        SkillInstance skillInstance;
+
+        if (character.tag == "Player")
+        {
+            maxHealth = CharacterData.Instance.Health;
+            skillInstance = Inventory.Instance.GetSkills().FirstOrDefault(s => s.skillName == "LifeBlood");
+        }
+        else
+        {
+            maxHealth = EnemyGladiatorData.Instance.Health;
+            skillInstance = EnemyInventory.Instance.GetSkills().FirstOrDefault(s => s.skillName == "LifeBlood");
+        }
+
+        if (skillInstance == null) return;
+
+        Skill skillData = skillInstance.GetSkillData();
+        int level = skillInstance.level;
+
+        int percent = level switch
+        {
+            1 => skillData.effectPercentIncreaseLevel1,
+            2 => skillData.effectPercentIncreaseLevel2,
+            3 => skillData.effectPercentIncreaseLevel3,
+            _ => 0
+        };
+
+        int regenAmount = Mathf.FloorToInt(maxHealth * (percent / 100f));
+        if (regenAmount < 1)
+        {
+            regenAmount = 1;
+        }
+        if (healthManager.CurrentHealth < maxHealth && regenAmount > 0)
+        {
+            healthManager.IncreaseHealth(regenAmount);
+        }
+    }
+    public void ReplayLifeBlood(GameObject character)
+    {
+        ReplayHealthManager healthManager = character.GetComponent<ReplayHealthManager>();
+
+        int maxHealth;
+        SkillEntrySerializable skillEntry;
+
+        if (character.tag == "Player")
+        {
+            maxHealth = ReplayCharacterData.Instance.Health;
+            skillEntry = ReplayManager.Instance.selectedReplay.player.skills.skills
+                .FirstOrDefault(s => s.skillName == "LifeBlood");
+        }
+        else
+        {
+            maxHealth = ReplayEnemyGladData.Instance.Health;
+            skillEntry = ReplayManager.Instance.selectedReplay.enemy.skills.skills
+                .FirstOrDefault(s => s.skillName == "LifeBlood");
+        }
+
+        if (skillEntry == null) return;
+
+        Skill skillData = SkillDataBase.Instance.GetSkillByName("LifeBlood");
+        int level = skillEntry.level;
+
+        int percent = level switch
+        {
+            1 => skillData.effectPercentIncreaseLevel1,
+            2 => skillData.effectPercentIncreaseLevel2,
+            3 => skillData.effectPercentIncreaseLevel3,
+            _ => 0
+        };
+
+        int regenAmount = Mathf.FloorToInt(maxHealth * (percent / 100f));
+        if (regenAmount < 1)
+        {
+            regenAmount = 1;
+        }
+        if (healthManager.CurrentHealth < maxHealth && regenAmount > 0)
+        {
+            healthManager.IncreaseHealth(regenAmount);
+        }
     }
 
     public int Berserk(GameObject character)
     {
-        berserkUsed = true;
-        int strength = CharacterData.Instance.Strength;
+        int baseStrength;
+        SkillInstance skillInstance;
 
-        // Get all SpriteRenderer components in the character and its children
-        SpriteRenderer[] spriteRenderers = character.GetComponentsInChildren<SpriteRenderer>();
-
-        // Loop through each SpriteRenderer and change color, excluding certain objects
-        foreach (SpriteRenderer spriteRenderer in spriteRenderers)
+        if (character.tag == "Player")
         {
-            // Exclude specific objects like "Shadow" and "MainHandSocket"
-            if (spriteRenderer.gameObject.name != "Shadow" && spriteRenderer.gameObject.name != "MainHandSocket")
+            baseStrength = CharacterData.Instance.Strength;
+            skillInstance = Inventory.Instance.GetSkillInstance("Berserk");
+        }
+        else
+        {
+            baseStrength = EnemyGladiatorData.Instance.Strength;
+            skillInstance = EnemyInventory.Instance.GetSkillInstance("Berserk");
+        }
+
+        float multiplier = 1f;
+
+        if (skillInstance != null)
+        {
+            var skillData = SkillDataBase.Instance.GetSkillByName("Berserk");
+            if (skillData != null)
             {
-                spriteRenderer.color = Color.red;  // Set color to red (or any other color)
+                int level = skillInstance.level;
+
+                int percentIncrease = level switch
+                {
+                    1 => skillData.effectPercentIncreaseLevel1,
+                    2 => skillData.effectPercentIncreaseLevel2,
+                    3 => skillData.effectPercentIncreaseLevel3,
+                    _ => 0
+                };
+
+                multiplier += percentIncrease / 100f;
             }
         }
-        return strength;
+
+        int finalStrength = Mathf.RoundToInt(baseStrength * multiplier);
+
+        // 🔴 Visuell effekt
+        foreach (var renderer in character.GetComponentsInChildren<SpriteRenderer>())
+        {
+            if (renderer.gameObject.name != "Shadow" && renderer.gameObject.name != "MainHandSocket")
+            {
+                renderer.color = Color.red;
+            }
+        }
+
+        return finalStrength;
     }
     public void EndBerserk(GameObject character)
     {
@@ -60,22 +198,59 @@ public class SkillBattleHandler : MonoBehaviour
         }
     }
 
-    public int VenomousTouch()
+    public int VenomousTouch(GameObject damageDealer, GameObject targetenemy)
     {
-        int strength = CharacterData.Instance.Strength;
-        double venomDmg = strength * 0.01;
-        int venom = (int)Math.Floor(venomDmg);
-        if (venom < 1)
+        int targetMaxHealth;
+
+        if (damageDealer.tag == "Player")
         {
-            venom = 1;
+            if (targetenemy.tag == "EnemyGlad")
+                targetMaxHealth = EnemyGladiatorData.Instance.Health;
+            if (targetenemy.tag == "Player")
+            {
+                targetMaxHealth = CharacterData.Instance.Health;
+            }
+            else
+                targetMaxHealth = targetenemy.GetComponent<MonsterStats>().Health;
         }
-        return venom;
+        else
+        {
+            if (targetenemy.tag == "Player")
+                targetMaxHealth = CharacterData.Instance.Health;
+            if (targetenemy.tag == "EnemyGlad")
+            {
+                targetMaxHealth = EnemyGladiatorData.Instance.Health;
+            }
+            else
+                targetMaxHealth = targetenemy.GetComponent<MonsterStats>().Health;
+        }
+
+        // Default venom percent is 100 = 1%
+        int percentHundredths = 100;
+
+        var venomSkillInstance = Inventory.Instance.GetSkills()
+            .FirstOrDefault(s => s.skillName == "VenomousTouch");
+
+        if (venomSkillInstance != null)
+        {
+            Skill venomSkillData = venomSkillInstance.GetSkillData();
+            int level = venomSkillInstance.level;
+
+            percentHundredths = level switch
+            {
+                1 => venomSkillData.effectPercentIncreaseLevel1,
+                2 => venomSkillData.effectPercentIncreaseLevel2,
+                3 => venomSkillData.effectPercentIncreaseLevel3,
+                _ => 100
+            };
+        }
+
+        float venomMultiplier = percentHundredths / 10000f; // 100 = 1%, 250 = 2.5%, etc.
+        int venom = Mathf.FloorToInt(targetMaxHealth * venomMultiplier);
+
+        return Mathf.Max(1, venom); // Ensure at least 1 damage
     }
 
-    public void Disarm(GameObject disarmer, GameObject disarmed)
-    {
-
-    }
 
     public void WildRoar()
     {
@@ -97,7 +272,7 @@ public class SkillBattleHandler : MonoBehaviour
         enemyMovement.MoveEnemyToRight(0.5f);
 
         // Deal damage to the enemy
-        characterToCounterHealthManager.ReduceHealth(movement.CalculateRandomDamage(CharacterData.Instance.Strength), "Normal", thisUnit, false);
+        characterToCounterHealthManager.ReduceHealth(movement.CalculateRandomDamage(CharacterData.Instance.Strength, enemy), "Normal", thisUnit, false);
 
         // Start the coroutine and pass the callback for when the attack is finished
         StartCoroutine(StopHitWithDelay(anim, onCounterAttackFinished));
@@ -154,12 +329,12 @@ public class SkillBattleHandler : MonoBehaviour
         if (thisUnit.tag == "Player")
         {
             ArenaPlayerMovement movement = thisUnit.GetComponent<ArenaPlayerMovement>();
-            characterToCounterHealthManager.ReduceHealth(movement.CalculateRandomDamage(CharacterData.Instance.Strength), "Normal", thisUnit, false);
+            characterToCounterHealthManager.ReduceHealth(movement.CalculateRandomDamage(CharacterData.Instance.Strength, enemy), "Normal", thisUnit, false);
         }
         else if (thisUnit.tag == "EnemyGlad")
         {
             ArenaEnemyPlayerMovement movement = thisUnit.GetComponent<ArenaEnemyPlayerMovement>();
-            characterToCounterHealthManager.ReduceHealth(movement.CalculateRandomDamage(EnemyGladiatorData.Instance.Strength), "Normal", thisUnit, false);
+            characterToCounterHealthManager.ReduceHealth(movement.CalculateRandomDamage(EnemyGladiatorData.Instance.Strength, enemy), "Normal", thisUnit, false);
         }
 
         // Start the coroutine and pass the callback for when the attack is finished
@@ -257,5 +432,75 @@ public class SkillBattleHandler : MonoBehaviour
 
         return lastAction.Value;
     }
+    public void CleaveDamage(List<GameObject> allAliveEnemies, GameObject mainTarget, int damage, GameObject doneBy)
+    {
+        foreach (GameObject enemy in allAliveEnemies)
+        {
+            if (enemy.tag != mainTarget.tag)
+            {
+                HealthManager HM = enemy.GetComponent<HealthManager>();
+                HM.ReduceHealth(damage / 2, "Normal", doneBy, false);
+            }
+        }
+
+    }
+
+    public void ArenaCleaveDamage(List<GameObject> allAliveEnemies, GameObject mainTarget, int damage, GameObject doneBy)
+    {
+        foreach (GameObject enemy in allAliveEnemies)
+        {
+            if (enemy.tag != mainTarget.tag)
+            {
+                ArenaHealthManager HM = enemy.GetComponent<ArenaHealthManager>();
+                HM.ReduceHealth(damage / 2, "Normal", doneBy, false);
+            }
+        }
+
+    }
+    public void ReplayCleaveDamage(List<GameObject> allAliveEnemies, GameObject mainTarget, int damage, GameObject doneBy)
+    {
+        foreach (GameObject enemy in allAliveEnemies)
+        {
+            if (enemy.tag != mainTarget.tag)
+            {
+                ReplayHealthManager HM = enemy.GetComponent<ReplayHealthManager>();
+                HM.ReduceHealth(damage / 2, "Normal", doneBy, false);
+            }
+        }
+
+    }
+
+    public void AddDavidStats()
+    {
+        int Str = 0;
+        davidAgiBonus = Mathf.RoundToInt(CharacterData.Instance.Agility * 0.1f);
+        int Inte = 0;
+        int Health = 0;
+        davidHitBonus = Mathf.RoundToInt(CharacterData.Instance.precision * 2);
+        int Defense = 0;
+        int Stun = 5;
+        int LifeSt = 0;
+
+        if (thisUnit.tag == "Player")
+            CharacterData.Instance.AddEquipStats(Str, davidAgiBonus, Inte, Health, davidHitBonus, Defense, 0, Stun, LifeSt, 0, 0);
+        else if (thisUnit.tag == "EnemyGlad")
+            EnemyGladiatorData.Instance.AddEquipStats(Str, davidAgiBonus, Inte, Health, davidHitBonus, Defense, 0, Stun, LifeSt, 0, 0);
+    }
+
+    public void RemoveDavidStats()
+    {
+        int Str = 0;
+        int Inte = 0;
+        int Health = 0;
+        int Defense = 0;
+        int Stun = 5;
+        int LifeSt = 0;
+
+        if (thisUnit.tag == "Player")
+            CharacterData.Instance.RemoveEquipStats(Str, davidAgiBonus, Inte, Health, davidHitBonus, Defense, 0, Stun, LifeSt, 0, 0);
+        else if (thisUnit.tag == "EnemyGlad")
+            EnemyGladiatorData.Instance.RemoveEquipStats(Str, davidAgiBonus, Inte, Health, davidHitBonus, Defense, 0, Stun, LifeSt, 0, 0);
+    }
+
 }
 

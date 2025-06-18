@@ -6,6 +6,7 @@ using TMPro;
 using Unity.VisualScripting;
 using System.Runtime.CompilerServices;
 using Cinemachine;
+using System.Linq;
 
 public class ReplayHealthManager : MonoBehaviour
 {
@@ -18,10 +19,15 @@ public class ReplayHealthManager : MonoBehaviour
     private Transform healthSliderParent;
     private GameObject thisUnit;
     private ReplayGameManager gameManager;
+    private Transform visualTransform;
+    private GameObject venomDealer;
     [SerializeField] private CameraShakeManager cameraShakeManager;
 
     public bool IsPosioned;
     int startVenomRounds;
+    public bool standAgain = false;
+    public bool standAgainUsed = false;
+    public int standAgainRound;
 
     private bool isDead;
 
@@ -41,7 +47,14 @@ public class ReplayHealthManager : MonoBehaviour
     {
         gameManager = FindObjectOfType<ReplayGameManager>();
         thisUnit = gameObject;
-        anim = GetComponent<Animator>();
+        visualTransform = transform.Find("Visual");
+        if (visualTransform == null)
+        {
+            visualTransform = transform; // fallback om "Visual" inte finns
+        }
+
+        // Hämta Animator från rätt plats
+        anim = visualTransform.GetComponent<Animator>();
 
         GameObject canvas = GameObject.Find("Canvas");
 
@@ -61,7 +74,8 @@ public class ReplayHealthManager : MonoBehaviour
                 maxHealth = ReplayCharacterData.Instance.Health;
                 currentHealth = ReplayCharacterData.Instance.Health;
                 healthBar.maxValue = maxHealth;  // Sätt sliderns max-värde
-                healthBar.value = currentHealth; // Sätt sliderns nuvarande värde
+                healthBar.value = currentHealth; // Sätt sliderns nuvarande 
+                standAgain = ReplayManager.Instance.selectedReplay.player.skills.skills?.Any(s => s.skillName == "StandAgain") == true;
             }
             else if (thisUnit.tag == "EnemyGlad")
             {
@@ -78,6 +92,7 @@ public class ReplayHealthManager : MonoBehaviour
                 currentHealth = ReplayEnemyGladData.Instance.Health;
                 healthBar.maxValue = maxHealth;  // Sätt sliderns max-värde
                 healthBar.value = currentHealth; // Sätt sliderns nuvarande värde
+                standAgain = ReplayManager.Instance.selectedReplay.enemy.skills.skills?.Any(s => s.skillName == "StandAgain") == true;
             }
             else if (thisUnit.tag == "EnemyPet1" || thisUnit.tag == "EnemyPet2" || thisUnit.tag == "EnemyPet3")
             {
@@ -129,6 +144,58 @@ public class ReplayHealthManager : MonoBehaviour
         if (type == "Normal")
         {
             currentHealth -= damage;
+            if (thisUnit.tag == "Player")
+            {
+                var thornSkill = ReplayManager.Instance.selectedReplay.player.skills.skills
+                    ?.FirstOrDefault(s => s.skillName == "Thorns");
+
+                if (thornSkill != null)
+                {
+                    Skill thornData = SkillDataBase.Instance.GetSkillByName("Thorns");
+
+                    int bonusPercent = thornSkill.level switch
+                    {
+                        1 => thornData.effectPercentIncreaseLevel1,
+                        2 => thornData.effectPercentIncreaseLevel2,
+                        3 => thornData.effectPercentIncreaseLevel3,
+                        _ => 0
+                    };
+
+                    float thornsMultiplier = bonusPercent / 100f;
+
+                    int thornsDamage = Mathf.RoundToInt(damage * thornsMultiplier);
+                    if (thornsDamage < 1) thornsDamage = 1;
+
+                    ReplayHealthManager HM = doneBy.GetComponent<ReplayHealthManager>();
+                    HM.ReduceHealth(thornsDamage, "Thorns", thisUnit, false);
+                }
+            }
+            if (thisUnit.tag == "EnemyGlad")
+            {
+                var thornSkill = ReplayManager.Instance.selectedReplay.enemy.skills.skills
+                    ?.FirstOrDefault(s => s.skillName == "Thorns");
+
+                if (thornSkill != null)
+                {
+                    Skill thornData = SkillDataBase.Instance.GetSkillByName("Thorns");
+
+                    int bonusPercent = thornSkill.level switch
+                    {
+                        1 => thornData.effectPercentIncreaseLevel1,
+                        2 => thornData.effectPercentIncreaseLevel2,
+                        3 => thornData.effectPercentIncreaseLevel3,
+                        _ => 0
+                    };
+
+                    float thornsMultiplier = bonusPercent / 100f;
+
+                    int thornsDamage = Mathf.RoundToInt(damage * thornsMultiplier);
+                    if (thornsDamage < 1) thornsDamage = 1;
+
+                    ReplayHealthManager HM = doneBy.GetComponent<ReplayHealthManager>();
+                    HM.ReduceHealth(thornsDamage, "Thorns", thisUnit, false);
+                }
+            }
             cameraShakeManager.CameraShake();
             if (IsCrit)
             {
@@ -145,18 +212,43 @@ public class ReplayHealthManager : MonoBehaviour
             UpdateHealthUI();
             if (currentHealth <= 0)
             {
-                anim.SetBool("stunned", false);
-                IsPosioned = false;
-                currentHealth = 0;
-                anim.SetTrigger("death");
-                IsDead = true;
-                gameManager.Died(thisUnit.tag);
+                if (thisUnit.tag == "Player" || thisUnit.tag == "EnemyGlad" && standAgain)
+                {
+                    if (!standAgainUsed)
+                    {
+                        currentHealth = 1;
+                        standAgainRound = gameManager.RoundsCount;
+                        standAgainUsed = true;
+                    }
+                    else if (standAgainUsed && standAgainRound + 1 <= gameManager.RoundsCount)
+                    {
+                        anim.SetBool("stunned", false);
+                        IsPosioned = false;
+                        currentHealth = 0;
+                        anim.SetTrigger("death");
+                        IsDead = true;
+                        gameManager.Died(thisUnit.tag);
+                    }
+                    else
+                    {
+                        currentHealth = 1;
+                        standAgainUsed = true;
+                    }
+                }
+                else
+                {
+                    anim.SetBool("stunned", false);
+                    IsPosioned = false;
+                    currentHealth = 0;
+                    anim.SetTrigger("death");
+                    IsDead = true;
+                    gameManager.Died(thisUnit.tag);
+                }
             }
         }
         else if (type == "Venom")
         {
             currentHealth -= damage;
-            CombatTextManager.Instance.SpawnText(damage.ToString(), thisUnit.transform.position + Vector3.up * 1.5f, "#FFFFFF");
             hitParticles.transform.position = thisUnit.transform.position;
             ParticleSystem.MainModule mainModule = hitParticles.main;  // Access the main module
             mainModule.startColor = Color.green;
@@ -164,20 +256,53 @@ public class ReplayHealthManager : MonoBehaviour
             UpdateHealthUI();
             if (currentHealth <= 0)
             {
-                anim.SetBool("stunned", false);
-                IsPosioned = false;
-                currentHealth = 0;
-                anim.SetTrigger("death");
-                IsDead = true;
-                gameManager.Died(thisUnit.tag);
+                if (thisUnit.tag == "Player" || thisUnit.tag == "EnemyGlad" && standAgain)
+                {
+                    if (!standAgainUsed)
+                    {
+                        currentHealth = 1;
+                        standAgainRound = gameManager.RoundsCount;
+                        standAgainUsed = true;
+                    }
+                    else if (standAgainUsed && standAgainRound + 1 <= gameManager.RoundsCount)
+                    {
+                        anim.SetBool("stunned", false);
+                        IsPosioned = false;
+                        currentHealth = 0;
+                        anim.SetTrigger("death");
+                        IsDead = true;
+                        gameManager.Died(thisUnit.tag);
+                    }
+                    else
+                    {
+                        currentHealth = 1;
+                        standAgainUsed = true;
+                    }
+                }
+                else
+                {
+                    anim.SetBool("stunned", false);
+                    IsPosioned = false;
+                    currentHealth = 0;
+                    anim.SetTrigger("death");
+                    IsDead = true;
+                    gameManager.Died(thisUnit.tag);
+                }
             }
+        }
+        else if (type == "Thorns")
+        {
+            if (damage < 1)
+            {
+                damage = 1;
+            }
+            currentHealth -= damage;
         }
     }
 
     public void IncreaseHealth(int health)
     {
         currentHealth += health;
-        CombatTextManager.Instance.SpawnText(health.ToString(), thisUnit.transform.position + Vector3.up * 1.5f, "#00FF00", 1.5f);
         UpdateHealthUI();
         if (currentHealth >= maxHealth)
         {
@@ -185,18 +310,11 @@ public class ReplayHealthManager : MonoBehaviour
         }
     }
 
-    public void ApplyVenom()
+    public void ApplyVenom(GameObject venomdealer)
     {
         startVenomRounds = gameManager.RoundsCount;
+        venomDealer = venomdealer;
         IsPosioned = true;
-        ReplayData.Instance.AddAction(new MatchEventDTO
-        {
-            Turn = gameManager.RoundsCount,
-            Actor = CharacterType.None,
-            Action = "venom", // betyder att aktören applicerade venom
-            Target = GetCharacterType(thisUnit.tag),
-            Value = 0
-        });
 
     }
     public void RemoveVemon()
@@ -210,7 +328,7 @@ public class ReplayHealthManager : MonoBehaviour
             else
             {
                 SkillBattleHandler skillBattleHandler = thisUnit.GetComponent<SkillBattleHandler>();
-                ReduceHealth(skillBattleHandler.VenomousTouch(), "Venom", null, false);
+                ReduceHealth(skillBattleHandler.VenomousTouch(venomDealer, thisUnit), "Venom", null, false);
             }
         }
     }

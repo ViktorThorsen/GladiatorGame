@@ -28,6 +28,8 @@ public class ArenaGameManager : MonoBehaviour
 
     [SerializeField] public Transform[] enemyStartPositions;
     public bool[] rightPositionsAvailable;
+    [SerializeField] private float fixedOffsetFromLeft = 1f;
+    [SerializeField] private float fixedOffsetFromRight = 1f;
     private List<GameObject> enemyPetObjects = new List<GameObject>();
     private List<GameObject> petObjects = new List<GameObject>();
     private GameObject enemyGladiatorObject;
@@ -35,8 +37,8 @@ public class ArenaGameManager : MonoBehaviour
 
     private Vector3 playerInitialScale;
     private Vector3 enemyGladiatorInitialScale;
-    private Vector3 petInitialScale;
-    private Vector3 enemyPetInitialScale;
+    private List<Vector3> petInitialScales = new List<Vector3>();
+    private List<Vector3> enemyPetInitialScales = new List<Vector3>();
 
     ArenaPlayerMovement playerMovement;
     ArenaEnemyPlayerMovement enemyGladMovement;
@@ -147,7 +149,9 @@ public class ArenaGameManager : MonoBehaviour
 
     void Start()
     {
+        AdjustStartPositionsToCameraEdges();
         Destroy(ReplayManager.Instance.gameObject);
+
         ReplayData.Instance.SaveReplaySnapshotCharacters();
         BattleBackground battlebackgroundImage = backgroundImageDataBase.GetBattleBackgroundByName(GetEnemyBackground());
         if (battlebackgroundImage != null)
@@ -195,7 +199,7 @@ public class ArenaGameManager : MonoBehaviour
         {
             for (int i = 0; i < enemyPetObjects.Count; i++)
             {
-                if (enemyPetObjects[i] != null) enemyPetInitialScale = enemyPetObjects[i].transform.localScale;
+                if (enemyPetObjects[i] != null) enemyPetInitialScales.Add(enemyPetObjects[i].transform.localScale);
             }
         }
 
@@ -204,7 +208,7 @@ public class ArenaGameManager : MonoBehaviour
         {
             for (int i = 0; i < petObjects.Count; i++)
             {
-                if (petObjects[i] != null) petInitialScale = petObjects[i].transform.localScale;
+                if (petObjects[i] != null) petInitialScales.Add(petObjects[i].transform.localScale);
             }
         }
         AdjustAllSortingLayersAndScale();
@@ -327,6 +331,7 @@ public class ArenaGameManager : MonoBehaviour
             }
             return null;
         }
+
         StartCoroutine(InitialDelay());
     }
 
@@ -360,9 +365,26 @@ public class ArenaGameManager : MonoBehaviour
         // Wait for 2 seconds
         yield return new WaitForSeconds(0.1f);
         UpdateBattleInventorySlots();
+
+        if (Inventory.Instance.HasSkill("BlessingOfDavid") && CheckStrength())
+        {
+            skillBattleHandler.AddDavidStats();
+        }
+        else if (EnemyInventory.Instance.HasSkill("BlessingOfDavid") && !CheckStrength())
+        {
+            enemyGladSkillBattleHandler.AddDavidStats();
+        }
         yield return new WaitForSeconds(0.9f);
         rollTime = true;
         initialDelayCompleted = true;
+        if (Inventory.Instance.HasSkill("Disarm"))
+        {
+            enemyGladInventoryBattleHandler.DisarmWeaponsBySkill();
+        }
+        if (EnemyInventory.Instance.HasSkill("Disarm"))
+        {
+            inventoryBattleHandler.DisarmWeaponsBySkill();
+        }
 
     }
     private void FixedUpdate()
@@ -413,11 +435,11 @@ public class ArenaGameManager : MonoBehaviour
             {
                 if (Inventory.Instance.HasSkill("LifeBlood"))
                 {
-                    skillBattleHandler.LifeBlood(playerObject);
+                    skillBattleHandler.ArenaLifeBlood(playerObject);
                 }
                 if (EnemyInventory.Instance.HasSkill("LifeBlood"))
                 {
-                    enemyGladSkillBattleHandler.LifeBlood(enemyGladiatorObject);
+                    enemyGladSkillBattleHandler.ArenaLifeBlood(enemyGladiatorObject);
                 }
             }
 
@@ -497,22 +519,26 @@ public class ArenaGameManager : MonoBehaviour
     private Vector3 GetInitialScale(GameObject character)
     {
         if (character == playerObject)
-        {
-            return playerInitialScale; // Använd den ursprungliga skalan för spelaren
-        }
+            return playerInitialScale;
+
         if (character == enemyGladiatorObject)
+            return enemyGladiatorInitialScale;
+
+        if (enemyPetObjects.Contains(character))
         {
-            return enemyGladiatorInitialScale; // Använd den ursprungliga skalan för spelaren
+            int index = enemyPetObjects.IndexOf(character);
+            if (index >= 0 && index < enemyPetInitialScales.Count)
+                return enemyPetInitialScales[index];
         }
-        else if (enemyPetObjects.Contains(character))
+
+        if (petObjects.Contains(character))
         {
-            return enemyPetInitialScale; // Använd den ursprungliga skalan för fiender
+            int index = petObjects.IndexOf(character);
+            if (index >= 0 && index < petInitialScales.Count)
+                return petInitialScales[index];
         }
-        else if (petObjects.Contains(character))
-        {
-            return petInitialScale; // Använd den ursprungliga skalan för husdjur
-        }
-        return Vector3.one; // Standardvärde om något skulle gå fel
+
+        return Vector3.one;
     }
 
     private void AdjustScaleBasedOnPosition(GameObject character, Vector3 initialScale)
@@ -596,6 +622,38 @@ public class ArenaGameManager : MonoBehaviour
                 return "Default"; // Standardlager om indexet överstiger max antal karaktärer
         }
     }
+    private void AdjustStartPositionsToCameraEdges()
+    {
+        float camHeight = 2f * Camera.main.orthographicSize;
+        float camWidth = camHeight * Camera.main.aspect;
+
+        float leftEdge = Camera.main.transform.position.x - camWidth / 2f;
+        float rightEdge = Camera.main.transform.position.x + camWidth / 2f;
+
+        // Justera vänstra positioner (spelare/pets)
+        for (int i = 0; i < playerStartPositions.Length; i++)
+        {
+            Vector3 pos = playerStartPositions[i].position;
+
+            // Ju längre upp i listan (i=0), desto större offset
+            float dynamicOffset = fixedOffsetFromLeft + (playerStartPositions.Length - i) * 0.5f;
+            pos.x = leftEdge + dynamicOffset;
+
+            playerStartPositions[i].position = pos;
+        }
+
+        // Justera högra positioner (fiender)
+        for (int i = 0; i < enemyStartPositions.Length; i++)
+        {
+            Vector3 pos = enemyStartPositions[i].position;
+
+            // Ju längre upp i listan (i=0), desto större offset
+            float dynamicOffset = fixedOffsetFromRight + (enemyStartPositions.Length - i) * 0.5f;
+            pos.x = rightEdge - dynamicOffset;
+
+            enemyStartPositions[i].position = pos;
+        }
+    }
 
     // Method to assign sorting layer to a character
 
@@ -629,15 +687,17 @@ public class ArenaGameManager : MonoBehaviour
         Dictionary<CharacterType, int> rolls = new Dictionary<CharacterType, int>();
 
         // Hantera spelaren och ignorera om denne är stunned
+        ArenaHealthManager playerhealth = playerObject.GetComponent<ArenaHealthManager>();
         ArenaPlayerMovement playerMovement = playerObject.GetComponent<ArenaPlayerMovement>();
-        if (playerMovement != null && !playerMovement.IsStunned)
+        if (playerMovement != null && !playerMovement.IsStunned && !playerhealth.IsDead)
         {
-            rolls.Add(CharacterType.Player, RollNumberPlayer());
+            rolls.Add(CharacterType.Player, RollNumberPlayer() + CharacterData.Instance.initiative);
         }
+        ArenaHealthManager enemygladhealth = enemyGladiatorObject.GetComponent<ArenaHealthManager>();
         ArenaEnemyPlayerMovement enemyGladMovement = enemyGladiatorObject.GetComponent<ArenaEnemyPlayerMovement>();
-        if (enemyGladMovement != null && !enemyGladMovement.IsStunned)
+        if (enemyGladMovement != null && !enemyGladMovement.IsStunned && !enemygladhealth.IsDead)
         {
-            rolls.Add(CharacterType.EnemyGlad, RollNumberPlayer());
+            rolls.Add(CharacterType.EnemyGlad, RollNumberPlayer() + EnemyGladiatorData.Instance.initiative);
         }
 
         // Hantera fiender och ignorera de som är döda eller stunned
@@ -645,9 +705,10 @@ public class ArenaGameManager : MonoBehaviour
         {
             ArenaHealthManager enemyPetHealth = enemyPetObjects[i].GetComponent<ArenaHealthManager>();
             ArenaEnemyPetMovement enemyPetMovement = enemyPetObjects[i].GetComponent<ArenaEnemyPetMovement>();
+            MonsterStats enemyPetStats = enemyPetObjects[i].GetComponent<MonsterStats>();
             if (enemyPetHealth != null && !enemyPetHealth.IsDead && enemyPetMovement != null && !enemyPetMovement.IsStunned)
             {
-                rolls.Add((CharacterType)(3 + i), RollNumberEnemyPet());
+                rolls.Add((CharacterType)(3 + i), RollNumberEnemyPet() + enemyPetStats.Initiative);
             }
         }
 
@@ -656,9 +717,10 @@ public class ArenaGameManager : MonoBehaviour
         {
             ArenaHealthManager petHealth = petObjects[i].GetComponent<ArenaHealthManager>();
             ArenaPetMovement petMovement = petObjects[i].GetComponent<ArenaPetMovement>();
+            MonsterStats petStats = enemyPetObjects[i].GetComponent<MonsterStats>();
             if (petHealth != null && !petHealth.IsDead && petMovement != null && !petMovement.IsStunned)
             {
-                rolls.Add((CharacterType)(6 + i), RollNumberPet());
+                rolls.Add((CharacterType)(6 + i), RollNumberPet() + petStats.Initiative);
             }
         }
 
@@ -706,7 +768,7 @@ public class ArenaGameManager : MonoBehaviour
         }
         else
         {
-            if (Inventory.Instance.HasSkill("Berserk") && !skillBattleHandler.berserkUsed)
+            if (Inventory.Instance.HasSkill("Berserk"))
             {
                 ArenaHealthManager playerHealthManager = playerObject.GetComponent<ArenaHealthManager>();
                 int currentHealth = playerHealthManager.CurrentHealth;
@@ -714,11 +776,12 @@ public class ArenaGameManager : MonoBehaviour
                 {
                     playerMovement.berserkDamage = skillBattleHandler.Berserk(playerObject);
                 }
+                else { playerMovement.berserkDamage = 0; skillBattleHandler.EndBerserk(playerObject); }
             }
 
             int randomNumber = RollNumberPlayer();
 
-            PlayerAction action = DeterminePlayerAction(randomNumber);
+            PlayerAction action = DeterminePlayerAction(randomNumber + CharacterData.Instance.Intellect);
 
             Debug.Log(action);
             switch (action)
@@ -764,7 +827,7 @@ public class ArenaGameManager : MonoBehaviour
         }
         else
         {
-            if (EnemyInventory.Instance.HasSkill("Berserk") && !enemyGladSkillBattleHandler.berserkUsed)
+            if (EnemyInventory.Instance.HasSkill("Berserk"))
             {
                 ArenaHealthManager enemyGladHealthManager = enemyGladiatorObject.GetComponent<ArenaHealthManager>();
                 int currentHealth = enemyGladHealthManager.CurrentHealth;
@@ -772,11 +835,12 @@ public class ArenaGameManager : MonoBehaviour
                 {
                     enemyGladMovement.berserkDamage = enemyGladSkillBattleHandler.Berserk(enemyGladiatorObject);
                 }
+                else { enemyGladMovement.berserkDamage = 0; enemyGladSkillBattleHandler.EndBerserk(enemyGladiatorObject); }
             }
 
             int randomNumber = RollNumberPlayer();
 
-            PlayerAction action = DeterminePlayerAction(randomNumber);
+            PlayerAction action = DetermineEnemyGladAction(randomNumber + EnemyGladiatorData.Instance.Intellect);
 
 
             switch (action)
@@ -817,22 +881,61 @@ public class ArenaGameManager : MonoBehaviour
 
     private PlayerAction DeterminePlayerAction(int roll)
     {
-        if (roll >= 70 && inventoryBattleHandler.GetCombatConsumableInventory().Count > 0)
+        if (roll >= 50)
         {
-            return PlayerAction.UseConsumable;
-        }
-        else if (
-    roll < 70 &&
-    inventoryBattleHandler.GetCombatWeaponInventory().Any(w => w != null) &&
-    !inventoryBattleHandler.IsWeaponEquipped
-)
-        {
-            return PlayerAction.EquipWeapon;
-        }
-        else
-        {
+            int randomNumber = Random.Range(1, 3); // 1 eller 2
+            bool hasConsumable = inventoryBattleHandler.GetCombatConsumableInventory().Count > 0;
+            bool hasWeaponToEquip = inventoryBattleHandler.GetCombatWeaponInventory().Any(w => w != null) &&
+                                    !inventoryBattleHandler.IsWeaponEquipped;
+
+            if (randomNumber == 1)
+            {
+                if (hasConsumable)
+                    return PlayerAction.UseConsumable;
+                else if (hasWeaponToEquip)
+                    return PlayerAction.EquipWeapon;
+            }
+            else if (randomNumber == 2)
+            {
+                if (hasWeaponToEquip)
+                    return PlayerAction.EquipWeapon;
+                else if (hasConsumable)
+                    return PlayerAction.UseConsumable;
+            }
+
             return PlayerAction.Attack;
         }
+
+        return PlayerAction.Attack;
+    }
+    private PlayerAction DetermineEnemyGladAction(int roll)
+    {
+        if (roll >= 50)
+        {
+            int randomNumber = Random.Range(1, 3); // 1 eller 2
+            bool hasConsumable = enemyGladInventoryBattleHandler.GetCombatConsumableInventory().Count > 0;
+            bool hasWeaponToEquip = enemyGladInventoryBattleHandler.GetCombatWeaponInventory().Any(w => w != null) &&
+                                    !enemyGladInventoryBattleHandler.IsWeaponEquipped;
+
+            if (randomNumber == 1)
+            {
+                if (hasConsumable)
+                    return PlayerAction.UseConsumable;
+                else if (hasWeaponToEquip)
+                    return PlayerAction.EquipWeapon;
+            }
+            else if (randomNumber == 2)
+            {
+                if (hasWeaponToEquip)
+                    return PlayerAction.EquipWeapon;
+                else if (hasConsumable)
+                    return PlayerAction.UseConsumable;
+            }
+
+            return PlayerAction.Attack;
+        }
+
+        return PlayerAction.Attack;
     }
 
     private IEnumerator PlayerAttack()
@@ -864,6 +967,15 @@ public class ArenaGameManager : MonoBehaviour
             StartCoroutine(ReplayData.Instance.SendReplayToBackend());
             isGameOver = true;
             inventoryBattleHandler.DestroyWeapon();
+            if (Inventory.Instance.HasSkill("BlessingOfDavid") && CheckStrength())
+            {
+                skillBattleHandler.RemoveDavidStats();
+            }
+            if (EnemyInventory.Instance.HasSkill("BlessingOfDavid") && !CheckStrength())
+            {
+                enemyGladSkillBattleHandler.RemoveDavidStats();
+            }
+
             List<string> listOfNames = new List<string>(); // Skapa en lista för att lagra monster-namnen
 
             // Lägg till namnen på besegrade monster i listan
@@ -895,7 +1007,10 @@ public class ArenaGameManager : MonoBehaviour
 
 
             // Starta fördröjd scenövergång
-            ArenaManager.Instance.Cleanup();
+            if (ArenaManager.Instance != null)
+            {
+                ArenaManager.Instance.Cleanup();
+            }
             StartCoroutine(DelayedSceneLoad());
         }
     }
@@ -1002,6 +1117,22 @@ public class ArenaGameManager : MonoBehaviour
         BackgroundMusicManager.Instance.FadeOutMusic(3f);
         yield return new WaitForSeconds(4f); // Wait for 2 seconds
         sceneController.LoadScene("Base");
+    }
+
+    public bool CheckStrength()
+    {
+        int petcheckstrength = 0;
+        foreach (GameObject pet in petObjects)
+        {
+            petcheckstrength += pet.GetComponent<MonsterStats>().AttackDamage;
+        }
+
+        int checkstrength = 0;
+        foreach (GameObject enemyPet in enemyPetObjects)
+        {
+            checkstrength += enemyPet.GetComponent<MonsterStats>().AttackDamage;
+        }
+        return checkstrength + EnemyGladiatorData.Instance.Strength > CharacterData.Instance.Strength + petcheckstrength;
     }
 }
 

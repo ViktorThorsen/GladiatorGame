@@ -10,6 +10,7 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using UnityEngine.TextCore.Text;
 using UnityEditor.Timeline.Actions;
 using System.Linq;
+using TMPro;
 
 public class GameManager : MonoBehaviour
 {
@@ -32,14 +33,18 @@ public class GameManager : MonoBehaviour
     public bool[] leftPositionsAvailable;
 
     [SerializeField] public Transform[] enemyStartPositions;
+
     public bool[] rightPositionsAvailable;
+
+    [SerializeField] private float fixedOffsetFromLeft = 1f;
+    [SerializeField] private float fixedOffsetFromRight = 1f;
     private List<GameObject> enemyObjects = new List<GameObject>();
     private List<GameObject> petObjects = new List<GameObject>();
     private GameObject playerObject;
 
     private Vector3 playerInitialScale;
     private Vector3 enemyInitialScale;
-    private Vector3 petInitialScale;
+    private List<Vector3> petInitialScales = new List<Vector3>();
 
     PlayerMovement playerMovement;
     InventoryBattleHandler inventoryBattleHandler;
@@ -50,6 +55,11 @@ public class GameManager : MonoBehaviour
     private bool rollTime;
     private bool isGameOver;
     [SerializeField] public GameObject healthSliderPrefab;
+    [SerializeField] public GameObject pethealthSliderPrefab;
+
+    [SerializeField] public TMP_Text NameText;
+    [SerializeField] public TMP_Text EnemyNameText;
+
 
     private int roundsCount;
 
@@ -119,6 +129,7 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
+        AdjustStartPositionsToCameraEdges();
         BattleBackground battlebackgroundImage = backgroundImageDataBase.GetBattleBackgroundByName(MonsterHuntManager.Instance.sceneState);
         if (battlebackgroundImage != null)
         {
@@ -168,7 +179,7 @@ public class GameManager : MonoBehaviour
         {
             for (int i = 0; i < petObjects.Count; i++)
             {
-                if (petObjects[i] != null) petInitialScale = petObjects[i].transform.localScale;
+                if (petObjects[i] != null) petInitialScales.Add(petObjects[i].transform.localScale);
             }
         }
         AdjustAllSortingLayersAndScale();
@@ -184,7 +195,7 @@ public class GameManager : MonoBehaviour
                     characterPrefab,
                     parentObj,
                     spawnPosition,
-                    new Vector3(0.5f, 0.5f, 1f) // Set the desired scale
+                    new Vector3(0.5f, 0.5f, 2f) // Set the desired scale
                 );
                 characterObject.tag = "Player";
                 characterObject.AddComponent<HealthManager>();
@@ -197,6 +208,7 @@ public class GameManager : MonoBehaviour
                 // Mark this position as occupied
                 leftPositionsAvailable[randomIndex] = false;
                 playerMovement.positionIndex = randomIndex;
+                NameText.text = CharacterData.Instance.CharName;
                 return characterObject; // Return the instantiated player object
             }
             return null;
@@ -257,6 +269,7 @@ public class GameManager : MonoBehaviour
                 rightPositionsAvailable[randomIndex] = false;
                 EnemyMovement enemyMov = monsterObject.GetComponent<EnemyMovement>();
                 enemyMov.positionIndex = randomIndex;
+                EnemyNameText.text = stats.MonsterName;
                 return monsterObject; // Return the instantiated enemy object
             }
             return null;
@@ -294,6 +307,11 @@ public class GameManager : MonoBehaviour
         // Wait for 2 seconds
         yield return new WaitForSeconds(0.1f);
         UpdateBattleInventorySlots();
+        if (Inventory.Instance.HasSkill("BlessingOfDavid") && CheckStrength())
+        {
+            skillBattleHandler.AddDavidStats();
+        }
+
         yield return new WaitForSeconds(0.9f);
         rollTime = true;
         initialDelayCompleted = true;
@@ -416,18 +434,19 @@ public class GameManager : MonoBehaviour
     private Vector3 GetInitialScale(GameObject character)
     {
         if (character == playerObject)
-        {
-            return playerInitialScale; // Använd den ursprungliga skalan för spelaren
-        }
+            return playerInitialScale;
+
         else if (enemyObjects.Contains(character))
-        {
-            return enemyInitialScale; // Använd den ursprungliga skalan för fiender
-        }
+            return enemyInitialScale;
+
         else if (petObjects.Contains(character))
         {
-            return petInitialScale; // Använd den ursprungliga skalan för husdjur
+            int index = petObjects.IndexOf(character);
+            if (index >= 0 && index < petInitialScales.Count)
+                return petInitialScales[index];
         }
-        return Vector3.one; // Standardvärde om något skulle gå fel
+
+        return Vector3.one;
     }
 
     private void AdjustScaleBasedOnPosition(GameObject character, Vector3 initialScale)
@@ -511,6 +530,38 @@ public class GameManager : MonoBehaviour
                 return "Default"; // Standardlager om indexet överstiger max antal karaktärer
         }
     }
+    private void AdjustStartPositionsToCameraEdges()
+    {
+        float camHeight = 2f * Camera.main.orthographicSize;
+        float camWidth = camHeight * Camera.main.aspect;
+
+        float leftEdge = Camera.main.transform.position.x - camWidth / 2f;
+        float rightEdge = Camera.main.transform.position.x + camWidth / 2f;
+
+        // Justera vänstra positioner (spelare/pets)
+        for (int i = 0; i < playerStartPositions.Length; i++)
+        {
+            Vector3 pos = playerStartPositions[i].position;
+
+            // Ju längre upp i listan (i=0), desto större offset
+            float dynamicOffset = fixedOffsetFromLeft + (playerStartPositions.Length - i) * 0.5f;
+            pos.x = leftEdge + dynamicOffset;
+
+            playerStartPositions[i].position = pos;
+        }
+
+        // Justera högra positioner (fiender)
+        for (int i = 0; i < enemyStartPositions.Length; i++)
+        {
+            Vector3 pos = enemyStartPositions[i].position;
+
+            // Ju längre upp i listan (i=0), desto större offset
+            float dynamicOffset = fixedOffsetFromRight + (enemyStartPositions.Length - i) * 0.5f;
+            pos.x = rightEdge - dynamicOffset;
+
+            enemyStartPositions[i].position = pos;
+        }
+    }
 
     // Method to assign sorting layer to a character
 
@@ -538,10 +589,11 @@ public class GameManager : MonoBehaviour
         Dictionary<CharacterType, int> rolls = new Dictionary<CharacterType, int>();
 
         // Hantera spelaren och ignorera om denne är stunned
+        HealthManager playerhealth = playerObject.GetComponent<HealthManager>();
         PlayerMovement playerMovement = playerObject.GetComponent<PlayerMovement>();
-        if (playerMovement != null && !playerMovement.IsStunned)
+        if (playerMovement != null && !playerMovement.IsStunned && !playerhealth.IsDead)
         {
-            rolls.Add(CharacterType.Player, RollNumberPlayer());
+            rolls.Add(CharacterType.Player, RollNumberPlayer() + CharacterData.Instance.initiative);
         }
 
         // Hantera fiender och ignorera de som är döda eller stunned
@@ -549,9 +601,10 @@ public class GameManager : MonoBehaviour
         {
             HealthManager enemyHealth = enemyObjects[i].GetComponent<HealthManager>();
             EnemyMovement enemyMovement = enemyObjects[i].GetComponent<EnemyMovement>();
+            MonsterStats enemyStats = enemyObjects[i].GetComponent<MonsterStats>();
             if (enemyHealth != null && !enemyHealth.IsDead && enemyMovement != null && !enemyMovement.IsStunned)
             {
-                rolls.Add((CharacterType)(2 + i), RollNumberEnemy());
+                rolls.Add((CharacterType)(2 + i), RollNumberEnemy() + enemyStats.Initiative);
             }
         }
 
@@ -560,9 +613,10 @@ public class GameManager : MonoBehaviour
         {
             HealthManager petHealth = petObjects[i].GetComponent<HealthManager>();
             PetMovement petMovement = petObjects[i].GetComponent<PetMovement>();
+            MonsterStats petStats = petObjects[i].GetComponent<MonsterStats>();
             if (petHealth != null && !petHealth.IsDead && petMovement != null && !petMovement.IsStunned)
             {
-                rolls.Add((CharacterType)(6 + i), RollNumberPet());
+                rolls.Add((CharacterType)(6 + i), RollNumberPet() + petStats.Initiative);
             }
         }
 
@@ -609,7 +663,7 @@ public class GameManager : MonoBehaviour
         }
         else
         {
-            if (Inventory.Instance.HasSkill("Berserk") && !skillBattleHandler.berserkUsed)
+            if (Inventory.Instance.HasSkill("Berserk"))
             {
                 HealthManager playerHealthManager = playerObject.GetComponent<HealthManager>();
                 int currentHealth = playerHealthManager.CurrentHealth;
@@ -617,11 +671,13 @@ public class GameManager : MonoBehaviour
                 {
                     playerMovement.berserkDamage = skillBattleHandler.Berserk(playerObject);
                 }
+                else { playerMovement.berserkDamage = 0; skillBattleHandler.EndBerserk(playerObject); }
             }
 
             int randomNumber = RollNumberPlayer();
 
-            PlayerAction action = DeterminePlayerAction(randomNumber);
+            PlayerAction action = DeterminePlayerAction(randomNumber + CharacterData.Instance.Intellect);
+            Debug.Log(randomNumber + CharacterData.Instance.Intellect);
 
 
             switch (action)
@@ -662,17 +718,30 @@ public class GameManager : MonoBehaviour
 
     private PlayerAction DeterminePlayerAction(int roll)
     {
-        if (roll >= 70 && inventoryBattleHandler.GetCombatConsumableInventory().Count > 0)
+        if (roll >= 50)
         {
-            return PlayerAction.UseConsumable;
-        }
-        else if (
-    roll < 70 &&
-    inventoryBattleHandler.GetCombatWeaponInventory().Any(w => w != null) &&
-    !inventoryBattleHandler.IsWeaponEquipped
-)
-        {
-            return PlayerAction.EquipWeapon;
+            int randomNumber = Random.Range(1, 3); // 1 eller 2
+            bool hasConsumable = inventoryBattleHandler.GetCombatConsumableInventory().Count > 0;
+            bool hasWeaponToEquip = inventoryBattleHandler.GetCombatWeaponInventory().Any(w => w != null) &&
+                                    !inventoryBattleHandler.IsWeaponEquipped;
+
+            if (randomNumber == 1)
+            {
+                if (hasConsumable)
+                    return PlayerAction.UseConsumable;
+                else if (hasWeaponToEquip)
+                    return PlayerAction.EquipWeapon;
+            }
+            else if (randomNumber == 2)
+            {
+                if (hasWeaponToEquip)
+                    return PlayerAction.EquipWeapon;
+                else if (hasConsumable)
+                    return PlayerAction.UseConsumable;
+            }
+
+            // Om inget kan göras, så blir det attack
+            return PlayerAction.Attack;
         }
         else
         {
@@ -694,6 +763,11 @@ public class GameManager : MonoBehaviour
         {
             isGameOver = true;
             inventoryBattleHandler.DestroyWeapon();
+            if (Inventory.Instance.HasSkill("BlessingOfDavid") && CheckStrength())
+            {
+                skillBattleHandler.RemoveDavidStats();
+            }
+
             List<string> listOfNames = new List<string>(); // Skapa en lista för att lagra monster-namnen
 
             // Lägg till namnen på besegrade monster i listan
@@ -780,6 +854,22 @@ public class GameManager : MonoBehaviour
         BackgroundMusicManager.Instance.FadeOutMusic(3f);
         yield return new WaitForSeconds(3f); // Wait for 2 seconds
         sceneController.LoadScene("RewardScene");
+    }
+
+    public bool CheckStrength()
+    {
+        int petcheckstrength = 0;
+        foreach (GameObject pet in petObjects)
+        {
+            petcheckstrength += pet.GetComponent<MonsterStats>().AttackDamage;
+        }
+
+        int checkstrength = 0;
+        foreach (GameObject enemy in enemyObjects)
+        {
+            checkstrength += enemy.GetComponent<MonsterStats>().AttackDamage;
+        }
+        return checkstrength > CharacterData.Instance.Strength + petcheckstrength;
     }
 }
 

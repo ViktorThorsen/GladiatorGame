@@ -51,15 +51,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   monsterName: Lynx
   health: 200
-  attackDamage: 10
+  attackDamage: 13
   lifeSteal: 3
-  dodgeRate: 20
+  dodgeRate: 25
   critRate: 0
   stunRate: 0
+  hitRate: 0
+  defense: 0
   initiative: 0
+  combo: 0
   scale: {x: 0.4, y: 0.4, z: 1}
-  xpReward: 150
-  itemreward: 0
+  xpReward: 200
+  coinReward: 5
+  icon: {fileID: 21300000, guid: 33951506904236d44b903bd9c66b6ad2, type: 3}
 --- !u!1 &229577967789648983
 GameObject:
   m_ObjectHideFlags: 0

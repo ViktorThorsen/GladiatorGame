@@ -17,6 +17,7 @@ public class ArenaPetMovement : MonoBehaviour
     private ArenaHealthManager enemyHealthManager;
     private ArenaEnemyPetMovement enemyPetMovement;
     private ArenaEnemyPlayerMovement enemyGladMovement;
+    private Transform visualTransform;
     private MonsterStats enemyStats;
     private MonsterStats monsterStats;
     private bool isMoving;
@@ -55,8 +56,14 @@ public class ArenaPetMovement : MonoBehaviour
             availableEnemies.Add(enemy);
         }
         petFeet = pet.transform.Find("Feet");
-        anim = GetComponent<Animator>();
-        petSpeed = 30;
+        visualTransform = transform.Find("Visual");
+        if (visualTransform == null)
+        {
+            visualTransform = transform; // fallback för vanliga sprites
+        }
+
+        anim = visualTransform.GetComponent<Animator>();
+        petSpeed = 40;
         petHealthManager = pet.GetComponent<ArenaHealthManager>();
         monsterStats = pet.GetComponent<MonsterStats>();
 
@@ -125,10 +132,6 @@ public class ArenaPetMovement : MonoBehaviour
         // Always trigger the first hit animation and movement
         anim.SetTrigger("hit");
         MovePetToRight(0.5f);
-        if (monsterStats.LifeSteal > 0)
-        {
-            petHealthManager.IncreaseHealth(monsterStats.LifeSteal);
-        }
         // Check if the enemy dodges the first hit
         if (EnemyDodges())
         {
@@ -140,10 +143,17 @@ public class ArenaPetMovement : MonoBehaviour
                 Turn = gameManager.RoundsCount,
                 Actor = GetCharacterType(enemy.tag), //Den som dodgar
                 Action = "dodge",
-                Target = CharacterType.EnemyGlad,
+                Target = GetCharacterType(pet.tag),
                 Value = 0
             });
-            MoveBackToRandomStart(); // Stop combo and move back to start
+            if (petHealthManager.CurrentHealth > 0) { MoveBackToRandomStart(); }
+            else
+            {
+                anim.SetBool("run", false);
+                moveCoroutine = null;
+                IsMoving = false;
+                gameManager.RollTime = true;
+            } // Stop combo and move back to start
             yield break; // End the coroutine here
         }
         else
@@ -156,7 +166,7 @@ public class ArenaPetMovement : MonoBehaviour
 
                     bool enemyStunned = CalculateStun();
                     if (enemyStunned) { enemyGladMovement.Stun(); }
-                    int damage = CalculateRandomDamage(monsterStats.AttackDamage);
+                    int damage = CalculateRandomDamage(monsterStats.AttackDamage, enemy);
                     bool isCrit = false;
                     int randomValue = Random.Range(0, 100);
                     if (randomValue < monsterStats.CritRate)
@@ -164,7 +174,8 @@ public class ArenaPetMovement : MonoBehaviour
                         isCrit = true;
                         damage = damage * 2;
                     }
-                    enemyHealthManager.ReduceHealth(monsterStats.AttackDamage, "Normal", pet, isCrit);
+                    enemyHealthManager.ReduceHealth(damage, "Normal", pet, isCrit);
+                    CalcLifesteal(damage);
                 }
 
 
@@ -175,7 +186,7 @@ public class ArenaPetMovement : MonoBehaviour
 
                     bool playerStunned = CalculateStun();
                     if (playerStunned) { enemyPetMovement.Stun(); }
-                    int damage = CalculateRandomDamage(monsterStats.AttackDamage);
+                    int damage = CalculateRandomDamage(monsterStats.AttackDamage, enemy);
                     bool isCrit = false;
                     int randomValue = Random.Range(0, 100);
                     if (randomValue < monsterStats.CritRate)
@@ -183,7 +194,8 @@ public class ArenaPetMovement : MonoBehaviour
                         isCrit = true;
                         damage = damage * 2;
                     }
-                    enemyHealthManager.ReduceHealth(monsterStats.AttackDamage, "Normal", pet, isCrit);
+                    enemyHealthManager.ReduceHealth(damage, "Normal", pet, isCrit);
+                    CalcLifesteal(damage);
                 }
             }
 
@@ -191,16 +203,13 @@ public class ArenaPetMovement : MonoBehaviour
 
         yield return new WaitForSeconds(0.5f);
 
-        int randomNumber = Random.Range(0, 100);
-        if (randomNumber > 50)
+        int randomNumber = Random.Range(0, 100) + monsterStats.combo;
+        if (petHealthManager.CurrentHealth <= 0) { randomNumber = 0; }
+        if (randomNumber > 60)
         {
             // Always trigger the second hit animation and movement
             anim.SetTrigger("hit1");
             MovePetToRight(0.5f);
-            if (monsterStats.LifeSteal > 0)
-            {
-                petHealthManager.IncreaseHealth(monsterStats.LifeSteal);
-            }
             // Check if the enemy dodges the second hit
             if (EnemyDodges())
             {
@@ -215,7 +224,14 @@ public class ArenaPetMovement : MonoBehaviour
                     Target = GetCharacterType(pet.tag),
                     Value = 0
                 });
-                MoveBackToRandomStart(); // Stop combo and move back to start
+                if (petHealthManager.CurrentHealth > 0) { MoveBackToRandomStart(); }
+                else
+                {
+                    anim.SetBool("run", false);
+                    moveCoroutine = null;
+                    IsMoving = false;
+                    gameManager.RollTime = true;
+                } // Stop combo and move back to start
                 yield break; // End the coroutine here
             }
             else
@@ -225,7 +241,7 @@ public class ArenaPetMovement : MonoBehaviour
                     enemyGladMovement.MovePlayerToRight(0.5f);
                     bool enemyStunned = CalculateStun();
                     if (enemyStunned) { enemyGladMovement.Stun(); }
-                    int damage = CalculateRandomDamage(monsterStats.AttackDamage);
+                    int damage = CalculateRandomDamage(monsterStats.AttackDamage, enemy);
                     bool isCrit = false;
                     int randomValue = Random.Range(0, 100);
                     if (randomValue < monsterStats.CritRate)
@@ -233,7 +249,8 @@ public class ArenaPetMovement : MonoBehaviour
                         isCrit = true;
                         damage = damage * 2;
                     }
-                    enemyHealthManager.ReduceHealth(monsterStats.AttackDamage, "Normal", pet, isCrit);
+                    enemyHealthManager.ReduceHealth(damage, "Normal", pet, isCrit);
+                    CalcLifesteal(damage);
                 }
 
 
@@ -242,7 +259,7 @@ public class ArenaPetMovement : MonoBehaviour
                     enemyPetMovement.MovePetToRight(0.5f);
                     bool playerStunned = CalculateStun();
                     if (playerStunned) { enemyPetMovement.Stun(); }
-                    int damage = CalculateRandomDamage(monsterStats.AttackDamage);
+                    int damage = CalculateRandomDamage(monsterStats.AttackDamage, enemy);
                     bool isCrit = false;
                     int randomValue = Random.Range(0, 100);
                     if (randomValue < monsterStats.CritRate)
@@ -250,21 +267,19 @@ public class ArenaPetMovement : MonoBehaviour
                         isCrit = true;
                         damage = damage * 2;
                     }
-                    enemyHealthManager.ReduceHealth(monsterStats.AttackDamage, "Normal", pet, isCrit);
+                    enemyHealthManager.ReduceHealth(damage, "Normal", pet, isCrit);
+                    CalcLifesteal(damage);
                 }
             }
 
             yield return new WaitForSeconds(0.5f);
-            int randomNumber1 = Random.Range(0, 100);
-            if (randomNumber1 > 50)
+            int randomNumber1 = Random.Range(0, 100) + monsterStats.combo;
+            if (petHealthManager.CurrentHealth <= 0) { randomNumber1 = 0; }
+            if (randomNumber1 > 60)
             {
                 // Always trigger the third hit animation and movement
                 anim.SetTrigger("hit2");
                 MovePetToRight(0.5f);
-                if (monsterStats.LifeSteal > 0)
-                {
-                    petHealthManager.IncreaseHealth(monsterStats.LifeSteal);
-                }
                 // Check if the enemy dodges the third hit
                 if (EnemyDodges())
                 {
@@ -279,7 +294,14 @@ public class ArenaPetMovement : MonoBehaviour
                         Target = GetCharacterType(pet.tag),
                         Value = 0
                     });
-                    MoveBackToRandomStart(); // Stop combo and move back to start
+                    if (petHealthManager.CurrentHealth > 0) { MoveBackToRandomStart(); }
+                    else
+                    {
+                        anim.SetBool("run", false);
+                        moveCoroutine = null;
+                        IsMoving = false;
+                        gameManager.RollTime = true;
+                    } // Stop combo and move back to start
                     yield break; // End the coroutine here
                 }
                 else
@@ -289,7 +311,7 @@ public class ArenaPetMovement : MonoBehaviour
                         enemyGladMovement.MovePlayerToRight(0.5f);
                         bool enemyStunned = CalculateStun();
                         if (enemyStunned) { enemyGladMovement.Stun(); }
-                        int damage = CalculateRandomDamage(monsterStats.AttackDamage);
+                        int damage = CalculateRandomDamage(monsterStats.AttackDamage, enemy);
                         bool isCrit = false;
                         int randomValue = Random.Range(0, 100);
                         if (randomValue < monsterStats.CritRate)
@@ -297,7 +319,8 @@ public class ArenaPetMovement : MonoBehaviour
                             isCrit = true;
                             damage = damage * 2;
                         }
-                        enemyHealthManager.ReduceHealth(monsterStats.AttackDamage, "Normal", pet, isCrit);
+                        enemyHealthManager.ReduceHealth(damage, "Normal", pet, isCrit);
+                        CalcLifesteal(damage);
                     }
 
 
@@ -306,7 +329,7 @@ public class ArenaPetMovement : MonoBehaviour
                         enemyPetMovement.MovePetToRight(0.5f);
                         bool playerStunned = CalculateStun();
                         if (playerStunned) { enemyPetMovement.Stun(); }
-                        int damage = CalculateRandomDamage(monsterStats.AttackDamage);
+                        int damage = CalculateRandomDamage(monsterStats.AttackDamage, enemy);
                         bool isCrit = false;
                         int randomValue = Random.Range(0, 100);
                         if (randomValue < monsterStats.CritRate)
@@ -314,21 +337,19 @@ public class ArenaPetMovement : MonoBehaviour
                             isCrit = true;
                             damage = damage * 2;
                         }
-                        enemyHealthManager.ReduceHealth(monsterStats.AttackDamage, "Normal", pet, isCrit);
+                        enemyHealthManager.ReduceHealth(damage, "Normal", pet, isCrit);
+                        CalcLifesteal(damage);
                     }
                 }
 
                 yield return new WaitForSeconds(0.5f);
-                int randomNumber2 = Random.Range(0, 100);
-                if (randomNumber2 > 50)
+                int randomNumber2 = Random.Range(0, 100) + monsterStats.combo;
+                if (petHealthManager.CurrentHealth <= 0) { randomNumber2 = 0; }
+                if (randomNumber2 > 60)
                 {
                     // Always trigger the fourth hit animation and movement
                     anim.SetTrigger("hit3");
                     MovePetToRight(0.5f);
-                    if (monsterStats.LifeSteal > 0)
-                    {
-                        petHealthManager.IncreaseHealth(monsterStats.LifeSteal);
-                    }
                     // Check if the enemy dodges the fourth hit
                     if (EnemyDodges())
                     {
@@ -343,7 +364,14 @@ public class ArenaPetMovement : MonoBehaviour
                             Target = GetCharacterType(pet.tag),
                             Value = 0
                         });
-                        MoveBackToRandomStart(); // Stop combo and move back to start
+                        if (petHealthManager.CurrentHealth > 0) { MoveBackToRandomStart(); }
+                        else
+                        {
+                            anim.SetBool("run", false);
+                            moveCoroutine = null;
+                            IsMoving = false;
+                            gameManager.RollTime = true;
+                        } // Stop combo and move back to start
                         yield break; // End the coroutine here
                     }
                     else
@@ -353,7 +381,7 @@ public class ArenaPetMovement : MonoBehaviour
                             enemyGladMovement.MovePlayerToRight(0.5f);
                             bool enemyStunned = CalculateStun();
                             if (enemyStunned) { enemyGladMovement.Stun(); }
-                            int damage = CalculateRandomDamage(monsterStats.AttackDamage);
+                            int damage = CalculateRandomDamage(monsterStats.AttackDamage, enemy);
                             bool isCrit = false;
                             int randomValue = Random.Range(0, 100);
                             if (randomValue < monsterStats.CritRate)
@@ -361,7 +389,8 @@ public class ArenaPetMovement : MonoBehaviour
                                 isCrit = true;
                                 damage = damage * 2;
                             }
-                            enemyHealthManager.ReduceHealth(monsterStats.AttackDamage, "Normal", pet, isCrit);
+                            enemyHealthManager.ReduceHealth(damage, "Normal", pet, isCrit);
+                            CalcLifesteal(damage);
                         }
 
 
@@ -370,7 +399,7 @@ public class ArenaPetMovement : MonoBehaviour
                             enemyPetMovement.MovePetToRight(0.5f);
                             bool playerStunned = CalculateStun();
                             if (playerStunned) { enemyPetMovement.Stun(); }
-                            int damage = CalculateRandomDamage(monsterStats.AttackDamage);
+                            int damage = CalculateRandomDamage(monsterStats.AttackDamage, enemy);
                             bool isCrit = false;
                             int randomValue = Random.Range(0, 100);
                             if (randomValue < monsterStats.CritRate)
@@ -378,7 +407,8 @@ public class ArenaPetMovement : MonoBehaviour
                                 isCrit = true;
                                 damage = damage * 2;
                             }
-                            enemyHealthManager.ReduceHealth(monsterStats.AttackDamage, "Normal", pet, isCrit);
+                            enemyHealthManager.ReduceHealth(damage, "Normal", pet, isCrit);
+                            CalcLifesteal(damage);
                         }
                     }
 
@@ -386,7 +416,7 @@ public class ArenaPetMovement : MonoBehaviour
                     anim.SetTrigger("stophit");
                     yield return new WaitForSeconds(0.05f);
                     int randomNumberCounter = Random.Range(0, 100);
-                    if (randomNumberCounter > 50 && enemy.tag == "EnemyGlad" && Inventory.Instance.HasSkill("CounterStrike") && !gameManager.IsGameOver)
+                    if (randomNumberCounter > 50 && enemy.tag == "EnemyGlad" && Inventory.Instance.HasSkill("CounterStrike") && !gameManager.IsGameOver && !enemyGladMovement.IsStunned)
                     {
                         SkillBattleHandler playerSkills = enemy.GetComponent<SkillBattleHandler>();
 
@@ -406,9 +436,14 @@ public class ArenaPetMovement : MonoBehaviour
                             }
                         });
                     }
+                    else if (petHealthManager.CurrentHealth > 0)
+                    { MoveBackToRandomStart(); }
                     else
                     {
-                        MoveBackToRandomStart();
+                        anim.SetBool("run", false);
+                        moveCoroutine = null;
+                        IsMoving = false;
+                        gameManager.RollTime = true;
                     }
                 }
                 else
@@ -416,7 +451,7 @@ public class ArenaPetMovement : MonoBehaviour
                     anim.SetTrigger("stophit");
                     yield return new WaitForSeconds(0.05f);
                     int randomNumberCounter = Random.Range(0, 100);
-                    if (randomNumberCounter > 50 && enemy.tag == "EnemyGlad" && Inventory.Instance.HasSkill("CounterStrike") && !gameManager.IsGameOver)
+                    if (randomNumberCounter > 50 && enemy.tag == "EnemyGlad" && Inventory.Instance.HasSkill("CounterStrike") && !gameManager.IsGameOver && !enemyGladMovement.IsStunned)
                     {
                         SkillBattleHandler playerSkills = enemy.GetComponent<SkillBattleHandler>();
 
@@ -436,9 +471,14 @@ public class ArenaPetMovement : MonoBehaviour
                             }
                         });
                     }
+                    else if (petHealthManager.CurrentHealth > 0)
+                    { MoveBackToRandomStart(); }
                     else
                     {
-                        MoveBackToRandomStart();
+                        anim.SetBool("run", false);
+                        moveCoroutine = null;
+                        IsMoving = false;
+                        gameManager.RollTime = true;
                     }
                 }
             }
@@ -447,7 +487,7 @@ public class ArenaPetMovement : MonoBehaviour
                 anim.SetTrigger("stophit");
                 yield return new WaitForSeconds(0.05f);
                 int randomNumberCounter = Random.Range(0, 100);
-                if (randomNumberCounter > 50 && enemy.tag == "EnemyGlad" && Inventory.Instance.HasSkill("CounterStrike") && !gameManager.IsGameOver)
+                if (randomNumberCounter > 50 && enemy.tag == "EnemyGlad" && Inventory.Instance.HasSkill("CounterStrike") && !gameManager.IsGameOver && !enemyGladMovement.IsStunned)
                 {
                     SkillBattleHandler playerSkills = enemy.GetComponent<SkillBattleHandler>();
 
@@ -467,9 +507,14 @@ public class ArenaPetMovement : MonoBehaviour
                         }
                     });
                 }
+                else if (petHealthManager.CurrentHealth > 0)
+                { MoveBackToRandomStart(); }
                 else
                 {
-                    MoveBackToRandomStart();
+                    anim.SetBool("run", false);
+                    moveCoroutine = null;
+                    IsMoving = false;
+                    gameManager.RollTime = true;
                 }
             }
         }
@@ -478,7 +523,7 @@ public class ArenaPetMovement : MonoBehaviour
             anim.SetTrigger("stophit");
             yield return new WaitForSeconds(0.05f);
             int randomNumberCounter = Random.Range(0, 100);
-            if (randomNumberCounter > 50 && enemy.tag == "EnemyGlad" && Inventory.Instance.HasSkill("CounterStrike") && !gameManager.IsGameOver)
+            if (randomNumberCounter > 50 && enemy.tag == "EnemyGlad" && Inventory.Instance.HasSkill("CounterStrike") && !gameManager.IsGameOver && !enemyGladMovement.IsStunned)
             {
                 SkillBattleHandler playerSkills = enemy.GetComponent<SkillBattleHandler>();
 
@@ -498,9 +543,14 @@ public class ArenaPetMovement : MonoBehaviour
                     }
                 });
             }
+            else if (petHealthManager.CurrentHealth > 0)
+            { MoveBackToRandomStart(); }
             else
             {
-                MoveBackToRandomStart();
+                anim.SetBool("run", false);
+                moveCoroutine = null;
+                IsMoving = false;
+                gameManager.RollTime = true;
             }
         }
     }
@@ -553,9 +603,40 @@ public class ArenaPetMovement : MonoBehaviour
 
     private bool EnemyDodges()
     {
-        int dodgeChance = monsterStats.DodgeRate;
-        int randomValue = Random.Range(0, 100);
-        return randomValue < dodgeChance;
+        ArenaHealthManager arenaHealthManager = enemy.GetComponent<ArenaHealthManager>();
+        if (!arenaHealthManager.IsDead)
+        {
+            if (enemy.tag == "EnemyGlad")
+            {
+                if (enemyGladMovement.IsStunned)
+                {
+                    return false;
+                }
+                else
+                {
+                    int dodgeChance = EnemyGladiatorData.Instance.DodgeRate; // Assume dodge chance is 30%
+                    int randomValue = Random.Range(0, 100);
+                    dodgeChance = dodgeChance - monsterStats.hitRate;
+                    return randomValue < dodgeChance;
+                }
+            }
+            else
+            {
+                if (enemyPetMovement.IsStunned)
+                {
+                    return false;
+                }
+                else
+                {
+                    MonsterStats enemyPetstats = enemy.GetComponent<MonsterStats>();
+                    int dodgeChance = enemyPetstats.DodgeRate; // Assume dodge chance is 30%
+                    int randomValue = Random.Range(0, 100);
+                    dodgeChance = dodgeChance - monsterStats.hitRate;
+                    return randomValue < dodgeChance;
+                }
+            }
+        }
+        else return false;
     }
 
     public void MovePetToRight(float distance)
@@ -583,7 +664,6 @@ public class ArenaPetMovement : MonoBehaviour
     }
     public void Stun()
     {
-        CombatTextManager.Instance.SpawnText("Stunned", pet.transform.position + Vector3.up * 1.5f, "#FFFFFF");
         isStunned = true;
         anim.SetBool("stunned", true);
         ReplayData.Instance.AddAction(new MatchEventDTO
@@ -604,6 +684,23 @@ public class ArenaPetMovement : MonoBehaviour
             anim.SetBool("stunned", false);
         }
     }
+    private void CalcLifesteal(int damage)
+    {
+        int baseLifeSteal = monsterStats.LifeSteal;
+
+        if (baseLifeSteal > 0)
+        {
+            float lifeStealMultiplier = baseLifeSteal / 100f;
+
+            int vampBonus = Mathf.RoundToInt(damage * lifeStealMultiplier);
+            if (vampBonus < 1)
+            {
+                vampBonus = 1;
+            }
+
+            petHealthManager.IncreaseHealth(vampBonus);
+        }
+    }
 
     private bool CalculateStun()
     {
@@ -615,17 +712,40 @@ public class ArenaPetMovement : MonoBehaviour
         else { return false; }
     }
 
-    private int CalculateRandomDamage(int baseDamage)
+    private int CalculateRandomDamage(int baseDamage, GameObject enemy)
     {
+        if (enemy.tag == "EnemyGlad")
+        {
+            // Calculate a random damage between baseDamage - 2 and baseDamage + 2
+            int minDamage = Mathf.RoundToInt(baseDamage * 0.9f);
+            int maxDamage = Mathf.RoundToInt(baseDamage * 1.1f);
 
-        // Calculate a random damage between baseDamage - 2 and baseDamage + 2
-        int minDamage = baseDamage - 2;
-        int maxDamage = baseDamage + 2;
+            // Ensure the minimum damage is at least 1
+            if (minDamage < 1) { minDamage = 1; }
+            int randomDmg = Random.Range(minDamage, maxDamage + 1);
+            randomDmg = randomDmg - EnemyGladiatorData.Instance.Defense;
+            if (randomDmg < 1)
+            {
+                randomDmg = 1;
+            }
+            return randomDmg; // Random.Range is inclusive for integers
+        }
+        else
+        {
+            monsterStats = enemy.GetComponent<MonsterStats>();
+            int minDamage = Mathf.RoundToInt(baseDamage * 0.9f);
+            int maxDamage = Mathf.RoundToInt(baseDamage * 1.1f);
 
-        // Ensure the minimum damage is at least 1
-        if (minDamage < 1) { minDamage = 1; }
-        int randomDmg = Random.Range(minDamage, maxDamage + 1);
-        return randomDmg; // Random.Range is inclusive for integers
+            // Ensure the minimum damage is at least 1
+            if (minDamage < 1) { minDamage = 1; }
+            int randomDmg = Random.Range(minDamage, maxDamage + 1);
+            randomDmg = randomDmg - monsterStats.defense;
+            if (randomDmg < 1)
+            {
+                randomDmg = 1;
+            }
+            return randomDmg; // Random.Range is inclusive for integers
+        }
     }
 
     public void MoveBackToRandomStart()
@@ -683,24 +803,30 @@ public class ArenaPetMovement : MonoBehaviour
         float screenTopY = Camera.main.ViewportToWorldPoint(new Vector3(0, 1, Camera.main.nearClipPlane)).y;
         float screenCenterY = (screenBottomY + screenTopY) / 2;
 
-        // Determine dodge direction: dodge up if below center, down if above
-        float dodgeDistance = 1f; // Customize dodge distance
-        float dodgeDirection = transform.position.y < screenCenterY ? 1f : -1f; // Dodge up if below center, down if above
+        float dodgeDistance = 1f;
+        float dodgeDirection = transform.position.y < screenCenterY ? 1f : -1f;
 
-        // Calculate the dodge target position based on direction and distance
-        Vector2 dodgePosition = new Vector2(transform.position.x, transform.position.y + dodgeDirection * dodgeDistance);
+        // ✅ Sätt dodgePosition med korrekt Z-värde
+        Vector3 dodgePosition = new Vector3(transform.position.x, transform.position.y + dodgeDirection * dodgeDistance, transform.position.z);
 
-        // Move the pet to the dodge position over time
-        StartCoroutine(DodgeMove(dodgePosition, dodgeDirection));
+        StartCoroutine(DodgeMove(dodgePosition));
     }
 
-    IEnumerator DodgeMove(Vector3 targetPosition, float dodgeDirection)
+    IEnumerator DodgeMove(Vector3 targetPosition)
     {
-        // Instantly set the pet's position to the dodge target position
-        CombatTextManager.Instance.SpawnText("Dodge", pet.transform.position + Vector3.up * 1.5f, "#FFFFFF");
-        transform.position = targetPosition;
 
-        yield return null; // Yield to ensure any other logic can complete if necessary
+        float duration = 0.15f; // hur snabbt dodgen ska gå
+        float elapsed = 0f;
+        Vector3 startPosition = transform.position;
+
+        while (elapsed < duration)
+        {
+            transform.position = Vector3.Lerp(startPosition, targetPosition, elapsed / duration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        transform.position = targetPosition; // säkerställ exakt slutposition
     }
 
     private CharacterType GetCharacterType(string tag)

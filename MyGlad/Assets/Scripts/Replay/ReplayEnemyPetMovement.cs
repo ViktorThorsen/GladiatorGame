@@ -18,6 +18,7 @@ public class ReplayEnemyPetMovement : MonoBehaviour
     private ReplayHealthManager enemyHealthManager;
     private ReplayPetMovement enemyPetMovement;
     private ReplayPlayerMovement enemyPlayerMovement;
+    private Transform visualTransform;
     private MonsterStats enemyStats;
     private MonsterStats monsterStats;
     private bool isMoving;
@@ -56,8 +57,14 @@ public class ReplayEnemyPetMovement : MonoBehaviour
             availableEnemies.Add(enemy);
         }
         petFeet = pet.transform.Find("Feet");
-        anim = GetComponent<Animator>();
-        petSpeed = 30;
+        visualTransform = transform.Find("Visual");
+        if (visualTransform == null)
+        {
+            visualTransform = transform; // fallback för vanliga sprites
+        }
+
+        anim = visualTransform.GetComponent<Animator>();
+        petSpeed = 40;
         petHealthManager = pet.GetComponent<ReplayHealthManager>();
         monsterStats = pet.GetComponent<MonsterStats>();
 
@@ -117,10 +124,6 @@ public class ReplayEnemyPetMovement : MonoBehaviour
         // Always trigger the first hit animation and movement
         anim.SetTrigger("hit");
         MovePetToLeft(0.5f);
-        if (monsterStats.LifeSteal > 0)
-        {
-            petHealthManager.IncreaseHealth(monsterStats.LifeSteal);
-        }
         // Check if the enemy dodges the first hit
         if (EnemyDodges(0))
         {
@@ -148,10 +151,11 @@ public class ReplayEnemyPetMovement : MonoBehaviour
                     int damage = attack.Value;
 
                     // Stun efter attack
-                    bool enemyStunned = CalculateStun(1);
-                    if (enemyStunned) { enemyPlayerMovement.Stun(); }
+                    bool enemyStunned = CalculateStun(0);
+                    if (enemyStunned && !Inventory.Instance.HasSkill("IronWill")) { enemyPlayerMovement.Stun(); }
 
                     enemyHealthManager.ReduceHealth(damage, "Normal", pet, isCrit);
+                    CalcLifesteal(damage);
                 }
 
 
@@ -170,10 +174,11 @@ public class ReplayEnemyPetMovement : MonoBehaviour
                     int damage = attack.Value;
 
                     // Stun efter attack
-                    bool enemyStunned = CalculateStun(1);
+                    bool enemyStunned = CalculateStun(0);
                     if (enemyStunned) { enemyPetMovement.Stun(); }
 
                     enemyHealthManager.ReduceHealth(damage, "Normal", pet, isCrit);
+                    CalcLifesteal(damage);
                 }
             }
 
@@ -187,10 +192,6 @@ public class ReplayEnemyPetMovement : MonoBehaviour
             // Always trigger the second hit animation and movement
             anim.SetTrigger("hit1");
             MovePetToLeft(0.5f);
-            if (monsterStats.LifeSteal > 0)
-            {
-                petHealthManager.IncreaseHealth(monsterStats.LifeSteal);
-            }
             // Check if the enemy dodges the second hit
             if (EnemyDodges(1))
             {
@@ -216,10 +217,11 @@ public class ReplayEnemyPetMovement : MonoBehaviour
                     int damage = attack.Value;
 
                     // Stun efter attack
-                    bool enemyStunned = CalculateStun(2);
+                    bool enemyStunned = CalculateStun(1);
                     if (enemyStunned) { enemyPlayerMovement.Stun(); }
 
                     enemyHealthManager.ReduceHealth(damage, "Normal", pet, isCrit);
+                    CalcLifesteal(damage);
 
                 }
 
@@ -238,10 +240,11 @@ public class ReplayEnemyPetMovement : MonoBehaviour
                     int damage = attack.Value;
 
                     // Stun efter attack
-                    bool enemyStunned = CalculateStun(2);
+                    bool enemyStunned = CalculateStun(1);
                     if (enemyStunned) { enemyPetMovement.Stun(); }
 
                     enemyHealthManager.ReduceHealth(damage, "Normal", pet, isCrit);
+                    CalcLifesteal(damage);
                 }
 
             }
@@ -253,10 +256,6 @@ public class ReplayEnemyPetMovement : MonoBehaviour
                 // Always trigger the third hit animation and movement
                 anim.SetTrigger("hit2");
                 MovePetToLeft(0.5f);
-                if (monsterStats.LifeSteal > 0)
-                {
-                    petHealthManager.IncreaseHealth(monsterStats.LifeSteal);
-                }
                 // Check if the enemy dodges the third hit
                 if (EnemyDodges(2))
                 {
@@ -282,10 +281,11 @@ public class ReplayEnemyPetMovement : MonoBehaviour
                         int damage = attack.Value;
 
                         // Stun efter attack
-                        bool enemyStunned = CalculateStun(3);
+                        bool enemyStunned = CalculateStun(2);
                         if (enemyStunned) { enemyPlayerMovement.Stun(); }
 
                         enemyHealthManager.ReduceHealth(damage, "Normal", pet, isCrit);
+                        CalcLifesteal(damage);
 
                     }
 
@@ -304,10 +304,11 @@ public class ReplayEnemyPetMovement : MonoBehaviour
                         int damage = attack.Value;
 
                         // Stun efter attack
-                        bool enemyStunned = CalculateStun(3);
+                        bool enemyStunned = CalculateStun(2);
                         if (enemyStunned) { enemyPetMovement.Stun(); }
 
                         enemyHealthManager.ReduceHealth(damage, "Normal", pet, isCrit);
+                        CalcLifesteal(damage);
 
                     }
 
@@ -320,10 +321,6 @@ public class ReplayEnemyPetMovement : MonoBehaviour
                     // Always trigger the fourth hit animation and movement
                     anim.SetTrigger("hit3");
                     MovePetToLeft(0.5f);
-                    if (monsterStats.LifeSteal > 0)
-                    {
-                        petHealthManager.IncreaseHealth(monsterStats.LifeSteal);
-                    }
                     // Check if the enemy dodges the fourth hit
                     if (EnemyDodges(3))
                     {
@@ -349,10 +346,11 @@ public class ReplayEnemyPetMovement : MonoBehaviour
                             int damage = attack.Value;
 
                             // Stun efter attack
-                            bool enemyStunned = CalculateStun(4);
+                            bool enemyStunned = CalculateStun(3);
                             if (enemyStunned) { enemyPlayerMovement.Stun(); }
 
                             enemyHealthManager.ReduceHealth(damage, "Normal", pet, isCrit);
+                            CalcLifesteal(damage);
 
                         }
 
@@ -371,11 +369,11 @@ public class ReplayEnemyPetMovement : MonoBehaviour
                             int damage = attack.Value;
 
                             // Stun efter attack
-                            bool enemyStunned = CalculateStun(4);
+                            bool enemyStunned = CalculateStun(3);
                             if (enemyStunned) { enemyPetMovement.Stun(); }
 
                             enemyHealthManager.ReduceHealth(damage, "Normal", pet, isCrit);
-
+                            CalcLifesteal(damage);
                         }
                     }
 
@@ -510,17 +508,30 @@ public class ReplayEnemyPetMovement : MonoBehaviour
         var petAttack = actionsThisTurn
             .FirstOrDefault(a => a.Actor == GetCharacterType(pet.tag) && a.Action == "attack" || a.Action == "crit");
 
-        if (petAttack == null)
+        CharacterType targetType;
+
+        if (petAttack != null)
         {
-            Debug.LogWarning("❌ Kunde inte hitta attack från pet denna rundan.");
-            return false;
+            targetType = petAttack.Target;
+        }
+        else
+        {
+            // Om ingen attack eller crit hittas, leta efter dodge där Player är target
+            var dodge = actionsThisTurn
+                .FirstOrDefault(a => a.Target == GetCharacterType(pet.tag) && a.Action == "dodge");
+
+            if (dodge == null)
+            {
+                Debug.LogWarning("❌ Kunde inte hitta varken attack eller dodge där Player var involverad.");
+                return false;
+            }
+
+            // Dodge.actor = den som dodgar → den spelaren försökte attackera
+            targetType = dodge.Actor;
         }
 
-        CharacterType targetType = petAttack.Target;
-
         GameObject selectedEnemy = availableEnemies.FirstOrDefault(e =>
-            e.CompareTag(targetType.ToString())
-        );
+        e.CompareTag(targetType.ToString()));
 
         if (selectedEnemy == null)
         {
@@ -549,12 +560,8 @@ public class ReplayEnemyPetMovement : MonoBehaviour
         var replay = ReplayManager.Instance.selectedReplay;
         int currentTurn = gameManager.RoundsCount;
 
-        // Hämta aktörens typ – t.ex. Player
-        var actor = CharacterType.Player;
-
         var actionsThisTurn = replay.actions
             .Where(a => a.Turn == currentTurn &&
-                        a.Actor == actor &&
                         (a.Action == "attack" || a.Action == "crit" || a.Action == "dodge"))
             .ToList();
 
@@ -611,32 +618,56 @@ public class ReplayEnemyPetMovement : MonoBehaviour
             anim.SetBool("stunned", false);
         }
     }
+    private void CalcLifesteal(int damage)
+    {
+        int baseLifeSteal = monsterStats.LifeSteal;
+
+        if (baseLifeSteal > 0)
+        {
+            float lifeStealMultiplier = baseLifeSteal / 100f;
+
+            int vampBonus = Mathf.RoundToInt(damage * lifeStealMultiplier);
+            if (vampBonus < 1)
+            {
+                vampBonus = 1;
+            }
+
+            petHealthManager.IncreaseHealth(vampBonus);
+        }
+    }
 
     private bool CalculateStun(int attackIndex)
     {
         var replay = ReplayManager.Instance.selectedReplay;
         int currentTurn = ReplayGameManager.Instance.RoundsCount;
 
-        // Hämta alla actions i nuvarande runda för rätt aktör (t.ex. Player eller Pet1)
+        // Alla actions i ordning för denna turn
         var actionsThisTurn = replay.actions
             .Where(a => a.Turn == currentTurn)
             .ToList();
 
-        // Filtrera fram endast attack eller crit för att hitta "slagets position"
-        var attackActions = actionsThisTurn
-            .Where(a => a.Action == "attack" || a.Action == "crit")
+        // Hämta attacker från rätt attackerare
+        var attackerActions = actionsThisTurn
+            .Where(a => (a.Action == "attack" || a.Action == "crit") && a.Actor == GetCharacterType(pet.tag))
             .ToList();
 
-        if (attackIndex >= attackActions.Count)
-            return false; // Finns inte så många attacker denna runda
+        if (attackIndex >= attackerActions.Count)
+            return false;
 
-        var attack = attackActions[attackIndex]; // t.ex. andra slaget (index 1)
-        int attackActionIndex = actionsThisTurn.IndexOf(attack);
+        var targetAttack = attackerActions[attackIndex];
+        int targetIndex = actionsThisTurn.IndexOf(targetAttack);
 
-        // Kolla om föregående action är en stun
-        if (attackActionIndex > 0 && actionsThisTurn[attackActionIndex - 1].Action == "stun")
+        // Leta upp stunnen precis före denna attack
+        if (targetIndex > 0)
         {
-            return true;
+            var previous = actionsThisTurn[targetIndex - 1];
+
+            // Stun måste ske precis före attacken, och Actor i stun = den som blir stunnad
+            if (previous.Action == "stunned")
+            {
+                // Bekräfta att stun hör till denna attack
+                return true;
+            }
         }
 
         return false;
@@ -685,9 +716,9 @@ public class ReplayEnemyPetMovement : MonoBehaviour
         while (Vector2.Distance(transform.position, targetPosition) > tolerance)
         {
             // Ensure the pet is always facing left (flip if necessary) during the movement
-            if (transform.position.x > targetPosition.x)
+            if (transform.position.x < targetPosition.x)
             {
-                transform.localScale = new Vector3(Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
+                transform.localScale = new Vector3(-Mathf.Abs(transform.localScale.x), transform.localScale.y, transform.localScale.z);
             }
 
             anim.SetBool("run", true);
@@ -765,20 +796,24 @@ public class ReplayEnemyPetMovement : MonoBehaviour
     }
     private bool IsCounterAttackThisTurn()
     {
-        var replay = ReplayManager.Instance.selectedReplay;
-        int currentTurn = ReplayGameManager.Instance.RoundsCount;
+        if (GetCharacterType(enemy.tag) == CharacterType.Player)
+        {
+            var replay = ReplayManager.Instance.selectedReplay;
+            int currentTurn = ReplayGameManager.Instance.RoundsCount;
 
-        var actionsThisTurn = replay.actions
-            .Where(a => a.Turn == currentTurn)
-            .ToList();
+            var actionsThisTurn = replay.actions
+                .Where(a => a.Turn == currentTurn)
+                .ToList();
 
-        if (actionsThisTurn.Count < 2)
-            return false;
+            if (actionsThisTurn.Count < 2)
+                return false;
 
-        var firstActor = actionsThisTurn.First().Actor;
-        var lastAction = actionsThisTurn.Last();
+            var firstActor = actionsThisTurn.First().Actor;
+            var lastAction = actionsThisTurn.Last();
 
-        // Counterattack sker om sista actionen är en attack av någon annan än den som började rundan
-        return lastAction.Action == "attack" && lastAction.Actor != firstActor;
+            // Counterattack sker om sista actionen är en attack av någon annan än den som började rundan
+            return lastAction.Action == "attack" && lastAction.Actor != firstActor;
+        }
+        else return false;
     }
 }

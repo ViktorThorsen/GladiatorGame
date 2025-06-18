@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6478961335050794fbd1bd02aedb4313, type: 3}
+  m_Name: ItemGlaive
+  m_EditorClassIdentifier: 
+  itemName: Glaive
+  itemIcon: {fileID: 21300000, guid: c3a4b6e25b7f60b409172bb196f9b4a2, type: 3}
+  itemSprite: {fileID: 21300000, guid: c3a4b6e25b7f60b409172bb196f9b4a2, type: 3}
+  equippedPositionOffset: {x: 1.21, y: 1.3, z: 0}
+  equippedRotation: {x: 0, y: 0, z: 101.90521}
+  equippedScale: {x: 0.524828, y: 0.524828, z: 0.024078928}
+  description: When wielded properly, it sweeps through enemies like a blade through
+    tall grass. When wielded poorly, it still hurts a lot.
+  itemType: 0
+  abilityType: 0
+  abilityType1: 0
+  durability: 5
+  healthRestorationAmount: 0
+  strength: 15
+  agility: 0
+  intellect: 0
+  health: 0
+  hit: 0
+  defense: 0
+  stunRate: 0
+  lifesteal: 0
+  initiative: 0
+  combo: 0

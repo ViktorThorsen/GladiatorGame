@@ -70,7 +70,7 @@ public class ReplayPlayerMovement : MonoBehaviour
         player = gameObject;
         playerFeet = player.transform.Find("Feet");
         anim = GetComponent<Animator>();
-        playerSpeed = 30;
+        playerSpeed = 40;
         playerInventoryBattleHandler = player.GetComponent<ReplayInventoryBattleHandler>();
         skillBattleHandler = player.GetComponent<SkillBattleHandler>();
         playerHealthManager = player.GetComponent<ReplayHealthManager>();
@@ -143,10 +143,6 @@ public class ReplayPlayerMovement : MonoBehaviour
         anim.SetTrigger("hit");
         MovePlayerToRight(0.5f);
 
-        if (ReplayCharacterData.Instance.LifeSteal > 0)
-        {
-            enemyHealthManager.IncreaseHealth(ReplayCharacterData.Instance.LifeSteal);
-        }
         // Check if the enemy dodges the first hit
         if (EnemyDodges(0))
         {
@@ -165,11 +161,11 @@ public class ReplayPlayerMovement : MonoBehaviour
                     enemyGladMovement.MovePlayerToRight(0.5f);
                     if (!gameManager.IsGameOver)
                     {
-                        bool enemyStunned = CalculateStun(1);
+                        bool enemyStunned = CalculateStun(0);
                         if (enemyStunned) { enemyGladMovement.Stun(); }
-                        if (ReplayManager.Instance.selectedReplay.player.skills.skillNames.Contains("VenomousTouch"))
+                        if (ReplayManager.Instance.selectedReplay.player.skills.skills?.Any(s => s.skillName == "VenomousTouch") == true && ReplayManager.Instance.selectedReplay.enemy.skills.skills?.Any(s => s.skillName == "CleanseBorn") == true)
                         {
-                            ApplyVenom();
+                            ApplyVenom(player);
                         }
 
                         // Hitta första attacken eller crit från detta pet
@@ -182,6 +178,11 @@ public class ReplayPlayerMovement : MonoBehaviour
                         bool isCrit = attack.Action == "crit";
                         int damage = attack.Value;
                         enemyHealthManager.ReduceHealth(damage, "Normal", player, isCrit);
+                        CalcLifesteal(damage);
+                        if (ReplayManager.Instance.selectedReplay.player.skills.skills?.Any(s => s.skillName == "Cleave") == true)
+                        {
+                            skillBattleHandler.ReplayCleaveDamage(GetAllAliveEnemies(), enemy, damage, player);
+                        }
                         RollForDestroyWeapon(1);
                     }
                 }
@@ -189,11 +190,11 @@ public class ReplayPlayerMovement : MonoBehaviour
                 {
                     enemyPetMovement.MovePetToRight(0.5f);
 
-                    bool enemyStunned = CalculateStun(1);
+                    bool enemyStunned = CalculateStun(0);
                     if (enemyStunned) { enemyPetMovement.Stun(); }
-                    if (ReplayManager.Instance.selectedReplay.player.skills.skillNames.Contains("VenomousTouch"))
+                    if (ReplayManager.Instance.selectedReplay.player.skills.skills?.Any(s => s.skillName == "VenomousTouch") == true)
                     {
-                        ApplyVenom();
+                        ApplyVenom(player);
                     }
                     // Hitta första attacken eller crit från detta pet
                     var attack = GetNthAttackThisTurn(GetCharacterType(player.tag), 1); // eller Pet2/Pet3 beroende på vilket pet
@@ -205,6 +206,11 @@ public class ReplayPlayerMovement : MonoBehaviour
                     bool isCrit = attack.Action == "crit";
                     int damage = attack.Value;
                     enemyHealthManager.ReduceHealth(damage, "Normal", player, isCrit);
+                    CalcLifesteal(damage);
+                    if (ReplayManager.Instance.selectedReplay.player.skills.skills?.Any(s => s.skillName == "Cleave") == true)
+                    {
+                        skillBattleHandler.ReplayCleaveDamage(GetAllAliveEnemies(), enemy, damage, player);
+                    }
                     RollForDestroyWeapon(1);
                 }
             }
@@ -219,10 +225,6 @@ public class ReplayPlayerMovement : MonoBehaviour
             // Always trigger the second hit animation and movement
             anim.SetTrigger("hit1");
             MovePlayerToRight(0.5f);
-            if (ReplayCharacterData.Instance.LifeSteal > 0)
-            {
-                enemyHealthManager.IncreaseHealth(CharacterData.Instance.LifeSteal);
-            }
             // Check if the enemy dodges the second hit
             if (EnemyDodges(1))
             {
@@ -239,12 +241,8 @@ public class ReplayPlayerMovement : MonoBehaviour
                 {
                     enemyGladMovement.MovePlayerToRight(0.5f);
 
-                    bool enemyStunned = CalculateStun(2);
+                    bool enemyStunned = CalculateStun(1);
                     if (enemyStunned) { enemyGladMovement.Stun(); }
-                    if (ReplayManager.Instance.selectedReplay.player.skills.skillNames.Contains("VenomousTouch"))
-                    {
-                        ApplyVenom();
-                    }
                     var attack = GetNthAttackThisTurn(GetCharacterType(player.tag), 2); // eller Pet2/Pet3 beroende på vilket pet
                     if (attack == null)
                     {
@@ -254,6 +252,11 @@ public class ReplayPlayerMovement : MonoBehaviour
                     bool isCrit = attack.Action == "crit";
                     int damage = attack.Value;
                     enemyHealthManager.ReduceHealth(damage, "Normal", player, isCrit);
+                    CalcLifesteal(damage);
+                    if (ReplayManager.Instance.selectedReplay.player.skills.skills?.Any(s => s.skillName == "Cleave") == true)
+                    {
+                        skillBattleHandler.ReplayCleaveDamage(GetAllAliveEnemies(), enemy, damage, player);
+                    }
                     RollForDestroyWeapon(2);
 
                 }
@@ -261,12 +264,8 @@ public class ReplayPlayerMovement : MonoBehaviour
                 {
                     enemyPetMovement.MovePetToRight(0.5f);
 
-                    bool enemyStunned = CalculateStun(2);
+                    bool enemyStunned = CalculateStun(1);
                     if (enemyStunned) { enemyPetMovement.Stun(); }
-                    if (ReplayManager.Instance.selectedReplay.player.skills.skillNames.Contains("VenomousTouch"))
-                    {
-                        ApplyVenom();
-                    }
                     var attack = GetNthAttackThisTurn(GetCharacterType(player.tag), 2); // eller Pet2/Pet3 beroende på vilket pet
                     if (attack == null)
                     {
@@ -276,6 +275,11 @@ public class ReplayPlayerMovement : MonoBehaviour
                     bool isCrit = attack.Action == "crit";
                     int damage = attack.Value;
                     enemyHealthManager.ReduceHealth(damage, "Normal", player, isCrit);
+                    CalcLifesteal(damage);
+                    if (ReplayManager.Instance.selectedReplay.player.skills.skills?.Any(s => s.skillName == "Cleave") == true)
+                    {
+                        skillBattleHandler.ReplayCleaveDamage(GetAllAliveEnemies(), enemy, damage, player);
+                    }
                     RollForDestroyWeapon(2);
 
 
@@ -289,10 +293,7 @@ public class ReplayPlayerMovement : MonoBehaviour
                 // Always trigger the third hit animation and movement
                 anim.SetTrigger("hook");
                 MovePlayerToRight(0.5f);
-                if (ReplayCharacterData.Instance.LifeSteal > 0)
-                {
-                    enemyHealthManager.IncreaseHealth(CharacterData.Instance.LifeSteal);
-                }
+
                 // Check if the enemy dodges the third hit
                 if (EnemyDodges(2))
                 {
@@ -308,12 +309,9 @@ public class ReplayPlayerMovement : MonoBehaviour
                     {
                         enemyGladMovement.MovePlayerToRight(0.5f);
 
-                        bool enemyStunned = CalculateStun(3);
+                        bool enemyStunned = CalculateStun(2);
                         if (enemyStunned) { enemyGladMovement.Stun(); }
-                        if (ReplayManager.Instance.selectedReplay.player.skills.skillNames.Contains("VenomousTouch"))
-                        {
-                            ApplyVenom();
-                        }
+
                         var attack = GetNthAttackThisTurn(GetCharacterType(player.tag), 3); // eller Pet2/Pet3 beroende på vilket pet
                         if (attack == null)
                         {
@@ -323,6 +321,11 @@ public class ReplayPlayerMovement : MonoBehaviour
                         bool isCrit = attack.Action == "crit";
                         int damage = attack.Value;
                         enemyHealthManager.ReduceHealth(damage, "Normal", player, isCrit);
+                        CalcLifesteal(damage);
+                        if (ReplayManager.Instance.selectedReplay.player.skills.skills?.Any(s => s.skillName == "Cleave") == true)
+                        {
+                            skillBattleHandler.ReplayCleaveDamage(GetAllAliveEnemies(), enemy, damage, player);
+                        }
                         RollForDestroyWeapon(3);
 
                     }
@@ -330,12 +333,9 @@ public class ReplayPlayerMovement : MonoBehaviour
                     {
                         enemyPetMovement.MovePetToRight(0.5f);
 
-                        bool enemyStunned = CalculateStun(3);
+                        bool enemyStunned = CalculateStun(2);
                         if (enemyStunned) { enemyPetMovement.Stun(); }
-                        if (ReplayManager.Instance.selectedReplay.player.skills.skillNames.Contains("VenomousTouch"))
-                        {
-                            ApplyVenom();
-                        }
+
                         var attack = GetNthAttackThisTurn(GetCharacterType(player.tag), 3); // eller Pet2/Pet3 beroende på vilket pet
                         if (attack == null)
                         {
@@ -345,6 +345,11 @@ public class ReplayPlayerMovement : MonoBehaviour
                         bool isCrit = attack.Action == "crit";
                         int damage = attack.Value;
                         enemyHealthManager.ReduceHealth(damage, "Normal", player, isCrit);
+                        CalcLifesteal(damage);
+                        if (ReplayManager.Instance.selectedReplay.player.skills.skills?.Any(s => s.skillName == "Cleave") == true)
+                        {
+                            skillBattleHandler.ReplayCleaveDamage(GetAllAliveEnemies(), enemy, damage, player);
+                        }
                         RollForDestroyWeapon(3);
 
                     }
@@ -358,10 +363,7 @@ public class ReplayPlayerMovement : MonoBehaviour
                     // Always trigger the fourth hit animation and movement
                     anim.SetTrigger("uppercut");
                     MovePlayerToRight(0.5f);
-                    if (ReplayCharacterData.Instance.LifeSteal > 0)
-                    {
-                        enemyHealthManager.IncreaseHealth(CharacterData.Instance.LifeSteal);
-                    }
+
                     // Check if the enemy dodges the fourth hit
                     if (EnemyDodges(3))
                     {
@@ -378,12 +380,8 @@ public class ReplayPlayerMovement : MonoBehaviour
                         {
                             enemyGladMovement.MovePlayerToRight(0.5f);
 
-                            bool enemyStunned = CalculateStun(4);
+                            bool enemyStunned = CalculateStun(3);
                             if (enemyStunned) { enemyGladMovement.Stun(); }
-                            if (ReplayManager.Instance.selectedReplay.player.skills.skillNames.Contains("VenomousTouch"))
-                            {
-                                ApplyVenom();
-                            }
                             var attack = GetNthAttackThisTurn(GetCharacterType(player.tag), 4); // eller Pet2/Pet3 beroende på vilket pet
                             if (attack == null)
                             {
@@ -393,6 +391,11 @@ public class ReplayPlayerMovement : MonoBehaviour
                             bool isCrit = attack.Action == "crit";
                             int damage = attack.Value;
                             enemyHealthManager.ReduceHealth(damage, "Normal", player, isCrit);
+                            CalcLifesteal(damage);
+                            if (ReplayManager.Instance.selectedReplay.player.skills.skills?.Any(s => s.skillName == "Cleave") == true)
+                            {
+                                skillBattleHandler.ReplayCleaveDamage(GetAllAliveEnemies(), enemy, damage, player);
+                            }
                             RollForDestroyWeapon(4);
 
                         }
@@ -400,12 +403,8 @@ public class ReplayPlayerMovement : MonoBehaviour
                         {
                             enemyPetMovement.MovePetToRight(0.5f);
 
-                            bool enemyStunned = CalculateStun(4);
+                            bool enemyStunned = CalculateStun(3);
                             if (enemyStunned) { enemyPetMovement.Stun(); }
-                            if (ReplayManager.Instance.selectedReplay.player.skills.skillNames.Contains("VenomousTouch"))
-                            {
-                                ApplyVenom();
-                            }
                             var attack = GetNthAttackThisTurn(GetCharacterType(player.tag), 4); // eller Pet2/Pet3 beroende på vilket pet
                             if (attack == null)
                             {
@@ -415,6 +414,11 @@ public class ReplayPlayerMovement : MonoBehaviour
                             bool isCrit = attack.Action == "crit";
                             int damage = attack.Value;
                             enemyHealthManager.ReduceHealth(damage, "Normal", player, isCrit);
+                            CalcLifesteal(damage);
+                            if (ReplayManager.Instance.selectedReplay.player.skills.skills?.Any(s => s.skillName == "Cleave") == true)
+                            {
+                                skillBattleHandler.ReplayCleaveDamage(GetAllAliveEnemies(), enemy, damage, player);
+                            }
                             RollForDestroyWeapon(4);
 
 
@@ -554,18 +558,30 @@ public class ReplayPlayerMovement : MonoBehaviour
         var playerAttack = actionsThisTurn
             .FirstOrDefault(a => a.Actor == CharacterType.Player && a.Action == "attack" || a.Action == "crit");
 
-        if (playerAttack == null)
+        CharacterType targetType;
+
+        if (playerAttack != null)
         {
-            Debug.LogWarning("❌ Kunde inte hitta attack från Player denna rundan.");
-            return false;
+            targetType = playerAttack.Target;
+        }
+        else
+        {
+            // Om ingen attack eller crit hittas, leta efter dodge där Player är target
+            var dodge = actionsThisTurn
+                .FirstOrDefault(a => a.Target == CharacterType.Player && a.Action == "dodge");
+
+            if (dodge == null)
+            {
+                Debug.LogWarning("❌ Kunde inte hitta varken attack eller dodge där Player var involverad.");
+                return false;
+            }
+
+            // Dodge.actor = den som dodgar → den spelaren försökte attackera
+            targetType = dodge.Actor;
         }
 
-        CharacterType targetType = playerAttack.Target;
-
-        // Hitta fienden i listan baserat på targetType
         GameObject selectedEnemy = availableEnemies.FirstOrDefault(e =>
-            e.CompareTag(playerAttack.Target.ToString())
-        );
+        e.CompareTag(targetType.ToString()));
 
         if (selectedEnemy == null)
         {
@@ -595,12 +611,8 @@ public class ReplayPlayerMovement : MonoBehaviour
         var replay = ReplayManager.Instance.selectedReplay;
         int currentTurn = gameManager.RoundsCount;
 
-        // Hämta aktörens typ – t.ex. Player
-        var actor = CharacterType.Player;
-
         var actionsThisTurn = replay.actions
             .Where(a => a.Turn == currentTurn &&
-                        a.Actor == actor &&
                         (a.Action == "attack" || a.Action == "crit" || a.Action == "dodge"))
             .ToList();
 
@@ -653,14 +665,6 @@ public class ReplayPlayerMovement : MonoBehaviour
         isStunned = true;
         anim.SetBool("stunned", true);
         StunnedAtRound = gameManager.RoundsCount;
-        ReplayData.Instance.AddAction(new MatchEventDTO
-        {
-            Turn = gameManager.RoundsCount,
-            Actor = CharacterType.Player,
-            Action = "stunned",
-            Target = CharacterType.None,
-            Value = 0
-        });
     }
     public void RemoveStun()
     {
@@ -670,40 +674,91 @@ public class ReplayPlayerMovement : MonoBehaviour
             anim.SetBool("stunned", false);
         }
     }
+    private void CalcLifesteal(int damage)
+    {
+        int baseLifeSteal = ReplayCharacterData.Instance.LifeSteal;
+
+        if (baseLifeSteal > 0)
+        {
+            float lifeStealMultiplier = baseLifeSteal / 100f;
+
+            var vampyreSkillInstance = ReplayManager.Instance.selectedReplay.player.skills.skills
+                ?.FirstOrDefault(s => s.skillName == "Vampyre");
+
+            if (vampyreSkillInstance != null)
+            {
+                var vampyreData = SkillDataBase.Instance.GetSkillByName("Vampyre");
+                if (vampyreData != null)
+                {
+                    int bonusPercent = 0;
+
+                    switch (vampyreSkillInstance.level)
+                    {
+                        case 1:
+                            bonusPercent = vampyreData.effectPercentIncreaseLevel1;
+                            break;
+                        case 2:
+                            bonusPercent = vampyreData.effectPercentIncreaseLevel2;
+                            break;
+                        case 3:
+                            bonusPercent = vampyreData.effectPercentIncreaseLevel3;
+                            break;
+                    }
+
+                    lifeStealMultiplier += bonusPercent / 100f;
+                }
+            }
+
+            int vampBonus = Mathf.RoundToInt(damage * lifeStealMultiplier);
+            if (vampBonus < 1)
+            {
+                vampBonus = 1;
+            }
+
+            playerHealthManager.IncreaseHealth(vampBonus);
+        }
+    }
 
     private bool CalculateStun(int attackIndex)
     {
         var replay = ReplayManager.Instance.selectedReplay;
         int currentTurn = ReplayGameManager.Instance.RoundsCount;
 
-        // Hämta alla actions i nuvarande runda för rätt aktör (t.ex. Player eller Pet1)
+        // Alla actions i ordning för denna turn
         var actionsThisTurn = replay.actions
             .Where(a => a.Turn == currentTurn)
             .ToList();
 
-        // Filtrera fram endast attack eller crit för att hitta "slagets position"
-        var attackActions = actionsThisTurn
-            .Where(a => a.Action == "attack" || a.Action == "crit")
+        // Hämta attacker från rätt attackerare
+        var attackerActions = actionsThisTurn
+            .Where(a => (a.Action == "attack" || a.Action == "crit") && a.Actor == CharacterType.Player)
             .ToList();
 
-        if (attackIndex >= attackActions.Count)
-            return false; // Finns inte så många attacker denna runda
+        if (attackIndex >= attackerActions.Count)
+            return false;
 
-        var attack = attackActions[attackIndex]; // t.ex. andra slaget (index 1)
-        int attackActionIndex = actionsThisTurn.IndexOf(attack);
+        var targetAttack = attackerActions[attackIndex];
+        int targetIndex = actionsThisTurn.IndexOf(targetAttack);
 
-        // Kolla om föregående action är en stun
-        if (attackActionIndex > 0 && actionsThisTurn[attackActionIndex - 1].Action == "stun")
+        // Leta upp stunnen precis före denna attack
+        if (targetIndex > 0)
         {
-            return true;
+            var previous = actionsThisTurn[targetIndex - 1];
+
+            // Stun måste ske precis före attacken, och Actor i stun = den som blir stunnad
+            if (previous.Action == "stunned")
+            {
+                // Bekräfta att stun hör till denna attack
+                return true;
+            }
         }
 
         return false;
     }
 
-    private void ApplyVenom()
+    private void ApplyVenom(GameObject dealer)
     {
-        enemyHealthManager.ApplyVenom();
+        enemyHealthManager.ApplyVenom(dealer);
     }
 
     public int CalculateRandomDamage(int baseDamage)
@@ -738,7 +793,7 @@ public class ReplayPlayerMovement : MonoBehaviour
                 positionIndex = randomPositionIndex;
                 valid = false;
                 targetEnemySet = false;
-                if (berserkDamage > 0)
+                if (playerHealthManager.CurrentHealth > playerHealthManager.maxHealth / 3)
                 {
                     berserkDamage = 0;
                     skillBattleHandler.EndBerserk(player);
@@ -853,6 +908,20 @@ public class ReplayPlayerMovement : MonoBehaviour
             _ => CharacterType.None
         };
     }
+    private List<GameObject> GetAllAliveEnemies()
+    {
+        List<GameObject> aliveEnemies = new List<GameObject>();
+
+        foreach (GameObject enemy in availableEnemies)
+        {
+            ReplayHealthManager HM = enemy.GetComponent<ReplayHealthManager>();
+            if (!HM.IsDead)
+            {
+                aliveEnemies.Add(enemy); // Only add alive enemies to the list
+            }
+        }
+        return aliveEnemies;
+    }
 
     private MatchEventDTO GetNthAttackThisTurn(CharacterType actorType, int attackIndex)
     {
@@ -875,21 +944,25 @@ public class ReplayPlayerMovement : MonoBehaviour
 
     private bool IsCounterAttackThisTurn()
     {
-        var replay = ReplayManager.Instance.selectedReplay;
-        int currentTurn = ReplayGameManager.Instance.RoundsCount;
+        if (GetCharacterType(enemy.tag) == CharacterType.EnemyGlad)
+        {
+            var replay = ReplayManager.Instance.selectedReplay;
+            int currentTurn = ReplayGameManager.Instance.RoundsCount;
 
-        var actionsThisTurn = replay.actions
-            .Where(a => a.Turn == currentTurn)
-            .ToList();
+            var actionsThisTurn = replay.actions
+                .Where(a => a.Turn == currentTurn)
+                .ToList();
 
-        if (actionsThisTurn.Count < 2)
-            return false;
+            if (actionsThisTurn.Count < 2)
+                return false;
 
-        var firstActor = actionsThisTurn.First().Actor;
-        var lastAction = actionsThisTurn.Last();
+            var firstActor = actionsThisTurn.First().Actor;
+            var lastAction = actionsThisTurn.Last();
 
-        // Counterattack sker om sista actionen är en attack av någon annan än den som började rundan
-        return lastAction.Action == "attack" && lastAction.Actor != firstActor;
+            // Counterattack sker om sista actionen är en attack av någon annan än den som började rundan
+            return lastAction.Action == "attack" && lastAction.Actor != firstActor;
+        }
+        else return false;
     }
 }
 

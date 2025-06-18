@@ -30,7 +30,10 @@ public class ReplayManager : MonoBehaviour
 
     void Start()
     {
-        LoadReplays();
+        if (SceneController.instance.currentSceneName == "Arena")
+        {
+            LoadReplays();
+        }
     }
 
     public void ToggleHistoryPanel()
@@ -67,11 +70,18 @@ public class ReplayManager : MonoBehaviour
             TMP_Text text = item.GetComponentInChildren<TMP_Text>();
             Button button = item.GetComponentInChildren<Button>();
 
-            // Bestäm om spelaren vann
-            bool isWin = replay.winner == CharacterData.Instance.CharName;
+            string currentCharName = CharacterData.Instance.CharName;
+            bool isPlayer = replay.player.character.charName == currentCharName;
+
+            // Vem är motståndaren?
+            string opponentName = isPlayer ? replay.enemy.character.charName : replay.player.character.charName;
+
+            // Vann spelaren?
+            bool isWin = replay.winner == currentCharName;
             string result = isWin ? "Won" : "Lost";
 
-            text.text = $"{replay.mapName} | {result}";
+            // Visa: Kartnamn | Resultat | Motståndare
+            text.text = $"{replay.mapName} | {result} vs {opponentName}";
 
             button.onClick.AddListener(() =>
             {

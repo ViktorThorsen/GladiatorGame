@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 [CreateAssetMenu(fileName = "NewItem", menuName = "Inventory/Item", order = 1)]
 public class Item : ScriptableObject
@@ -14,6 +15,8 @@ public class Item : ScriptableObject
     public string description; // Description of the item
     public ItemType itemType; // If the item is consumable
     public abilityType abilityType;
+
+    public abilityType abilityType1;
     public int durability;
     public int healthRestorationAmount; // Example of an item property (for consumables)
 
@@ -24,9 +27,11 @@ public class Item : ScriptableObject
     public int health;
     public int hit;
     public int defense;
-    public int fortune;
     public int stunRate;
     public int lifesteal;
+
+    public int initiative;
+    public int combo;
 
 
     // Method to use the item

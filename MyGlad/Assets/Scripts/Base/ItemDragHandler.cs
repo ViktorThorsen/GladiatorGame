@@ -33,7 +33,7 @@ public class ItemDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         canvasGroup.blocksRaycasts = true;
 
         // Om ingen giltig slot fångade objektet
-        if (transform.parent == canvas.transform)
+        if (transform.parent == canvas.transform || transform.parent == null)
         {
             transform.SetParent(OriginalParent);
             transform.localPosition = Vector3.zero;

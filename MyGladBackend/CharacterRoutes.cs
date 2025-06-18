@@ -1,5 +1,6 @@
 using Npgsql;
 namespace server;
+
 using Microsoft.AspNetCore.Mvc;
 
 public class CharacterRoutes
@@ -17,14 +18,14 @@ public class CharacterRoutes
 
     public record CharacterDTO(string charName, int level, int xp, int health, int defense,
                     int lifeSteal, int dodgeRate, int critRate, int stunRate, int hitRate,
-                    int strength, int agility, int intellect, int fortune);
+                    int strength, int agility, int intellect, int fortune, int coins, int valor, int precision, int initiative, int combo);
     public record CharacterBodyPartsDTO(
         string hair, string eyes, string chest, string legs
     );
 
-    public record SkillsDTO(
-        List<string> skillNames
-    );
+    public record SkillsDTO(List<SkillEntryDTO> skills);
+
+    public record SkillEntryDTO(string skillName, int level);
     public record PetsDTO(
         List<string> petNames
     );
@@ -36,6 +37,14 @@ public class CharacterRoutes
     );
     public record ShortcutDTO(
     List<ShortcutEntry> shortcuts
+);
+    public record SimpleCharacterSearchDTO(
+    int id,
+    string name,
+    int level,
+    string hair,
+    string eyes,
+    string chest
 );
 
     public record ShortcutEntry(
@@ -67,7 +76,11 @@ public class CharacterRoutes
             defense = @def, life_steal = @ls,
             dodge_rate = @dr, crit_rate = @cr,
             stun_rate = @sr, hit_rate = @hit,
-            strength = @str, agility = @agi, intellect = @int, fortune = @for
+            strength = @str, agility = @agi, 
+            intellect = @int, fortune = @for, 
+            coins = @coin, valor = @valor, 
+            precision = @precision, initiative = @initiative, 
+            combo = @combo
         WHERE id = @id");
 
                 updateCmd.Parameters.AddWithValue("level", wrapper.character.level);
@@ -84,6 +97,11 @@ public class CharacterRoutes
                 updateCmd.Parameters.AddWithValue("int", wrapper.character.intellect);
                 updateCmd.Parameters.AddWithValue("for", wrapper.character.fortune);
                 updateCmd.Parameters.AddWithValue("id", characterId);
+                updateCmd.Parameters.AddWithValue("coin", wrapper.character.coins);
+                updateCmd.Parameters.AddWithValue("valor", wrapper.character.valor);
+                updateCmd.Parameters.AddWithValue("precision", wrapper.character.precision);
+                updateCmd.Parameters.AddWithValue("initiative", wrapper.character.initiative);
+                updateCmd.Parameters.AddWithValue("combo", wrapper.character.combo);
 
                 await updateCmd.ExecuteNonQueryAsync();
             }
@@ -94,11 +112,11 @@ public class CharacterRoutes
         INSERT INTO characters (
             name, level, xp, health, defense, life_steal,
             dodge_rate, crit_rate, stun_rate, hit_rate,
-            strength, agility, intellect, fortune
+            strength, agility, intellect, fortune, coins, valor, precision, initiative, combo
         ) VALUES (
             @name, @level, @xp, @health, @def, @ls,
             @dr, @cr, @sr, @hit,
-            @str, @agi, @int, @for
+            @str, @agi, @int, @for, @coin, @valor, @precision, @initiative, @combo
         ) RETURNING id");
                 cmd.Parameters.AddWithValue("name", wrapper.character.charName);
                 cmd.Parameters.AddWithValue("level", wrapper.character.level);
@@ -115,6 +133,11 @@ public class CharacterRoutes
                 cmd.Parameters.AddWithValue("int", wrapper.character.intellect);
                 cmd.Parameters.AddWithValue("for", wrapper.character.fortune);
                 cmd.Parameters.AddWithValue("id", characterId);
+                cmd.Parameters.AddWithValue("coin", wrapper.character.coins);
+                cmd.Parameters.AddWithValue("valor", wrapper.character.valor);
+                cmd.Parameters.AddWithValue("precision", wrapper.character.precision);
+                cmd.Parameters.AddWithValue("initiative", wrapper.character.initiative);
+                cmd.Parameters.AddWithValue("combo", wrapper.character.combo);
 
 
                 await using (var reader = await cmd.ExecuteReaderAsync())
@@ -146,18 +169,20 @@ public class CharacterRoutes
             delSkillsCmd.Parameters.AddWithValue("id", characterId);
             await delSkillsCmd.ExecuteNonQueryAsync();
 
-
-            if (wrapper.skills?.skillNames == null)
+            if (wrapper.skills?.skills == null)
             {
                 Console.WriteLine("skills are null.");
                 return -1;
             }
 
-            if (wrapper.skills?.skillNames is { Count: > 0 })
+            if (wrapper.skills.skills.Count > 0)
             {
-                foreach (var skillName in wrapper.skills.skillNames)
+                foreach (var skillEntry in wrapper.skills.skills)
                 {
-                    Console.WriteLine("Processing skill: " + skillName);
+                    string skillName = skillEntry.skillName;
+                    int level = skillEntry.level;
+
+                    Console.WriteLine($"Processing skill: {skillName} (Level {level})");
 
                     using var getSkillIdCmd = db.CreateCommand(@"
             SELECT id FROM skills WHERE name = @name");
@@ -175,10 +200,11 @@ public class CharacterRoutes
                     }
 
                     using var insertCmd = db.CreateCommand(@"
-            INSERT INTO characterxskills (character, skill)
-            VALUES (@charId, @skillId)");
+            INSERT INTO characterxskills (character, skill, level)
+            VALUES (@charId, @skillId, @level)");
                     insertCmd.Parameters.AddWithValue("charId", characterId);
                     insertCmd.Parameters.AddWithValue("skillId", skillId);
+                    insertCmd.Parameters.AddWithValue("level", level);
 
                     await insertCmd.ExecuteNonQueryAsync();
                 }
@@ -293,12 +319,14 @@ public class CharacterRoutes
 
             if (wrapper.consumables?.consumableNames is { Count: > 0 })
             {
-                foreach (var consumableName in wrapper.consumables.consumableNames)
+                for (int i = 0; i < wrapper.consumables.consumableNames.Count; i++)
                 {
+                    string consumableName = wrapper.consumables.consumableNames[i];
+
                     Console.WriteLine("Processing consumable: " + consumableName);
 
                     using var getConsumableIdCmd = db.CreateCommand(@"
-            SELECT id FROM consumables WHERE name = @name");
+        SELECT id FROM consumables WHERE name = @name");
                     getConsumableIdCmd.Parameters.AddWithValue("name", consumableName);
 
                     int consumableId;
@@ -307,17 +335,17 @@ public class CharacterRoutes
                         if (!await reader.ReadAsync())
                         {
                             Console.WriteLine($"Consumable '{consumableName}' not found in consumables table.");
-                            continue; // hoppa över om den inte finns
+                            continue;
                         }
                         consumableId = reader.GetInt32(0);
                     }
 
-                    // 2. Lägg in i characterxskills
                     using var insertConsumableCmd = db.CreateCommand(@"
-            INSERT INTO characterxconsumables (character, consumable)
-            VALUES (@charId, @consumableId)");
+        INSERT INTO characterxconsumables (character, consumable, index)
+        VALUES (@charId, @consumableId, @index)");
                     insertConsumableCmd.Parameters.AddWithValue("charId", characterId);
                     insertConsumableCmd.Parameters.AddWithValue("consumableId", consumableId);
+                    insertConsumableCmd.Parameters.AddWithValue("index", i); // 🔢 viktig!
 
                     await insertConsumableCmd.ExecuteNonQueryAsync();
                 }
@@ -418,7 +446,7 @@ public class CharacterRoutes
             cmd.CommandText = @"
     SELECT id, name, level, xp, health, defense, life_steal,
            dodge_rate, crit_rate, stun_rate, hit_rate,
-           strength, agility, intellect, fortune
+           strength, agility, intellect, fortune, coins, valor, precision, initiative, combo
     FROM public.characters
     WHERE id = @id";
 
@@ -442,7 +470,12 @@ public class CharacterRoutes
                 strength: reader.GetInt32(11),
                 agility: reader.GetInt32(12),
                 intellect: reader.GetInt32(13),
-                fortune: reader.GetInt32(14)
+                fortune: reader.GetInt32(14),
+                coins: reader.GetInt32(15),
+                valor: reader.GetInt32(16),
+                precision: reader.GetInt32(17),
+                initiative: reader.GetInt32(18),
+                combo: reader.GetInt32(19)
             );
 
             // Hämta övriga kopplade resurser
@@ -509,10 +542,10 @@ public class CharacterRoutes
 
     private static async Task<SkillsDTO> GetSkills(NpgsqlDataSource db, int characterId)
     {
-        var skills = new List<string>();
+        var skills = new List<SkillEntryDTO>();
 
         using var cmd = db.CreateCommand(@"
-        SELECT s.name
+        SELECT s.name, cx.level
         FROM public.characterxskills cx
         JOIN public.skills s ON cx.skill = s.id
         WHERE cx.character = @charId");
@@ -522,7 +555,9 @@ public class CharacterRoutes
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            skills.Add(reader.GetString(0));
+            string name = reader.GetString(0);
+            int level = reader.GetInt32(1);
+            skills.Add(new SkillEntryDTO(name, level));
         }
 
         return new SkillsDTO(skills);
@@ -578,7 +613,8 @@ public class CharacterRoutes
         SELECT c.name
         FROM public.characterxconsumables cc
         JOIN public.consumables c ON cc.consumable = c.id
-        WHERE cc.character = @charId");
+        WHERE cc.character = @charId
+        ORDER BY cc.index");
 
         cmd.Parameters.AddWithValue("charId", characterId);
 
@@ -609,20 +645,19 @@ public class CharacterRoutes
         int currentEnergy = reader.GetInt32(0);
         DateTime lastUpdate = reader.GetFieldValue<DateTime>(1);
 
-        // Beräkna hur mycket tid som gått
         var timePassed = now - lastUpdate;
-        int energyRecovered = (int)(timePassed.TotalMinutes / 2);
+        int energyRecovered = (int)(timePassed.TotalMinutes / 5); // ändrat från 2 → 5
 
         currentEnergy = Math.Min(currentEnergy + energyRecovered, 10);
 
         await using var updateCmd = db.CreateCommand();
         updateCmd.CommandText = @"
-        UPDATE characters 
-        SET energy = @energy, last_energy_update = @updateTime
-        WHERE id = @id";
+    UPDATE characters 
+    SET energy = @energy, last_energy_update = @updateTime
+    WHERE id = @id";
 
         updateCmd.Parameters.AddWithValue("energy", currentEnergy);
-        updateCmd.Parameters.AddWithValue("updateTime", lastUpdate.AddMinutes(energyRecovered * 2));
+        updateCmd.Parameters.AddWithValue("updateTime", lastUpdate.AddMinutes(energyRecovered * 5)); // ändrat från *2 → *5
         updateCmd.Parameters.AddWithValue("id", characterId);
 
         await updateCmd.ExecuteNonQueryAsync();
@@ -645,22 +680,194 @@ public class CharacterRoutes
 
         if (currentEnergy <= 0)
         {
-            return Results.BadRequest("Not enough energy!");
+            // Returnera info, men markera att matchen inte får startas
+            return Results.Json(new { success = false, energy = currentEnergy });
         }
 
         int newEnergy = currentEnergy - 1;
 
         await using var updateCmd = db.CreateCommand();
         updateCmd.CommandText = @"
-    UPDATE characters
-    SET energy = @newEnergy
-    WHERE id = @id";
+        UPDATE characters
+        SET energy = @newEnergy
+        WHERE id = @id";
         updateCmd.Parameters.AddWithValue("newEnergy", newEnergy);
         updateCmd.Parameters.AddWithValue("id", characterId);
 
         await updateCmd.ExecuteNonQueryAsync();
 
-        return Results.Json(new { id = characterId, energy = newEnergy });
+        return Results.Json(new { success = true, energy = newEnergy });
+    }
+    public static async Task<IResult> AddCoinsToCharacter([FromQuery] int characterId, [FromQuery] int coinsToAdd, NpgsqlDataSource db)
+    {
+        // 1. Hämta nuvarande antal coins
+        await using var getCmd = db.CreateCommand();
+        getCmd.CommandText = "SELECT coins FROM characters WHERE id = @id";
+        getCmd.Parameters.AddWithValue("id", characterId);
+
+        await using var reader = await getCmd.ExecuteReaderAsync();
+        if (!await reader.ReadAsync())
+            return Results.NotFound("Character not found");
+
+        int currentCoins = reader.GetInt32(0);
+        int newCoinAmount = currentCoins + coinsToAdd;
+
+        // 2. Uppdatera coins
+        await using var updateCmd = db.CreateCommand();
+        updateCmd.CommandText = "UPDATE characters SET coins = @coins WHERE id = @id";
+        updateCmd.Parameters.AddWithValue("coins", newCoinAmount);
+        updateCmd.Parameters.AddWithValue("id", characterId);
+
+        await updateCmd.ExecuteNonQueryAsync();
+
+        return Results.Json(new { id = characterId, coins = newCoinAmount });
+    }
+
+    public static async Task<IResult> SpendCoinsFromCharacter([FromQuery] int characterId, [FromQuery] int coinsToSpend, NpgsqlDataSource db)
+    {
+        if (coinsToSpend <= 0)
+            return Results.BadRequest("Amount must be greater than 0.");
+
+        await using var getCmd = db.CreateCommand();
+        getCmd.CommandText = "SELECT coins FROM characters WHERE id = @id";
+        getCmd.Parameters.AddWithValue("id", characterId);
+
+        await using var reader = await getCmd.ExecuteReaderAsync();
+        if (!await reader.ReadAsync())
+            return Results.NotFound("Character not found");
+
+        int currentCoins = reader.GetInt32(0);
+
+        if (currentCoins < coinsToSpend)
+            return Results.BadRequest("Not enough coins.");
+
+        int newCoinAmount = currentCoins - coinsToSpend;
+
+        await using var updateCmd = db.CreateCommand();
+        updateCmd.CommandText = "UPDATE characters SET coins = @coins WHERE id = @id";
+        updateCmd.Parameters.AddWithValue("coins", newCoinAmount);
+        updateCmd.Parameters.AddWithValue("id", characterId);
+
+        await updateCmd.ExecuteNonQueryAsync();
+
+        return Results.Json(new { id = characterId, coins = newCoinAmount });
+    }
+
+    public record LeaderboardCharacterDTO(int CharacterId, string CharName, int Level, int Valor);
+
+    public static async Task<IResult> GetLeaderboard(NpgsqlDataSource db)
+    {
+        var topCharacters = new List<LeaderboardCharacterDTO>();
+
+        await using var cmd = db.CreateCommand();
+        cmd.CommandText = @"
+        SELECT id, name, level, valor FROM characters ORDER BY valor DESC LIMIT 50"; // Du kan ändra detta till så många du vill visa
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            int id = reader.GetInt32(0);
+            string name = reader.GetString(1);
+            int level = reader.GetInt32(2);
+            int valor = reader.GetInt32(3);
+
+            topCharacters.Add(new LeaderboardCharacterDTO(id, name, level, valor));
+        }
+
+        return Results.Json(topCharacters);
+    }
+
+    public static async Task<IResult> SearchCharactersByName([FromQuery] string query, [FromQuery] int excludeId, NpgsqlDataSource db)
+    {
+        if (string.IsNullOrWhiteSpace(query) || query.Length < 2)
+            return Results.BadRequest("Query must be at least 2 characters.");
+
+        var list = new List<SimpleCharacterSearchDTO>();
+
+        await using var cmd = db.CreateCommand();
+        cmd.CommandText = @"
+    SELECT c.id, c.name, c.level, bp.hair, bp.eyes, bp.chest
+    FROM characters c
+    JOIN body_parts bp ON bp.character = c.id
+    WHERE LOWER(c.name) LIKE @query || '%' AND c.id != @excludeId
+    ORDER BY c.name ASC
+    LIMIT 9";
+
+        cmd.Parameters.AddWithValue("query", query.ToLower());
+        cmd.Parameters.AddWithValue("excludeId", excludeId);
+
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            list.Add(new SimpleCharacterSearchDTO(
+                reader.GetInt32(0),
+                reader.GetString(1),
+                reader.GetInt32(2),
+                reader.GetString(3),
+                reader.GetString(4),
+                reader.GetString(5)
+            ));
+        }
+
+        return Results.Json(new { results = list });
+    }
+    public static async Task<IResult> GetCharacterSkillsById(HttpContext context, NpgsqlDataSource db)
+    {
+        if (!context.Request.Query.ContainsKey("id"))
+            return Results.BadRequest("Missing 'id' parameter.");
+
+        if (!int.TryParse(context.Request.Query["id"], out int id))
+            return Results.BadRequest("Invalid 'id' parameter.");
+
+        var skillsDto = await GetSkills(db, id);
+        return Results.Json(skillsDto);
+    }
+
+    public static async Task<IResult> SearchCharactersByLevel([FromQuery] int level, [FromQuery] int excludeId, NpgsqlDataSource db)
+    {
+        var list = new List<SimpleCharacterSearchDTO>();
+        int currentLevel = level;
+
+        while (list.Count < 9)
+        {
+            await using var cmd = db.CreateCommand();
+            cmd.CommandText = @"
+            SELECT c.id, c.name, c.level, bp.hair, bp.eyes, bp.chest
+            FROM characters c
+            JOIN body_parts bp ON bp.character = c.id
+            WHERE c.level = @lvl AND c.id != @excludeId
+            ORDER BY c.name ASC";
+
+            cmd.Parameters.AddWithValue("lvl", currentLevel);
+            cmd.Parameters.AddWithValue("excludeId", excludeId);
+
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                int id = reader.GetInt32(0);
+
+                // Kontrollera om karaktären redan är tillagd (undantag för dubbletter)
+                if (list.Any(c => c.id == id))
+                    continue;
+
+                list.Add(new SimpleCharacterSearchDTO(
+                    id,
+                    reader.GetString(1),
+                    reader.GetInt32(2),
+                    reader.GetString(3),
+                    reader.GetString(4),
+                    reader.GetString(5)
+                ));
+
+                if (list.Count == 9)
+                    break;
+            }
+
+            currentLevel++; // Gå upp till nästa nivå
+            if (currentLevel > 5) break; // skydd mot evighetsloop om något är fel
+        }
+
+        return Results.Json(new { results = list });
     }
 
 }

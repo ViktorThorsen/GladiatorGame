@@ -62,7 +62,7 @@ public class PetMovement : MonoBehaviour
         }
 
         anim = visualTransform.GetComponent<Animator>();
-        petSpeed = 30;
+        petSpeed = 40;
         petHealthManager = pet.GetComponent<HealthManager>();
         monsterStats = pet.GetComponent<MonsterStats>();
 
@@ -103,9 +103,9 @@ public class PetMovement : MonoBehaviour
         while (Vector2.Distance(petFeet.position, targetPosition) > stoppingDistance)
         {
             anim.SetBool("run", true);
-            Vector2 newPosition = Vector2.MoveTowards(petFeet.position, targetPosition, petSpeed * Time.deltaTime);
-            // Update the main transform's position based on feet's new position difference
-            transform.position += (Vector3)(newPosition - (Vector2)petFeet.position);
+            Vector2 new2DPos = Vector2.MoveTowards(petFeet.position, targetPosition, petSpeed * Time.deltaTime);
+            Vector3 delta = new Vector3(new2DPos.x - petFeet.position.x, new2DPos.y - petFeet.position.y, 0);
+            transform.position += delta;
             yield return null;
         }
 
@@ -123,10 +123,6 @@ public class PetMovement : MonoBehaviour
         // Always trigger the first hit animation and movement
         anim.SetTrigger("hit");
         MovePetToRight(0.5f);
-        if (monsterStats.LifeSteal > 0)
-        {
-            petHealthManager.IncreaseHealth(monsterStats.LifeSteal);
-        }
         // Check if the enemy dodges the first hit
         if (EnemyDodges())
         {
@@ -152,22 +148,19 @@ public class PetMovement : MonoBehaviour
                     damage = damage * 2;
                 }
                 enemyHealthManager.ReduceHealth(damage, "Normal", pet, IsCrit);
+                CalcLifesteal(damage);
 
             }
         }
 
         yield return new WaitForSeconds(0.5f);
 
-        int randomNumber = Random.Range(0, 100);
-        if (randomNumber > 50)
+        int randomNumber = Random.Range(0, 100) + monsterStats.combo;
+        if (randomNumber > 60)
         {
             // Always trigger the second hit animation and movement
             anim.SetTrigger("hit1");
             MovePetToRight(0.5f);
-            if (monsterStats.LifeSteal > 0)
-            {
-                petHealthManager.IncreaseHealth(monsterStats.LifeSteal);
-            }
             // Check if the enemy dodges the second hit
             if (EnemyDodges())
             {
@@ -191,21 +184,19 @@ public class PetMovement : MonoBehaviour
                         damage = damage * 2;
                     }
                     enemyHealthManager.ReduceHealth(damage, "Normal", pet, IsCrit);
+                    CalcLifesteal(damage);
                 }
 
             }
 
             yield return new WaitForSeconds(0.5f);
-            int randomNumber1 = Random.Range(0, 100);
-            if (randomNumber1 > 50)
+            int randomNumber1 = Random.Range(0, 100) + monsterStats.combo;
+            if (randomNumber1 > 60)
             {
                 // Always trigger the third hit animation and movement
                 anim.SetTrigger("hit2");
                 MovePetToRight(0.5f);
-                if (monsterStats.LifeSteal > 0)
-                {
-                    petHealthManager.IncreaseHealth(monsterStats.LifeSteal);
-                }
+
                 // Check if the enemy dodges the third hit
                 if (EnemyDodges())
                 {
@@ -227,20 +218,18 @@ public class PetMovement : MonoBehaviour
                         damage = damage * 2;
                     }
                     enemyHealthManager.ReduceHealth(damage, "Normal", pet, IsCrit);
+                    CalcLifesteal(damage);
 
                 }
 
                 yield return new WaitForSeconds(0.5f);
-                int randomNumber2 = Random.Range(0, 100);
-                if (randomNumber2 > 50)
+                int randomNumber2 = Random.Range(0, 100) + monsterStats.combo;
+                if (randomNumber2 > 60)
                 {
                     // Always trigger the fourth hit animation and movement
                     anim.SetTrigger("hit3");
                     MovePetToRight(0.5f);
-                    if (monsterStats.LifeSteal > 0)
-                    {
-                        petHealthManager.IncreaseHealth(monsterStats.LifeSteal);
-                    }
+
                     // Check if the enemy dodges the fourth hit
                     if (EnemyDodges())
                     {
@@ -262,6 +251,7 @@ public class PetMovement : MonoBehaviour
                             damage = damage * 2;
                         }
                         enemyHealthManager.ReduceHealth(damage, "Normal", pet, IsCrit);
+                        CalcLifesteal(damage);
 
                     }
 
@@ -359,9 +349,22 @@ public class PetMovement : MonoBehaviour
 
     private bool EnemyDodges()
     {
-        int dodgeChance = monsterStats.DodgeRate;
-        int randomValue = Random.Range(0, 100);
-        return randomValue < dodgeChance;
+        HealthManager arenaHealthManager = enemy.GetComponent<HealthManager>();
+        if (!arenaHealthManager.IsDead)
+        {
+            if (enemyMovement.IsStunned)
+            {
+                return false;
+            }
+            else
+            {
+                int dodgeChance = enemyStats.DodgeRate;
+                int randomValue = Random.Range(0, 100);
+                dodgeChance = dodgeChance - monsterStats.hitRate;
+                return randomValue < dodgeChance;
+            }
+        }
+        else return false;
     }
 
     void MovePetToRight(float distance)
@@ -389,7 +392,6 @@ public class PetMovement : MonoBehaviour
     }
     public void Stun()
     {
-        CombatTextManager.Instance.SpawnText("Stunned", pet.transform.position + Vector3.up * 1.5f, "#FFFFFF");
         isStunned = true;
         anim.SetBool("stunned", true);
         StunnedAtRound = gameManager.RoundsCount;
@@ -412,16 +414,38 @@ public class PetMovement : MonoBehaviour
         }
         else { return false; }
     }
+    private void CalcLifesteal(int damage)
+    {
+        int baseLifeSteal = monsterStats.LifeSteal;
+
+        if (baseLifeSteal > 0)
+        {
+            float lifeStealMultiplier = baseLifeSteal / 100f;
+
+            int vampBonus = Mathf.RoundToInt(damage * lifeStealMultiplier);
+            if (vampBonus < 1)
+            {
+                vampBonus = 1;
+            }
+
+            petHealthManager.IncreaseHealth(vampBonus);
+        }
+    }
 
     private int CalculateRandomDamage(int baseDamage)
     {
         // Calculate a random damage between baseDamage - 2 and baseDamage + 2
-        int minDamage = baseDamage - 2;
-        int maxDamage = baseDamage + 2;
+        int minDamage = Mathf.RoundToInt(baseDamage * 0.9f);
+        int maxDamage = Mathf.RoundToInt(baseDamage * 1.1f);
 
         // Ensure the minimum damage is at least 1
         if (minDamage < 1) { minDamage = 1; }
         int randomDmg = Random.Range(minDamage, maxDamage + 1);
+        randomDmg = randomDmg - enemyStats.defense;
+        if (randomDmg < 1)
+        {
+            randomDmg = 1;
+        }
         return randomDmg; // Random.Range is inclusive for integers
     }
 
@@ -449,7 +473,7 @@ public class PetMovement : MonoBehaviour
         }
     }
 
-    IEnumerator MoveBackToStart(Vector2 targetPosition)
+    IEnumerator MoveBackToStart(Vector3 targetPosition)
     {
         float tolerance = 0.1f;
 
@@ -459,7 +483,8 @@ public class PetMovement : MonoBehaviour
             FlipTowards(targetPosition);
 
             anim.SetBool("run", true);
-            transform.position = Vector2.MoveTowards(transform.position, targetPosition, petSpeed * Time.deltaTime);
+            Vector2 new2DPos = Vector2.MoveTowards(transform.position, targetPosition, petSpeed * Time.deltaTime);
+            transform.position = new Vector3(new2DPos.x, new2DPos.y, transform.position.z);
             yield return null;
         }
 
@@ -480,23 +505,29 @@ public class PetMovement : MonoBehaviour
         float screenTopY = Camera.main.ViewportToWorldPoint(new Vector3(0, 1, Camera.main.nearClipPlane)).y;
         float screenCenterY = (screenBottomY + screenTopY) / 2;
 
-        // Determine dodge direction: dodge up if below center, down if above
-        float dodgeDistance = 1f; // Customize dodge distance
-        float dodgeDirection = transform.position.y < screenCenterY ? 1f : -1f; // Dodge up if below center, down if above
+        float dodgeDistance = 1f;
+        float dodgeDirection = transform.position.y < screenCenterY ? 1f : -1f;
 
-        // Calculate the dodge target position based on direction and distance
-        Vector2 dodgePosition = new Vector2(transform.position.x, transform.position.y + dodgeDirection * dodgeDistance);
+        // ✅ Sätt dodgePosition med korrekt Z-värde
+        Vector3 dodgePosition = new Vector3(transform.position.x, transform.position.y + dodgeDirection * dodgeDistance, transform.position.z);
 
-        // Move the pet to the dodge position over time
-        StartCoroutine(DodgeMove(dodgePosition, dodgeDirection));
+        StartCoroutine(DodgeMove(dodgePosition));
     }
 
-    IEnumerator DodgeMove(Vector3 targetPosition, float dodgeDirection)
+    IEnumerator DodgeMove(Vector3 targetPosition)
     {
-        // Instantly set the pet's position to the dodge target position
-        CombatTextManager.Instance.SpawnText("Dodge", pet.transform.position + Vector3.up * 1.5f, "#FFFFFF");
-        transform.position = targetPosition;
 
-        yield return null; // Yield to ensure any other logic can complete if necessary
+        float duration = 0.15f; // hur snabbt dodgen ska gå
+        float elapsed = 0f;
+        Vector3 startPosition = transform.position;
+
+        while (elapsed < duration)
+        {
+            transform.position = Vector3.Lerp(startPosition, targetPosition, elapsed / duration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        transform.position = targetPosition; // säkerställ exakt slutposition
     }
 }

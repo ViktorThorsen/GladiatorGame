@@ -23,6 +23,11 @@ public class BackgroundMusicManager : MonoBehaviour
     public AudioClip ThemeViol;
     public AudioClip ThemeViol2;
     public AudioClip ThemeViol3;
+    public AudioClip scars;
+    public AudioClip taken;
+    public AudioClip eyes;
+    public AudioClip rome;
+    public AudioClip forest;
 
     private AudioSource audioSource;
     private string sceneToResumeMusicFor = null;
@@ -60,7 +65,7 @@ public class BackgroundMusicManager : MonoBehaviour
         }
 
         audioSource.volume = normalVolume;
-        AudioClip[] menuClips = new AudioClip[] { storyMusic, story2Music, ThemeViol, ThemeViol2, ThemeViol3 };
+        AudioClip[] menuClips = new AudioClip[] { storyMusic, story2Music, ThemeViol, ThemeViol2, ThemeViol3, scars, menuMusic, taken, eyes, rome, forest };
         AudioClip[] arenaClips = new AudioClip[] { battleMusic, battle1Music, battle2Music, battle3Music };
         switch (scene.name)
         {
@@ -77,7 +82,10 @@ public class BackgroundMusicManager : MonoBehaviour
                 break;
 
             case "Arena":
-                if (audioSource.clip == storyMusic || audioSource.clip == story2Music || audioSource.clip == ThemeViol || audioSource.clip == ThemeViol2 || audioSource.clip == ThemeViol3)
+                if (audioSource.clip == storyMusic || audioSource.clip == story2Music
+                || audioSource.clip == ThemeViol || audioSource.clip == ThemeViol2 ||
+                audioSource.clip == ThemeViol3 || audioSource.clip == scars ||
+                audioSource.clip == menuMusic || audioSource.clip == taken || audioSource.clip == eyes || audioSource.clip == rome || audioSource.clip == forest)
                 {
                     // Om vi redan spelar en av dessa låtar, fortsätt spela den
                     return;
@@ -88,7 +96,10 @@ public class BackgroundMusicManager : MonoBehaviour
                 break;
 
             case "RewardScene":
-                if (audioSource.clip == storyMusic || audioSource.clip == story2Music || audioSource.clip == ThemeViol || audioSource.clip == ThemeViol2 || audioSource.clip == ThemeViol3)
+                if (audioSource.clip == storyMusic || audioSource.clip == story2Music ||
+                 audioSource.clip == ThemeViol || audioSource.clip == ThemeViol2 ||
+                  audioSource.clip == ThemeViol3 || audioSource.clip == scars ||
+                  audioSource.clip == menuMusic || audioSource.clip == taken || audioSource.clip == eyes || audioSource.clip == rome || audioSource.clip == forest)
                 {
                     // Om vi redan spelar en av dessa låtar, fortsätt spela den
                     return;
@@ -99,7 +110,10 @@ public class BackgroundMusicManager : MonoBehaviour
                 break;
 
             default:
-                if (audioSource.clip == storyMusic || audioSource.clip == story2Music || audioSource.clip == ThemeViol || audioSource.clip == ThemeViol2 || audioSource.clip == ThemeViol3)
+                if (audioSource.clip == storyMusic || audioSource.clip == story2Music ||
+                 audioSource.clip == ThemeViol || audioSource.clip == ThemeViol2 ||
+                 audioSource.clip == ThemeViol3 || audioSource.clip == scars ||
+                 audioSource.clip == menuMusic || audioSource.clip == taken || audioSource.clip == eyes || audioSource.clip == rome || audioSource.clip == forest)
                 {
                     // Om vi redan spelar en av dessa låtar, fortsätt spela den
                     return;

@@ -7191,16 +7191,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   monsterName: Brokkar
-  health: 600
-  attackDamage: 30
+  health: 500
+  attackDamage: 20
   lifeSteal: 5
   dodgeRate: 0
   critRate: 10
-  stunRate: 0
+  stunRate: 15
+  hitRate: 5
+  defense: 5
   initiative: 0
+  combo: 0
   scale: {x: 0.5, y: 0.5, z: 1}
   xpReward: 700
-  itemreward: 0
+  coinReward: 30
+  icon: {fileID: 21300000, guid: 52a250bcecd518044be3bed50dd41f9d, type: 3}
 --- !u!1 &7917673150348911318
 GameObject:
   m_ObjectHideFlags: 0

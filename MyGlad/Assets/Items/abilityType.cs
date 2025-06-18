@@ -7,4 +7,5 @@ public enum abilityType
     heal,
     fireball,
     buff,
+    damage,
 }

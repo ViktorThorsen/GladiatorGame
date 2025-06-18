@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6478961335050794fbd1bd02aedb4313, type: 3}
+  m_Name: ItemPie
+  m_EditorClassIdentifier: 
+  itemName: Pie
+  itemIcon: {fileID: 21300000, guid: 141e067dbd3903d40a043e2c8f58878d, type: 3}
+  itemSprite: {fileID: 21300000, guid: 141e067dbd3903d40a043e2c8f58878d, type: 3}
+  equippedPositionOffset: {x: 0.7, y: 0.27, z: 0}
+  equippedRotation: {x: 0, y: 0, z: 48.37881}
+  equippedScale: {x: -0.6721348, y: 0.6721348, z: 2.355063}
+  description: Legend says the emperor once paused an execution... for a second slice.
+  itemType: 1
+  abilityType: 1
+  abilityType1: 0
+  durability: 0
+  healthRestorationAmount: 100
+  strength: 0
+  agility: 0
+  intellect: 0
+  health: 0
+  hit: 0
+  defense: 0
+  stunRate: 0
+  lifesteal: 0
+  initiative: 0
+  combo: 0

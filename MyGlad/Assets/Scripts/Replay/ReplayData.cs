@@ -62,7 +62,9 @@ public class ReplayData : MonoBehaviour
                 strength = CharacterData.Instance.Strength,
                 agility = CharacterData.Instance.Agility,
                 intellect = CharacterData.Instance.Intellect,
-                defense = CharacterData.Instance.Defense
+                defense = CharacterData.Instance.Defense,
+                precision = CharacterData.Instance.precision,
+                initiative = CharacterData.Instance.initiative
             },
             bodyPartLabels = new BodyPartsDataSerializable
             {
@@ -73,7 +75,13 @@ public class ReplayData : MonoBehaviour
             },
             skills = new SkillDataSerializable
             {
-                skillNames = Inventory.Instance.GetSkills().ConvertAll(s => s.skillName)
+                skills = Inventory.Instance.GetSkills()
+        .Select(s => new SkillEntrySerializable
+        {
+            skillName = s.skillName,
+            level = s.level
+        })
+        .ToList()
             },
             pets = new PetDataSerializable
             {
@@ -120,7 +128,9 @@ public class ReplayData : MonoBehaviour
                 strength = EnemyGladiatorData.Instance.Strength,
                 agility = EnemyGladiatorData.Instance.Agility,
                 intellect = EnemyGladiatorData.Instance.Intellect,
-                defense = EnemyGladiatorData.Instance.Defense
+                defense = EnemyGladiatorData.Instance.Defense,
+                precision = CharacterData.Instance.precision,
+                initiative = CharacterData.Instance.initiative
             },
             bodyPartLabels = new BodyPartsDataSerializable
             {
@@ -131,7 +141,13 @@ public class ReplayData : MonoBehaviour
             },
             skills = new SkillDataSerializable
             {
-                skillNames = EnemyInventory.Instance.GetSkills().ConvertAll(s => s.skillName)
+                skills = EnemyInventory.Instance.GetSkills()
+        .Select(s => new SkillEntrySerializable
+        {
+            skillName = s.skillName,
+            level = s.level
+        })
+        .ToList()
             },
             pets = new PetDataSerializable
             {

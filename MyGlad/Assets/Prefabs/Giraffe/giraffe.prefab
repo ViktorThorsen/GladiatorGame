@@ -533,15 +533,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   monsterName: Giraffe
   health: 1000
-  attackDamage: 50
-  lifeSteal: 20
+  attackDamage: 20
+  lifeSteal: 0
   dodgeRate: 0
   critRate: 0
   stunRate: 0
+  hitRate: 0
+  defense: 5
   initiative: 0
+  combo: 0
   scale: {x: 0.8, y: 0.8, z: 1}
-  xpReward: 300
-  itemreward: 0
+  xpReward: 1500
+  coinReward: 40
+  icon: {fileID: 21300000, guid: a156e0a44c2c2b943979d2d5435c8437, type: 3}
 --- !u!1 &1288492754238278950
 GameObject:
   m_ObjectHideFlags: 0

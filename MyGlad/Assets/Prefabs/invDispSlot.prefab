@@ -11,8 +11,9 @@ GameObject:
   - component: {fileID: 3978732440868629567}
   - component: {fileID: 5741429029237735015}
   - component: {fileID: 5984780854858143216}
+  - component: {fileID: -2606731260741300174}
   m_Layer: 5
-  m_Name: invDisplaySlot
+  m_Name: invDispSlot
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -75,3 +76,17 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &-2606731260741300174
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4816014025817942178}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 065be941201756a4e8fca10fe88ce956, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Skill: {fileID: 0}
+  Level: 0

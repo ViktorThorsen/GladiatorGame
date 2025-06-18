@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using System.Linq;
+using TMPro;
 
 
 public class ReplayGameManager : MonoBehaviour
@@ -19,6 +20,8 @@ public class ReplayGameManager : MonoBehaviour
     [SerializeField] private Transform enemyWeaponInventorySlotParent; // The parent object that holds all the inventory slots
     [SerializeField] private Transform enemyConsumableInventorySlotParent;
     [SerializeField] private Transform enemyPetInventorySlotParent;
+
+    [SerializeField] private TMP_Text replayText;
 
     [SerializeField] private PetDataBase petDB;
     [SerializeField] public ItemDataBase itemDataBase;
@@ -39,8 +42,8 @@ public class ReplayGameManager : MonoBehaviour
 
     private Vector3 playerInitialScale;
     private Vector3 enemyGladiatorInitialScale;
-    private Vector3 petInitialScale;
-    private Vector3 enemyPetInitialScale;
+    private List<Vector3> petInitialScales = new List<Vector3>();
+    private List<Vector3> enemyPetInitialScales = new List<Vector3>();
 
     ReplayPlayerMovement playerMovement;
     ReplayEnemyPlayerMovement enemyGladMovement;
@@ -56,6 +59,7 @@ public class ReplayGameManager : MonoBehaviour
     [SerializeField] public GameObject healthSliderPrefab;
 
     private int roundsCount;
+    private Coroutine blinkingCoroutine;
 
     public bool IsGameOver
     {
@@ -130,6 +134,7 @@ public class ReplayGameManager : MonoBehaviour
 
     void Start()
     {
+        StartBlinkingReplayText();
         BattleBackground battlebackgroundImage = backgroundImageDataBase.GetBattleBackgroundByName(ReplayManager.Instance.selectedReplay.mapName);
         if (battlebackgroundImage != null)
         {
@@ -179,8 +184,7 @@ public class ReplayGameManager : MonoBehaviour
         {
             for (int i = 0; i < enemyPetObjects.Count; i++)
             {
-                if (enemyPetObjects[i] != null)
-                    enemyPetInitialScale = enemyPetObjects[i].transform.localScale;
+                if (petObjects[i] != null) enemyPetInitialScales.Add(enemyPetObjects[i].transform.localScale);
             }
         }
 
@@ -188,8 +192,7 @@ public class ReplayGameManager : MonoBehaviour
         {
             for (int i = 0; i < petObjects.Count; i++)
             {
-                if (petObjects[i] != null)
-                    petInitialScale = petObjects[i].transform.localScale;
+                if (petObjects[i] != null) petInitialScales.Add(petObjects[i].transform.localScale);
             }
         }
         AdjustAllSortingLayersAndScale();
@@ -352,6 +355,15 @@ public class ReplayGameManager : MonoBehaviour
         // Wait for 2 seconds
         yield return new WaitForSeconds(0.1f);
         UpdateBattleInventorySlots();
+        if (ReplayManager.Instance.selectedReplay.player.skills.skills?.Any(s => s.skillName == "BlessingOfDavid") == true && CheckStrength())
+        {
+            //skillBattleHandler.ReplayAddDavidStats();
+        }
+        else if (ReplayManager.Instance.selectedReplay.enemy.skills.skills?.Any(s => s.skillName == "BlessingOfDavid") == true && !CheckStrength())
+        {
+            // enemyGladSkillBattleHandler.ReplayAddDavidStats();
+        }
+
         yield return new WaitForSeconds(0.9f);
         rollTime = true;
         initialDelayCompleted = true;
@@ -405,11 +417,11 @@ public class ReplayGameManager : MonoBehaviour
             {
                 if (Inventory.Instance.HasSkill("LifeBlood"))
                 {
-                    skillBattleHandler.LifeBlood(playerObject);
+                    skillBattleHandler.ReplayLifeBlood(playerObject);
                 }
                 if (EnemyInventory.Instance.HasSkill("LifeBlood"))
                 {
-                    enemyGladSkillBattleHandler.LifeBlood(enemyGladiatorObject);
+                    enemyGladSkillBattleHandler.ReplayLifeBlood(enemyGladiatorObject);
                 }
             }
 
@@ -489,22 +501,26 @@ public class ReplayGameManager : MonoBehaviour
     private Vector3 GetInitialScale(GameObject character)
     {
         if (character == playerObject)
-        {
-            return playerInitialScale; // Använd den ursprungliga skalan för spelaren
-        }
+            return playerInitialScale;
+
         if (character == enemyGladiatorObject)
+            return enemyGladiatorInitialScale;
+
+        if (enemyPetObjects.Contains(character))
         {
-            return enemyGladiatorInitialScale; // Använd den ursprungliga skalan för spelaren
+            int index = enemyPetObjects.IndexOf(character);
+            if (index >= 0 && index < enemyPetInitialScales.Count)
+                return enemyPetInitialScales[index];
         }
-        else if (enemyPetObjects.Contains(character))
+
+        if (petObjects.Contains(character))
         {
-            return enemyPetInitialScale; // Använd den ursprungliga skalan för fiender
+            int index = petObjects.IndexOf(character);
+            if (index >= 0 && index < petInitialScales.Count)
+                return petInitialScales[index];
         }
-        else if (petObjects.Contains(character))
-        {
-            return petInitialScale; // Använd den ursprungliga skalan för husdjur
-        }
-        return Vector3.one; // Standardvärde om något skulle gå fel
+
+        return Vector3.one;
     }
 
     private void AdjustScaleBasedOnPosition(GameObject character, Vector3 initialScale)
@@ -612,6 +628,7 @@ public class ReplayGameManager : MonoBehaviour
         {
             roundsCount++;
             rollTime = false;
+            Debug.Log(firstAttack.Actor + " Startar rundan");
             return firstAttack.Actor;
         }
 
@@ -624,6 +641,7 @@ public class ReplayGameManager : MonoBehaviour
             roundsCount++;
             rollTime = false;
             // Dodge.target är den som slog → alltså startaren av rundan
+            Debug.Log(firstDodge.Target + " Startar rundan");
             return firstDodge.Target;
         }
 
@@ -667,7 +685,7 @@ public class ReplayGameManager : MonoBehaviour
         }
         else
         {
-            if (replay.player.skills.skillNames.Contains("Berserk") && !skillBattleHandler.berserkUsed)
+            if (ReplayManager.Instance.selectedReplay.player.skills.skills?.Any(s => s.skillName == "Berserk") == true)
             {
                 ReplayHealthManager playerHealthManager = playerObject.GetComponent<ReplayHealthManager>();
                 int currentHealth = playerHealthManager.CurrentHealth;
@@ -679,6 +697,7 @@ public class ReplayGameManager : MonoBehaviour
                 {
                     playerMovement.berserkDamage = skillBattleHandler.Berserk(playerObject);
                 }
+                else { playerMovement.berserkDamage = 0; skillBattleHandler.EndBerserk(playerObject); }
             }
             var currentTurn = roundsCount;
             var actionsThisTurn = replay.actions
@@ -687,7 +706,7 @@ public class ReplayGameManager : MonoBehaviour
 
             // Hitta spelarens första action denna runda
             var playerAction = actionsThisTurn
-                .FirstOrDefault(a => a.Actor == CharacterType.Player);
+                .FirstOrDefault();
 
             if (playerAction == null)
             {
@@ -734,7 +753,7 @@ public class ReplayGameManager : MonoBehaviour
         }
         else
         {
-            if (replay.enemy.skills.skillNames.Contains("Berserk") && !enemyGladSkillBattleHandler.berserkUsed)
+            if (ReplayManager.Instance.selectedReplay.enemy.skills.skills?.Any(s => s.skillName == "Berserk") == true)
             {
                 ReplayHealthManager enemyPlayerHealthManager = enemyGladiatorObject.GetComponent<ReplayHealthManager>();
                 int currentHealth = enemyPlayerHealthManager.CurrentHealth;
@@ -746,6 +765,7 @@ public class ReplayGameManager : MonoBehaviour
                 {
                     enemyGladMovement.berserkDamage = enemyGladSkillBattleHandler.Berserk(enemyGladiatorObject);
                 }
+                else { enemyGladMovement.berserkDamage = 0; enemyGladSkillBattleHandler.EndBerserk(enemyGladiatorObject); }
             }
             var currentTurn = roundsCount;
             var actionsThisTurn = replay.actions
@@ -754,7 +774,7 @@ public class ReplayGameManager : MonoBehaviour
 
             // Hitta spelarens första action denna runda
             var playerAction = actionsThisTurn
-                .FirstOrDefault(a => a.Actor == CharacterType.EnemyGlad);
+                .FirstOrDefault();
 
             if (playerAction == null)
             {
@@ -781,7 +801,7 @@ public class ReplayGameManager : MonoBehaviour
                     StartCoroutine(EnemyGladAttack());
                     break;
                 case "dodge":
-                    StartCoroutine(PlayerAttack());
+                    StartCoroutine(EnemyGladAttack());
                     break;
             }
 
@@ -807,42 +827,43 @@ public class ReplayGameManager : MonoBehaviour
         if (!isGameOver)
         {
             isGameOver = true;
+            if (ReplayManager.Instance.selectedReplay.player.skills.skills?.Any(s => s.skillName == "BlessingOfDavid") == true)
+            {
+                skillBattleHandler.RemoveDavidStats();
+            }
+            if (ReplayManager.Instance.selectedReplay.enemy.skills.skills?.Any(s => s.skillName == "BlessingOfDavid") == true)
+            {
+                enemyGladSkillBattleHandler.RemoveDavidStats();
+            }
             inventoryBattleHandler.DestroyWeapon();
-            List<string> listOfNames = new List<string>(); // Skapa en lista för att lagra monster-namnen
-
-            // Lägg till namnen på besegrade monster i listan
-            foreach (GameObject enemy in GetEnemies())
-            {
-                if (enemy.tag == "EnemyPet1" || enemy.tag == "EnemyPet2" || enemy.tag == "EnemyPet3")
-                {
-                    MonsterStats statsFromDeadEnemy = enemy.GetComponent<MonsterStats>();
-                    listOfNames.Add(statsFromDeadEnemy.MonsterName);
-                }
-                else if (enemy.tag == "EnemyGlad")
-                {
-                    listOfNames.Add(EnemyGladiatorData.Instance.CharName);
-                }
-
-
-                // Lägg till namnet i listan
-            }
-
-            // Om du vill omvandla listan till en array
-            string[] arrayOfNames = listOfNames.ToArray();
-            FightData.Instance.AddFightResultNames(arrayOfNames);
-            // Ange om striden var en vinst eller förlust baserat på winnerTag
-            if (winnerTag == "Player")
-            {
-                FightData.Instance.AddFightResultWinOrLoss(true);
-            }
-            else { FightData.Instance.AddFightResultWinOrLoss(false); }
-
-
+            StopBlinkingReplayText();
             // Starta fördröjd scenövergång
             ArenaManager.Instance.Cleanup();
             StartCoroutine(DelayedSceneLoad());
         }
     }
+    public void EndReplay()
+    {
+        isGameOver = true;
+        inventoryBattleHandler.DestroyWeapon();
+        StopBlinkingReplayText();
+        // Starta fördröjd scenövergång
+        ArenaManager.Instance.Cleanup();
+        if (ReplayCharacterData.Instance != null)
+        {
+            Destroy(ReplayCharacterData.Instance.gameObject);
+        }
+        if (ReplayEnemyGladData.Instance != null)
+        {
+            Destroy(ReplayEnemyGladData.Instance.gameObject);
+        }
+        if (ReplayManager.Instance != null)
+        {
+            Destroy(ReplayManager.Instance.gameObject);
+        }
+        sceneController.LoadScene("Arena");
+    }
+
     public void Died(string tag)
     {
         if (tag == "Player")
@@ -945,7 +966,87 @@ public class ReplayGameManager : MonoBehaviour
     {
         BackgroundMusicManager.Instance.FadeOutMusic(3f);
         yield return new WaitForSeconds(4f); // Wait for 2 seconds
-        sceneController.LoadScene("Base");
+        if (ReplayCharacterData.Instance != null)
+        {
+            Destroy(ReplayCharacterData.Instance.gameObject);
+        }
+        if (ReplayEnemyGladData.Instance != null)
+        {
+            Destroy(ReplayEnemyGladData.Instance.gameObject);
+        }
+        if (ReplayManager.Instance != null)
+        {
+            Destroy(ReplayManager.Instance.gameObject);
+        }
+        sceneController.LoadScene("Arena");
+    }
+
+    private IEnumerator BlinkReplayText()
+    {
+        float duration = 1f; // Hur snabbt texten ska blinka
+
+        while (true)
+        {
+            // Fade out
+            yield return StartCoroutine(FadeTextAlpha(1f, 0f, duration / 2));
+            // Fade in
+            yield return StartCoroutine(FadeTextAlpha(0f, 1f, duration / 2));
+        }
+    }
+
+    private IEnumerator FadeTextAlpha(float from, float to, float time)
+    {
+        float timer = 0f;
+        while (timer < time)
+        {
+            float alpha = Mathf.Lerp(from, to, timer / time);
+            Color c = replayText.color;
+            c.a = alpha;
+            replayText.color = c;
+            timer += Time.deltaTime;
+            yield return null;
+        }
+
+        // Sätt till exakt slutvärde för säkerhets skull
+        Color finalColor = replayText.color;
+        finalColor.a = to;
+        replayText.color = finalColor;
+    }
+
+    public void StartBlinkingReplayText()
+    {
+        if (blinkingCoroutine == null)
+            blinkingCoroutine = StartCoroutine(BlinkReplayText());
+    }
+
+    public void StopBlinkingReplayText()
+    {
+        if (blinkingCoroutine != null)
+        {
+            StopCoroutine(blinkingCoroutine);
+            blinkingCoroutine = null;
+
+            // Sätt texten helt synlig efteråt om du vill
+            var color = replayText.color;
+            color.a = 1f;
+            replayText.color = color;
+        }
+    }
+
+    public bool CheckStrength()
+    {
+        int petcheckstrength = 0;
+        foreach (GameObject pet in petObjects)
+        {
+            petcheckstrength += pet.GetComponent<MonsterStats>().AttackDamage;
+        }
+
+        int checkstrength = 0;
+        foreach (GameObject enemyPet in enemyPetObjects)
+        {
+            checkstrength += enemyPet.GetComponent<MonsterStats>().AttackDamage;
+        }
+        return checkstrength + ReplayEnemyGladData.Instance.Strength > ReplayCharacterData.Instance.Strength + petcheckstrength;
     }
 }
 

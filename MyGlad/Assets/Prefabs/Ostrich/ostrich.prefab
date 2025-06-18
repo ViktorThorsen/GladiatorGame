@@ -6837,16 +6837,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   monsterName: Ostrich
-  health: 200
-  attackDamage: 10
+  health: 400
+  attackDamage: 15
   lifeSteal: 0
-  dodgeRate: 0
-  critRate: 0
+  dodgeRate: 20
+  critRate: 20
   stunRate: 0
+  hitRate: 0
+  defense: 0
   initiative: 0
+  combo: 50
   scale: {x: 0.5, y: 0.5, z: 1}
-  xpReward: 200
-  itemreward: 0
+  xpReward: 600
+  coinReward: 25
+  icon: {fileID: 21300000, guid: 76262e4cfbbe3ce47b46964a2232947d, type: 3}
 --- !u!1 &7740457320435936375
 GameObject:
   m_ObjectHideFlags: 0

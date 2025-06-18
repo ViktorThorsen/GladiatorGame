@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using System.Linq;
 
-public enum SlotType { Weapon, Consumable, Pet, Shortcut }
+public enum SlotType { Weapon, Consumable, Pet, Shortcut, Trash }
 
 public class DropSlotHandler : MonoBehaviour, IDropHandler, IPointerClickHandler
 {
@@ -20,6 +20,30 @@ public class DropSlotHandler : MonoBehaviour, IDropHandler, IPointerClickHandler
         Transform originalSlot = dragHandler.OriginalParent;
         var originalSlotHandler = originalSlot.GetComponent<DropSlotHandler>();
 
+        // 🗑️ Hantera Trash-slot separat
+        if (slotType == SlotType.Trash)
+        {
+            var itemUI = droppedObject.GetComponent<ItemUI>();
+            if (itemUI != null)
+            {
+                int index = Inventory.Instance.inventoryWeapons.IndexOf(itemUI.Item);
+                if (index != -1)
+                {
+                    GenericConfirmPopup.Instance.Show(
+                        "Delete Item?",
+                        $"Are you sure you want to delete {itemUI.Item.itemName}?\nThis action is permanent.",
+                        itemUI.Item.itemIcon,
+                        () =>
+                        {
+                            Inventory.Instance.RemoveWeapon(itemUI.Item);
+                            Destroy(droppedObject);
+                        }
+                    );
+                }
+            }
+            return;
+        }
+
         // ✅ Hantera SHORTCUT separat
         if (slotType == SlotType.Shortcut)
         {
@@ -30,7 +54,6 @@ public class DropSlotHandler : MonoBehaviour, IDropHandler, IPointerClickHandler
                 return;
             }
 
-            // 🔍 Hitta index i weapon-listan
             int weaponIndex = Inventory.Instance.inventoryWeapons.FindIndex(w => w == itemUI.Item);
             if (weaponIndex == -1)
             {
@@ -38,13 +61,11 @@ public class DropSlotHandler : MonoBehaviour, IDropHandler, IPointerClickHandler
                 return;
             }
 
-            // 🧹 Rensa tidigare innehåll i denna shortcutslot
             foreach (Transform child in transform)
             {
                 Destroy(child.gameObject);
             }
 
-            // 🧱 Skapa visuell kopia
             GameObject clone = Instantiate(droppedObject, transform);
             clone.transform.localPosition = Vector3.zero;
             clone.transform.localScale = Vector3.one;
@@ -54,7 +75,6 @@ public class DropSlotHandler : MonoBehaviour, IDropHandler, IPointerClickHandler
             var cg = clone.GetComponent<CanvasGroup>();
             if (cg != null) Destroy(cg);
 
-            // ✅ Uppdatera shortcut-indexlistan
             Inventory.Instance.AssignWeaponToShortcut(weaponIndex, slotIndex);
 
             Debug.Log($"✅ {itemUI.Item.itemName} tilldelad shortcut-slot {slotIndex} (index i weaponlist: {weaponIndex})");
@@ -64,6 +84,41 @@ public class DropSlotHandler : MonoBehaviour, IDropHandler, IPointerClickHandler
         // 🔁 SWAP för vanliga slots (Weapon/Consumable/Pet)
         if (originalSlotHandler == null) return;
 
+        // ✅ Typvalidering INNAN flytt
+        var itemUIComponent = droppedObject.GetComponent<ItemUI>();
+        Item item = itemUIComponent != null ? itemUIComponent.Item : null;
+
+        MonsterStats petStats = droppedObject.GetComponent<MonsterStats>();
+        bool isPet = petStats != null;
+
+        switch (slotType)
+        {
+            case SlotType.Weapon:
+                if (item == null || item.itemType != ItemType.Weapon)
+                {
+                    Debug.Log("❌ Only weapons can be dropped in weapon slots.");
+                    return;
+                }
+                break;
+
+            case SlotType.Consumable:
+                if (item == null || item.itemType != ItemType.Consumable)
+                {
+                    Debug.Log("❌ Only consumables can be dropped in consumable slots.");
+                    return;
+                }
+                break;
+
+            case SlotType.Pet:
+                if (!isPet)
+                {
+                    Debug.Log("❌ Only pets (GameObject with MonsterStats) can be dropped in pet slots.");
+                    return;
+                }
+                break;
+        }
+
+        // ✅ Nu är typen godkänd – gör swap
         if (transform.childCount > 0)
         {
             Transform itemInTargetSlot = transform.GetChild(0);
@@ -87,6 +142,7 @@ public class DropSlotHandler : MonoBehaviour, IDropHandler, IPointerClickHandler
                 break;
         }
     }
+
 
     public void OnPointerClick(PointerEventData eventData)
     {

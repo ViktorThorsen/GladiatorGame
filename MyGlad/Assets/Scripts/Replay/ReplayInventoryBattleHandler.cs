@@ -201,7 +201,7 @@ public class ReplayInventoryBattleHandler : MonoBehaviour
                     currentWeapon.defense,
                     0,
                     currentWeapon.stunRate,
-                    currentWeapon.lifesteal);
+                    currentWeapon.lifesteal, currentWeapon.initiative);
                 IsWeaponEquipped = true;
 
                 // Remove the item from the combat inventory to mark it as used
@@ -258,7 +258,7 @@ public class ReplayInventoryBattleHandler : MonoBehaviour
                     currentWeapon.defense,
                     0,
                     currentWeapon.stunRate,
-                    currentWeapon.lifesteal);
+                    currentWeapon.lifesteal, currentWeapon.initiative);
             currentWeapon = null;
             IsWeaponEquipped = false;
         }

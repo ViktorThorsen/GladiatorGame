@@ -1334,13 +1334,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4403514431997459963}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0.4068581, w: -0.91349137}
-  m_LocalPosition: {x: 0.5500458, y: 0.15001711, z: 0}
-  m_LocalScale: {x: 0.15534323, y: 0.15534323, z: 0.5443}
+  m_LocalRotation: {x: -0, y: -0, z: -0.4097544, w: -0.9121959}
+  m_LocalPosition: {x: 0.7, y: 0.27, z: 0}
+  m_LocalScale: {x: -0.6721348, y: 0.6721348, z: 2.355063}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 6515111011404193966}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 48.015}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 408.379}
 --- !u!212 &6101397268355234016
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -1387,7 +1387,7 @@ SpriteRenderer:
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 8.12, y: 8.56}
+  m_Size: {x: 2.83, y: 3.72}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 0
@@ -1490,7 +1490,7 @@ Transform:
   m_Children:
   - {fileID: 2154983560384296809}
   m_Father: {fileID: 1972248650640752490}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: -7.887}
 --- !u!1 &5259474271422704996
 GameObject:
   m_ObjectHideFlags: 0
@@ -2437,13 +2437,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8545772931178004995}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: 0.33011493, w: -0.94394076}
-  m_LocalPosition: {x: 1.35, y: 1.03, z: 0}
-  m_LocalScale: {x: 1.02, y: 1.02, z: 1.02}
-  m_ConstrainProportionsScale: 1
+  m_LocalRotation: {x: -0, y: -0, z: 0.83453166, w: 0.5509601}
+  m_LocalPosition: {x: 1.29, y: 1.24, z: 0}
+  m_LocalScale: {x: 0.36411023, y: 0.36411023, z: 0.0050091683}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3304744788799827575}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 321.448}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 113.134}
 --- !u!212 &7000414797221820770
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -2490,7 +2490,7 @@ SpriteRenderer:
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 5.27, y: 8.1}
+  m_Size: {x: 10.24, y: 15.36}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 0

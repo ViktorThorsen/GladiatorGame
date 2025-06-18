@@ -35,7 +35,7 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
 
     public int venomousTouchDamage;
 
-
+    private int momentum = 10;
 
     Vector3 screenLeft;
     Vector3 screenRight;
@@ -69,7 +69,7 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
         }
         playerFeet = player.transform.Find("Feet");
         anim = GetComponent<Animator>();
-        playerSpeed = 30;
+        playerSpeed = 40;
         playerInventoryBattleHandler = player.GetComponent<ArenaEnemyInventoryBattleHandler>();
         skillBattleHandler = player.GetComponent<SkillBattleHandler>();
         playerHealthManager = player.GetComponent<ArenaHealthManager>();
@@ -105,6 +105,14 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
     IEnumerator MoveTowards(Vector2 targetPosition, float stoppingDistance)
     {
         // Ensure the player faces the target position
+        if (playerFeet.position.x < targetPosition.x)
+        {
+            player.transform.localScale = new Vector3(Mathf.Abs(player.transform.localScale.x) * -1, player.transform.localScale.y, player.transform.localScale.z);
+        }
+        else
+        {
+            player.transform.localScale = new Vector3(Mathf.Abs(player.transform.localScale.x), player.transform.localScale.y, player.transform.localScale.z);
+        }
 
         while (Vector2.Distance(playerFeet.position, targetPosition) > stoppingDistance)
         {
@@ -132,11 +140,6 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
         // Always trigger the first hit animation and movement
         anim.SetTrigger("hit");
         MovePlayerToLeft(0.5f);
-
-        if (EnemyGladiatorData.Instance.LifeSteal > 0)
-        {
-            enemyHealthManager.IncreaseHealth(EnemyGladiatorData.Instance.LifeSteal);
-        }
         // Check if the enemy dodges the first hit
         if (EnemyDodges())
         {
@@ -151,7 +154,14 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                 Target = CharacterType.EnemyGlad,
                 Value = 0
             });
-            MoveBackToRandomStart(); // Stop combo and move back to start
+            if (playerHealthManager.CurrentHealth > 0) { MoveBackToRandomStart(); }
+            else
+            {
+                anim.SetBool("run", false);
+                moveCoroutine = null;
+                IsMoving = false;
+                gameManager.RollTime = true;
+            } // Stop combo and move back to start
             yield break; // End the coroutine here
         }
         else
@@ -163,12 +173,12 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                     enemyPlayerMovement.MovePlayerToLeft(0.5f);
 
                     bool enemyStunned = CalculateStun();
-                    if (enemyStunned) { enemyPlayerMovement.Stun(); }
-                    if (EnemyInventory.Instance.HasSkill("VenomousTouch"))
+                    if (enemyStunned && !Inventory.Instance.HasSkill("IronWill")) { enemyPlayerMovement.Stun(); }
+                    if (EnemyInventory.Instance.HasSkill("VenomousTouch") && !Inventory.Instance.HasSkill("CleanseBorn"))
                     {
-                        ApplyVenom();
+                        ApplyVenom(player);
                     }
-                    int damage = CalculateRandomDamage(EnemyGladiatorData.Instance.Strength);
+                    int damage = CalculateRandomDamage(EnemyGladiatorData.Instance.Strength, enemy);
                     bool isCrit = false;
                     int randomValue = Random.Range(0, 100);
                     if (randomValue < EnemyGladiatorData.Instance.CritRate)
@@ -178,6 +188,11 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
 
                     }
                     enemyHealthManager.ReduceHealth(damage + berserkDamage, "Normal", player, isCrit);
+                    CalcLifesteal(damage + berserkDamage);
+                    if (EnemyInventory.Instance.HasSkill("Cleave"))
+                    {
+                        skillBattleHandler.ArenaCleaveDamage(GetAllAliveEnemies(), enemy, damage, player);
+                    }
                     RollForDestroyWeapon();
 
                 }
@@ -189,9 +204,9 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                     if (enemyStunned) { enemyPetMovement.Stun(); }
                     if (EnemyInventory.Instance.HasSkill("VenomousTouch"))
                     {
-                        ApplyVenom();
+                        ApplyVenom(player);
                     }
-                    int damage = CalculateRandomDamage(EnemyGladiatorData.Instance.Strength);
+                    int damage = CalculateRandomDamage(EnemyGladiatorData.Instance.Strength, enemy);
                     bool isCrit = false;
                     int randomValue = Random.Range(0, 100);
                     if (randomValue < EnemyGladiatorData.Instance.CritRate)
@@ -201,22 +216,24 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
 
                     }
                     enemyHealthManager.ReduceHealth(damage + berserkDamage, "Normal", player, isCrit);
+                    CalcLifesteal(damage + berserkDamage);
+                    if (EnemyInventory.Instance.HasSkill("Cleave"))
+                    {
+                        skillBattleHandler.ArenaCleaveDamage(GetAllAliveEnemies(), enemy, damage, player);
+                    }
                     RollForDestroyWeapon();
                 }
             }
         }
         yield return new WaitForSeconds(0.5f);
 
-        int randomNumber = Random.Range(0, 100);
-        if (randomNumber > 50)
+        int randomNumber = Random.Range(0, 100) + EnemyGladiatorData.Instance.combo;
+        if (playerHealthManager.CurrentHealth <= 0) { randomNumber = 0; }
+        if (randomNumber > 60)
         {
             // Always trigger the second hit animation and movement
             anim.SetTrigger("hit1");
             MovePlayerToLeft(0.5f);
-            if (EnemyGladiatorData.Instance.LifeSteal > 0)
-            {
-                enemyHealthManager.IncreaseHealth(EnemyGladiatorData.Instance.LifeSteal);
-            }
             // Check if the enemy dodges the second hit
             if (EnemyDodges())
             {
@@ -231,7 +248,14 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                     Target = CharacterType.EnemyGlad,
                     Value = 0
                 });
-                MoveBackToRandomStart(); // Stop combo and move back to start
+                if (playerHealthManager.CurrentHealth > 0) { MoveBackToRandomStart(); }
+                else
+                {
+                    anim.SetBool("run", false);
+                    moveCoroutine = null;
+                    IsMoving = false;
+                    gameManager.RollTime = true;
+                } // Stop combo and move back to start
                 yield break; // End the coroutine here
             }
             else
@@ -241,12 +265,8 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                     enemyPlayerMovement.MovePlayerToLeft(0.5f);
 
                     bool enemyStunned = CalculateStun();
-                    if (enemyStunned) { enemyPlayerMovement.Stun(); }
-                    if (EnemyInventory.Instance.HasSkill("VenomousTouch"))
-                    {
-                        ApplyVenom();
-                    }
-                    int damage = CalculateRandomDamage(EnemyGladiatorData.Instance.Strength);
+                    if (enemyStunned && !Inventory.Instance.HasSkill("IronWill")) { enemyPlayerMovement.Stun(); }
+                    int damage = CalculateRandomDamage(EnemyGladiatorData.Instance.Strength, enemy);
                     bool isCrit = false;
                     int randomValue = Random.Range(0, 100);
                     if (randomValue < EnemyGladiatorData.Instance.CritRate)
@@ -256,6 +276,11 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
 
                     }
                     enemyHealthManager.ReduceHealth(damage + berserkDamage, "Normal", player, isCrit);
+                    CalcLifesteal(damage + berserkDamage);
+                    if (EnemyInventory.Instance.HasSkill("Cleave"))
+                    {
+                        skillBattleHandler.ArenaCleaveDamage(GetAllAliveEnemies(), enemy, damage, player);
+                    }
                     RollForDestroyWeapon();
                 }
                 else
@@ -264,11 +289,7 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
 
                     bool enemyStunned = CalculateStun();
                     if (enemyStunned) { enemyPetMovement.Stun(); }
-                    if (EnemyInventory.Instance.HasSkill("VenomousTouch"))
-                    {
-                        ApplyVenom();
-                    }
-                    int damage = CalculateRandomDamage(EnemyGladiatorData.Instance.Strength);
+                    int damage = CalculateRandomDamage(EnemyGladiatorData.Instance.Strength, enemy);
                     bool isCrit = false;
                     int randomValue = Random.Range(0, 100);
                     if (randomValue < EnemyGladiatorData.Instance.CritRate)
@@ -278,22 +299,24 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
 
                     }
                     enemyHealthManager.ReduceHealth(damage + berserkDamage, "Normal", player, isCrit);
+                    CalcLifesteal(damage + berserkDamage);
+                    if (EnemyInventory.Instance.HasSkill("Cleave"))
+                    {
+                        skillBattleHandler.ArenaCleaveDamage(GetAllAliveEnemies(), enemy, damage, player);
+                    }
                     RollForDestroyWeapon();
 
                 }
             }
 
             yield return new WaitForSeconds(0.5f);
-            int randomNumber1 = Random.Range(0, 100);
-            if (randomNumber1 > 50)
+            int randomNumber1 = Random.Range(0, 100) + EnemyGladiatorData.Instance.combo;
+            if (playerHealthManager.CurrentHealth <= 0) { randomNumber1 = 0; }
+            if (randomNumber1 > 60)
             {
                 // Always trigger the third hit animation and movement
                 anim.SetTrigger("hook");
                 MovePlayerToLeft(0.5f);
-                if (EnemyGladiatorData.Instance.LifeSteal > 0)
-                {
-                    enemyHealthManager.IncreaseHealth(EnemyGladiatorData.Instance.LifeSteal);
-                }
                 // Check if the enemy dodges the third hit
                 if (EnemyDodges())
                 {
@@ -308,7 +331,14 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                         Target = CharacterType.EnemyGlad,
                         Value = 0
                     });
-                    MoveBackToRandomStart(); // Stop combo and move back to start
+                    if (playerHealthManager.CurrentHealth > 0) { MoveBackToRandomStart(); }
+                    else
+                    {
+                        anim.SetBool("run", false);
+                        moveCoroutine = null;
+                        IsMoving = false;
+                        gameManager.RollTime = true;
+                    } // Stop combo and move back to start
                     yield break; // End the coroutine here
                 }
                 else
@@ -318,12 +348,9 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                         enemyPlayerMovement.MovePlayerToLeft(0.5f);
 
                         bool enemyStunned = CalculateStun();
-                        if (enemyStunned) { enemyPlayerMovement.Stun(); }
-                        if (EnemyInventory.Instance.HasSkill("VenomousTouch"))
-                        {
-                            ApplyVenom();
-                        }
-                        int damage = CalculateRandomDamage(EnemyGladiatorData.Instance.Strength);
+                        if (enemyStunned && !Inventory.Instance.HasSkill("IronWill")) { enemyPlayerMovement.Stun(); }
+
+                        int damage = CalculateRandomDamage(EnemyGladiatorData.Instance.Strength, enemy);
                         bool isCrit = false;
                         int randomValue = Random.Range(0, 100);
                         if (randomValue < EnemyGladiatorData.Instance.CritRate)
@@ -333,6 +360,11 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
 
                         }
                         enemyHealthManager.ReduceHealth(damage + berserkDamage, "Normal", player, isCrit);
+                        CalcLifesteal(damage + berserkDamage);
+                        if (EnemyInventory.Instance.HasSkill("Cleave"))
+                        {
+                            skillBattleHandler.ArenaCleaveDamage(GetAllAliveEnemies(), enemy, damage, player);
+                        }
                         RollForDestroyWeapon();
 
                     }
@@ -342,11 +374,8 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
 
                         bool enemyStunned = CalculateStun();
                         if (enemyStunned) { enemyPetMovement.Stun(); }
-                        if (EnemyInventory.Instance.HasSkill("VenomousTouch"))
-                        {
-                            ApplyVenom();
-                        }
-                        int damage = CalculateRandomDamage(EnemyGladiatorData.Instance.Strength);
+
+                        int damage = CalculateRandomDamage(EnemyGladiatorData.Instance.Strength, enemy);
                         bool isCrit = false;
                         int randomValue = Random.Range(0, 100);
                         if (randomValue < EnemyGladiatorData.Instance.CritRate)
@@ -356,22 +385,24 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
 
                         }
                         enemyHealthManager.ReduceHealth(damage + berserkDamage, "Normal", player, isCrit);
+                        CalcLifesteal(damage + berserkDamage);
+                        if (EnemyInventory.Instance.HasSkill("Cleave"))
+                        {
+                            skillBattleHandler.ArenaCleaveDamage(GetAllAliveEnemies(), enemy, damage, player);
+                        }
                         RollForDestroyWeapon();
 
                     }
                 }
 
                 yield return new WaitForSeconds(0.5f);
-                int randomNumber2 = Random.Range(0, 100);
-                if (randomNumber2 > 50)
+                int randomNumber2 = Random.Range(0, 100) + EnemyGladiatorData.Instance.combo;
+                if (playerHealthManager.CurrentHealth <= 0) { randomNumber2 = 0; }
+                if (randomNumber2 > 60)
                 {
                     // Always trigger the fourth hit animation and movement
                     anim.SetTrigger("uppercut");
                     MovePlayerToLeft(0.5f);
-                    if (EnemyGladiatorData.Instance.LifeSteal > 0)
-                    {
-                        enemyHealthManager.IncreaseHealth(EnemyGladiatorData.Instance.LifeSteal);
-                    }
                     // Check if the enemy dodges the fourth hit
                     if (EnemyDodges())
                     {
@@ -386,7 +417,14 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                             Target = CharacterType.EnemyGlad,
                             Value = 0
                         });
-                        MoveBackToRandomStart(); // Stop combo and move back to start
+                        if (playerHealthManager.CurrentHealth > 0) { MoveBackToRandomStart(); }
+                        else
+                        {
+                            anim.SetBool("run", false);
+                            moveCoroutine = null;
+                            IsMoving = false;
+                            gameManager.RollTime = true;
+                        } // Stop combo and move back to start
                         yield break; // End the coroutine here
                     }
                     else
@@ -396,12 +434,9 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                             enemyPlayerMovement.MovePlayerToLeft(0.5f);
 
                             bool enemyStunned = CalculateStun();
-                            if (enemyStunned) { enemyPlayerMovement.Stun(); }
-                            if (EnemyInventory.Instance.HasSkill("VenomousTouch"))
-                            {
-                                ApplyVenom();
-                            }
-                            int damage = CalculateRandomDamage(EnemyGladiatorData.Instance.Strength);
+                            if (enemyStunned && !Inventory.Instance.HasSkill("IronWill")) { enemyPlayerMovement.Stun(); }
+
+                            int damage = CalculateRandomDamage(EnemyGladiatorData.Instance.Strength, enemy);
                             bool isCrit = false;
                             int randomValue = Random.Range(0, 100);
                             if (randomValue < EnemyGladiatorData.Instance.CritRate)
@@ -411,6 +446,11 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
 
                             }
                             enemyHealthManager.ReduceHealth(damage + berserkDamage, "Normal", player, isCrit);
+                            CalcLifesteal(damage + berserkDamage);
+                            if (EnemyInventory.Instance.HasSkill("Cleave"))
+                            {
+                                skillBattleHandler.ArenaCleaveDamage(GetAllAliveEnemies(), enemy, damage, player);
+                            }
                             RollForDestroyWeapon();
 
                         }
@@ -420,11 +460,8 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
 
                             bool enemyStunned = CalculateStun();
                             if (enemyStunned) { enemyPetMovement.Stun(); }
-                            if (EnemyInventory.Instance.HasSkill("VenomousTouch"))
-                            {
-                                ApplyVenom();
-                            }
-                            int damage = CalculateRandomDamage(EnemyGladiatorData.Instance.Strength);
+
+                            int damage = CalculateRandomDamage(EnemyGladiatorData.Instance.Strength, enemy);
                             bool isCrit = false;
                             int randomValue = Random.Range(0, 100);
                             if (randomValue < EnemyGladiatorData.Instance.CritRate)
@@ -434,6 +471,11 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
 
                             }
                             enemyHealthManager.ReduceHealth(damage + berserkDamage, "Normal", player, isCrit);
+                            CalcLifesteal(damage + berserkDamage);
+                            if (EnemyInventory.Instance.HasSkill("Cleave"))
+                            {
+                                skillBattleHandler.ArenaCleaveDamage(GetAllAliveEnemies(), enemy, damage, player);
+                            }
                             RollForDestroyWeapon();
 
                         }
@@ -443,7 +485,7 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                     anim.SetTrigger("stophit");
                     yield return new WaitForSeconds(0.05f);
                     int randomNumberCounter = Random.Range(0, 100);
-                    if (randomNumberCounter > 50 && enemy.tag == "Player" && Inventory.Instance.HasSkill("CounterStrike") && !gameManager.IsGameOver)
+                    if (randomNumberCounter > 50 && enemy.tag == "Player" && Inventory.Instance.HasSkill("CounterStrike") && !gameManager.IsGameOver && EnemyInventory.Instance.HasSkill("Unreturnable") && !enemyPlayerMovement.IsStunned)
                     {
                         SkillBattleHandler playerSkills = enemy.GetComponent<SkillBattleHandler>();
 
@@ -463,9 +505,14 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                             }
                         });
                     }
+                    else if (playerHealthManager.CurrentHealth > 0)
+                    { MoveBackToRandomStart(); }
                     else
                     {
-                        MoveBackToRandomStart();
+                        anim.SetBool("run", false);
+                        moveCoroutine = null;
+                        IsMoving = false;
+                        gameManager.RollTime = true;
                     }
                 }
                 else
@@ -473,7 +520,7 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                     anim.SetTrigger("stophit");
                     yield return new WaitForSeconds(0.05f);
                     int randomNumberCounter = Random.Range(0, 100);
-                    if (randomNumberCounter > 50 && enemy.tag == "Player" && Inventory.Instance.HasSkill("CounterStrike") && !gameManager.IsGameOver)
+                    if (randomNumberCounter > 50 && enemy.tag == "Player" && Inventory.Instance.HasSkill("CounterStrike") && !gameManager.IsGameOver && EnemyInventory.Instance.HasSkill("Unreturnable") && !enemyPlayerMovement.IsStunned)
                     {
                         SkillBattleHandler playerSkills = enemy.GetComponent<SkillBattleHandler>();
 
@@ -493,9 +540,14 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                             }
                         });
                     }
+                    else if (playerHealthManager.CurrentHealth > 0)
+                    { MoveBackToRandomStart(); }
                     else
                     {
-                        MoveBackToRandomStart();
+                        anim.SetBool("run", false);
+                        moveCoroutine = null;
+                        IsMoving = false;
+                        gameManager.RollTime = true;
                     }
                 }
             }
@@ -504,7 +556,7 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                 anim.SetTrigger("stophit");
                 yield return new WaitForSeconds(0.05f);
                 int randomNumberCounter = Random.Range(0, 100);
-                if (randomNumberCounter > 50 && enemy.tag == "Player" && Inventory.Instance.HasSkill("CounterStrike") && !gameManager.IsGameOver)
+                if (randomNumberCounter > 50 && enemy.tag == "Player" && Inventory.Instance.HasSkill("CounterStrike") && !gameManager.IsGameOver && EnemyInventory.Instance.HasSkill("Unreturnable") && !enemyPlayerMovement.IsStunned)
                 {
                     SkillBattleHandler playerSkills = enemy.GetComponent<SkillBattleHandler>();
 
@@ -524,9 +576,14 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                         }
                     });
                 }
+                else if (playerHealthManager.CurrentHealth > 0)
+                { MoveBackToRandomStart(); }
                 else
                 {
-                    MoveBackToRandomStart();
+                    anim.SetBool("run", false);
+                    moveCoroutine = null;
+                    IsMoving = false;
+                    gameManager.RollTime = true;
                 }
             }
         }
@@ -535,7 +592,7 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
             anim.SetTrigger("stophit");
             yield return new WaitForSeconds(0.05f);
             int randomNumberCounter = Random.Range(0, 100);
-            if (randomNumberCounter > 50 && enemy.tag == "Player" && Inventory.Instance.HasSkill("CounterStrike") && !gameManager.IsGameOver)
+            if (randomNumberCounter > 50 && enemy.tag == "Player" && Inventory.Instance.HasSkill("CounterStrike") && !gameManager.IsGameOver && EnemyInventory.Instance.HasSkill("Unreturnable") && !enemyPlayerMovement.IsStunned)
             {
                 SkillBattleHandler playerSkills = enemy.GetComponent<SkillBattleHandler>();
 
@@ -555,9 +612,14 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                     }
                 });
             }
+            else if (playerHealthManager.CurrentHealth > 0)
+            { MoveBackToRandomStart(); }
             else
             {
-                MoveBackToRandomStart();
+                anim.SetBool("run", false);
+                moveCoroutine = null;
+                IsMoving = false;
+                gameManager.RollTime = true;
             }
         }
     }
@@ -607,6 +669,40 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
         return true;
     }
 
+    private void CalcLifesteal(int damage)
+    {
+        int baseLifeSteal = EnemyGladiatorData.Instance.LifeSteal;
+
+        if (baseLifeSteal > 0)
+        {
+            float lifeStealMultiplier = baseLifeSteal / 100f;
+
+            var vampSkillInstance = EnemyInventory.Instance.GetSkills()
+                .FirstOrDefault(s => s.skillName == "Vampyre");
+
+            if (vampSkillInstance != null)
+            {
+                Skill vampSkillData = vampSkillInstance.GetSkillData(); // Hämtar ScriptableObject från databasen
+                int level = vampSkillInstance.level;
+
+                int bonusPercent = level switch
+                {
+                    1 => vampSkillData.effectPercentIncreaseLevel1,
+                    2 => vampSkillData.effectPercentIncreaseLevel2,
+                    3 => vampSkillData.effectPercentIncreaseLevel3,
+                    _ => 0
+                };
+
+                lifeStealMultiplier += bonusPercent / 100f;
+            }
+
+            int vampBonus = Mathf.RoundToInt(damage * lifeStealMultiplier);
+            if (vampBonus < 1) vampBonus = 1;
+
+            playerHealthManager.IncreaseHealth(vampBonus);
+        }
+    }
+
     private bool EnemyDodges()
     {
         ArenaHealthManager arenaHealthManager = enemy.GetComponent<ArenaHealthManager>();
@@ -614,22 +710,34 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
         {
             if (enemy.tag == "Player")
             {
-                int dodgeChance = EnemyGladiatorData.Instance.DodgeRate; // Assume dodge chance is 30%
-                int randomValue = Random.Range(0, 100);
-                return randomValue < dodgeChance;
+                if (enemyPlayerMovement.IsStunned)
+                {
+                    return false;
+                }
+                else
+                {
+                    int dodgeChance = CharacterData.Instance.DodgeRate; // Assume dodge chance is 30%
+                    int randomValue = Random.Range(0, 100);
+                    dodgeChance = dodgeChance - EnemyGladiatorData.Instance.HitRate;
+                    return randomValue < dodgeChance;
+                }
             }
             else
             {
-                MonsterStats enemyPetstats = enemy.GetComponent<MonsterStats>();
-                int dodgeChance = enemyPetstats.DodgeRate; // Assume dodge chance is 30%
-                int randomValue = Random.Range(0, 100);
-                return randomValue < dodgeChance;
+                if (enemyPetMovement.IsStunned)
+                {
+                    return false;
+                }
+                else
+                {
+                    MonsterStats enemyPetstats = enemy.GetComponent<MonsterStats>();
+                    int dodgeChance = enemyPetstats.DodgeRate; // Assume dodge chance is 30%
+                    int randomValue = Random.Range(0, 100);
+                    return randomValue < dodgeChance;
+                }
             }
         }
         else return false;
-
-
-
     }
 
     public void MovePlayerToRight(float distance)
@@ -664,7 +772,6 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
     }
     public void Stun()
     {
-        CombatTextManager.Instance.SpawnText("Stunned", player.transform.position + Vector3.up * 1.5f, "#FFFFFF");
         isStunned = true;
         anim.SetBool("stunned", true);
         ReplayData.Instance.AddAction(new MatchEventDTO
@@ -696,21 +803,79 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
         else { return false; }
     }
 
-    private void ApplyVenom()
+    private void ApplyVenom(GameObject dealer)
     {
-        enemyHealthManager.ApplyVenom();
+        enemyHealthManager.ApplyVenom(dealer);
+    }
+    private List<GameObject> GetAllAliveEnemies()
+    {
+        List<GameObject> aliveEnemies = new List<GameObject>();
+
+        foreach (GameObject enemy in availableEnemies)
+        {
+            ArenaHealthManager HM = enemy.GetComponent<ArenaHealthManager>();
+            if (!HM.IsDead)
+            {
+                aliveEnemies.Add(enemy); // Only add alive enemies to the list
+            }
+        }
+        return aliveEnemies;
     }
 
-    public int CalculateRandomDamage(int baseDamage)
+    public int CalculateRandomDamage(int baseDamage, GameObject enemy)
     {
-        // Calculate a random damage between baseDamage - 2 and baseDamage + 2
-        int minDamage = baseDamage - 2;
-        int maxDamage = baseDamage + 2;
+        if (enemy.tag == "Player")
+        {
+            // Calculate a random damage between baseDamage - 2 and baseDamage + 2
+            int minDamage = Mathf.RoundToInt(baseDamage * 0.9f);
+            int maxDamage = Mathf.RoundToInt(baseDamage * 1.1f);
 
-        // Ensure the minimum damage is at least 1
-        if (minDamage < 1) { minDamage = 1; }
-        int randomDmg = Random.Range(minDamage, maxDamage + 1);
-        return randomDmg; // Random.Range is inclusive for integers
+            // Ensure the minimum damage is at least 1
+            if (minDamage < 1) { minDamage = 1; }
+            int randomDmg = Random.Range(minDamage, maxDamage + 1);
+            int effectiveDefense;
+            if (EnemyInventory.Instance.HasSkill("SurgicalCut"))
+            {
+                effectiveDefense = Mathf.RoundToInt(CharacterData.Instance.Defense * 0.5f);
+            }
+            else
+            {
+                effectiveDefense = CharacterData.Instance.Defense;
+            }
+
+            randomDmg = randomDmg - effectiveDefense;
+            if (randomDmg < 1)
+            {
+                randomDmg = 1;
+            }
+            return randomDmg; // Random.Range is inclusive for integers
+        }
+        else
+        {
+            monsterStats = enemy.GetComponent<MonsterStats>();
+            int minDamage = Mathf.RoundToInt(baseDamage * 0.9f);
+            int maxDamage = Mathf.RoundToInt(baseDamage * 1.1f);
+
+            // Ensure the minimum damage is at least 1
+            if (minDamage < 1) { minDamage = 1; }
+            int randomDmg = Random.Range(minDamage, maxDamage + 1);
+            int effectiveDefense;
+            if (EnemyInventory.Instance.HasSkill("SurgicalCut"))
+            {
+                effectiveDefense = Mathf.RoundToInt(monsterStats.defense * 0.5f);
+            }
+            else
+            {
+                effectiveDefense = monsterStats.defense;
+            }
+
+            randomDmg = randomDmg - effectiveDefense;
+            if (randomDmg < 1)
+            {
+                randomDmg = 1;
+            }
+            return randomDmg; // Random.Range is inclusive for integers
+        }
     }
 
     public void MoveBackToRandomStart()
@@ -733,7 +898,7 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
                 positionIndex = randomPositionIndex;
                 valid = false;
                 targetEnemySet = false;
-                if (berserkDamage > 0)
+                if (playerHealthManager.CurrentHealth > playerHealthManager.maxHealth / 3)
                 {
                     berserkDamage = 0;
                     skillBattleHandler.EndBerserk(player);
@@ -794,20 +959,27 @@ public class ArenaEnemyPlayerMovement : MonoBehaviour
         float dodgeDirection = transform.position.y < screenCenterY ? 1f : -1f; // Dodge up if below center, down if above
 
         // Calculate the dodge target position based on direction and distance
-        Vector2 dodgePosition = new Vector2(transform.position.x, transform.position.y + dodgeDirection * dodgeDistance);
+        Vector3 dodgePosition = new Vector3(transform.position.x, transform.position.y + dodgeDirection * dodgeDistance, transform.position.z);
 
         // Move the player to the dodge position over time
-        StartCoroutine(DodgeMove(dodgePosition, dodgeDirection));
+        StartCoroutine(DodgeMove(dodgePosition));
     }
 
-    IEnumerator DodgeMove(Vector3 targetPosition, float dodgeDirection)
+    IEnumerator DodgeMove(Vector3 targetPosition)
     {
 
-        // Instantly set the player's position to the dodge target position
-        CombatTextManager.Instance.SpawnText("Dodge", player.transform.position + Vector3.up * 1.5f, "#FFFFFF");
-        transform.position = targetPosition;
+        float duration = 0.15f; // hur snabbt dodgen ska gå
+        float elapsed = 0f;
+        Vector3 startPosition = transform.position;
 
-        yield return null; // Yield to ensure any other logic can complete if necessary
+        while (elapsed < duration)
+        {
+            transform.position = Vector3.Lerp(startPosition, targetPosition, elapsed / duration);
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        transform.position = targetPosition; // säkerställ exakt slutposition
     }
 
     private CharacterType GetCharacterType(string tag)

@@ -14,6 +14,7 @@ public class MonsterHuntManager : MonoBehaviour
     [SerializeField] private RectTransform contentRect;
 
     [SerializeField] private Button playbutton;
+    [SerializeField] private FeedbackPopup feedbackPopupManager;
 
     // Use a List instead of an array to store multiple monster names
     private List<string> selectedMonsterNames = new List<string>();
@@ -77,7 +78,7 @@ public class MonsterHuntManager : MonoBehaviour
 
     private IEnumerator LoadStageAndLog(string map)
     {
-        yield return StartCoroutine(FetchMonsterHuntStage(CharacterData.Instance.Id, map));
+        yield return StartCoroutine(FetchMonsterHuntStage(PlayerPrefs.GetInt("characterId"), map));
         Debug.Log($"✅ är på stage: {currentStage}");
     }
 
@@ -122,35 +123,36 @@ public class MonsterHuntManager : MonoBehaviour
     public void OnStartMatchButtonClicked()
     {
         if (selectedStage > 0)
-        { TryStartMatch(); }
+        {
+            TryStartMatch();
+        }
         else
         {
-
+            feedbackPopupManager.ShowFeedback("No stage is selected", "Select a stage before you press play");
         }
-
     }
 
     public void TryStartMatch()
     {
-        if (CharacterData.Instance.Energy > 0)
-        {
-            Debug.Log("✅ Tillräcklig energi, startar match...");
-            StartCoroutine(StartMatchSequence());
-        }
-        else
-        {
-            Debug.LogWarning("❌ Inte tillräcklig energi för att starta match!");
-            ShowNoEnergyPopup();
-        }
+        StartCoroutine(StartMatchSequence());
     }
 
     private IEnumerator StartMatchSequence()
     {
-        // Använd energi först
-        yield return StartCoroutine(CharacterData.Instance.UseEnergyForMatch());
+        // Anropa energianvändning, och vänta på svar
+        bool success = false;
+        yield return StartCoroutine(CharacterData.Instance.UseEnergyForMatch(result => success = result));
 
-        // Sen starta själva matchen här
-        SceneController.instance.LoadScene("Battle");
+        if (success)
+        {
+            Debug.Log("✅ Energi avdragen, startar match...");
+            SceneController.instance.LoadScene("Battle");
+        }
+        else
+        {
+            Debug.LogWarning("❌ Inte tillräcklig energi – match startas inte.");
+            ShowNoEnergyPopup();
+        }
     }
 
     public void OnBackButtonClick()
@@ -164,12 +166,12 @@ public class MonsterHuntManager : MonoBehaviour
 
     private void ShowNoEnergyPopup()
     {
-        // Här kan du öppna ett UI-fönster eller visa ett meddelande
-        Debug.LogWarning("⚡ Du behöver mer energi för att spela!");
+        feedbackPopupManager.ShowFeedback("Not enough Energy", "Your character doesnt have enough energy to fight");
     }
 
     public IEnumerator FetchMonsterHuntStage(int characterId, string map)
     {
+        Debug.Log("Character id som skickas till monsterstage = " + characterId.ToString());
         string url = $"http://localhost:5000/api/monsterhunt?characterId={characterId}&map={UnityWebRequest.EscapeURL(map)}";
         UnityWebRequest request = UnityWebRequest.Get(url);
 
@@ -188,7 +190,7 @@ public class MonsterHuntManager : MonoBehaviour
             }
             else
             {
-                Debug.LogWarning("⚠️ Fick inget giltigt stage-värde tillbaka.");
+                Debug.LogWarning("⚠️ Fick inget giltigt stage-värde tillbaka." + stage);
             }
         }
         else if (request.responseCode == 404)

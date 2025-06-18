@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6478961335050794fbd1bd02aedb4313, type: 3}
+  m_Name: ItemSpikeClub
+  m_EditorClassIdentifier: 
+  itemName: Spike Club
+  itemIcon: {fileID: 21300000, guid: a763eabc10bb1734c8c9b69b82b97355, type: 3}
+  itemSprite: {fileID: 21300000, guid: a763eabc10bb1734c8c9b69b82b97355, type: 3}
+  equippedPositionOffset: {x: 0.8, y: 0.65, z: 0}
+  equippedRotation: {x: 0, y: 0, z: 111.55681}
+  equippedScale: {x: 0.3066338, y: -0.3066338, z: 0.3066338}
+  description: "You don\u2019t train with a spiked club. You just pick it up, grip
+    it tight, and hope your opponent has worse reflexes than you do."
+  itemType: 0
+  abilityType: 0
+  abilityType1: 0
+  durability: 5
+  healthRestorationAmount: 0
+  strength: 10
+  agility: 0
+  intellect: 0
+  health: 0
+  hit: 0
+  defense: 0
+  stunRate: 0
+  lifesteal: 0
+  initiative: 0
+  combo: -5

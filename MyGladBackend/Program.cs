@@ -30,7 +30,8 @@ builder.Services.AddAuthorization();
 
 
 // Registrera tjänster här, innan builder.Build()
-var dataSourceBuilder = new NpgsqlDataSourceBuilder("Host=89.116.27.193;Database=my_glad_db;Username=grisviktor;Password=admin132;Port=5432;Search Path=public");
+//var dataSourceBuilder = new NpgsqlDataSourceBuilder("Host=89.116.27.193;Database=my_glad_db;Username=grisviktor;Password=admin132;Port=5432;Search Path=public");
+var dataSourceBuilder = new NpgsqlDataSourceBuilder("Host=89.116.27.193;Database=my_glad_db;Username=grisviktor;Password=admin132;Port=5432;Search Path=public;SSL Mode=Disable;Trust Server Certificate=true");
 var db = dataSourceBuilder.Build();
 builder.Services.AddSingleton<NpgsqlDataSource>(db); // <-- måste ligga här
 
@@ -42,16 +43,29 @@ app.UseAuthorization();
 app.MapPost("/api/characters", CharacterRoutes.AddCharacter);
 app.MapGet("/api/characters/{characterId}", CharacterRoutes.GetCharacterByCharacterId);
 app.MapGet("/api/characters/random", CharacterRoutes.GetRandomCharacterName);
+app.MapGet("/api/characters/search", CharacterRoutes.SearchCharactersByName);
+app.MapGet("/api/characters/levelsearch", CharacterRoutes.SearchCharactersByLevel);
+app.MapGet("/api/challenges", ChallengeRoutes.GetChallengesForCharacter);
+app.MapPost("/api/challenges", ChallengeRoutes.AddChallenge).RequireAuthorization();
+app.MapDelete("/api/challenges", ChallengeRoutes.DeleteChallenge);
+app.MapGet("/api/characters/visuals", ChallengeRoutes.GetCharacterVisualsById);
+
 app.MapGet("/api/users/me", UserServiceRoutes.GetUserInfo).RequireAuthorization();
 app.MapGet("/api/user/characters", UserServiceRoutes.GetUserCharacters).RequireAuthorization();
 app.MapPost("/api/user/characters", CharacterRoutes.LinkCharacterToUser).RequireAuthorization();
 app.MapGet("/api/characters/energy", CharacterRoutes.UpdateCharacterEnergy).RequireAuthorization();
+app.MapPost("/api/characters/addcoins", CharacterRoutes.AddCoinsToCharacter).RequireAuthorization();
+app.MapPost("/api/characters/spendcoins", CharacterRoutes.SpendCoinsFromCharacter).RequireAuthorization();
+app.MapGet("/api/characters/skills", CharacterRoutes.GetCharacterSkillsById);
+app.MapGet("/api/leaderboard", CharacterRoutes.GetLeaderboard);
+
 app.MapPost("/api/characters/useenergy", CharacterRoutes.UseEnergy).RequireAuthorization();
 app.MapGet("/api/monsterhunt", MonsterHuntRoutes.GetMonsterHuntInfo).RequireAuthorization();
 app.MapPut("/api/monsterhunt", MonsterHuntRoutes.UpdateMonsterHuntStage).RequireAuthorization();
 app.MapPost("/api/monsterhunt", MonsterHuntRoutes.AddMonsterHuntInfo).RequireAuthorization();
 app.MapPost("/api/replays", ReplayRoutes.SaveReplay).RequireAuthorization();
 app.MapGet("/api/replays/character", ReplayRoutes.GetReplaysForCharacter);
+
 app.MapPost("/api/auth/google", (
     HttpRequest request,
     NpgsqlDataSource db,

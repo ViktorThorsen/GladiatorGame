@@ -18,17 +18,19 @@ MonoBehaviour:
   equippedPositionOffset: {x: 1.42, y: 1.38, z: 0}
   equippedRotation: {x: 0, y: 0, z: 107.95}
   equippedScale: {x: 0.39, y: 0.39, z: 0.39}
-  description: 
+  description: Nature's answer to a budget weapon.
   itemType: 0
   abilityType: 0
-  durability: 5
+  abilityType1: 0
+  durability: 7
   healthRestorationAmount: 0
   strength: 5
   agility: 0
   intellect: 0
   health: 0
-  hit: 0
+  hit: 5
   defense: 0
-  fortune: 0
   stunRate: 0
   lifesteal: 0
+  initiative: 0
+  combo: 10

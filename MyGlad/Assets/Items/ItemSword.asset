@@ -18,17 +18,20 @@ MonoBehaviour:
   equippedPositionOffset: {x: 1.22, y: 0.79, z: 0}
   equippedRotation: {x: 0, y: 0, z: 1}
   equippedScale: {x: 0.33, y: 0.33, z: 0.33}
-  description: 
+  description: "No enchantments. No cursed history. Just steel, weight, and purpose.
+    Sometimes, that\u2019s all you need."
   itemType: 0
   abilityType: 0
-  durability: 5
+  abilityType1: 0
+  durability: 7
   healthRestorationAmount: 0
-  strength: 20
-  agility: 0
+  strength: 15
+  agility: 10
   intellect: 0
   health: 0
-  hit: 0
+  hit: 5
   defense: 0
-  fortune: 0
   stunRate: 0
   lifesteal: 0
+  initiative: 0
+  combo: 0

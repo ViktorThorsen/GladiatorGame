@@ -18,15 +18,20 @@ MonoBehaviour:
   equippedPositionOffset: {x: 0.5500458, y: 0.1500171, z: 0}
   equippedRotation: {x: 0, y: 0, z: 48.015}
   equippedScale: {x: 0.1553432, y: 0.1553432, z: 0.5443}
-  description: 
-  itemType: 2
+  description: "An apple a day keeps the healers away\u2026 unless you're bleeding
+    out, then maybe not."
+  itemType: 1
   abilityType: 1
+  abilityType1: 0
   durability: 0
-  healthRestorationAmount: 15
-  dodgeRate: 0
-  critRate: 0
-  damage: 0
-  health: 0
+  healthRestorationAmount: 10
   strength: 0
   agility: 0
   intellect: 0
+  health: 0
+  hit: 0
+  defense: 0
+  stunRate: 0
+  lifesteal: 0
+  initiative: 0
+  combo: 0

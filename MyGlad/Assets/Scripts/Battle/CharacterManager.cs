@@ -223,8 +223,6 @@ public class CharacterManager : MonoBehaviour
             }
         }
 
-        // TODO: Du kan lägga till komponenter här om du vill att replay-karaktärer ska kunna röra sig, visa HP, etc.
-
         return characterObject;
     }
 

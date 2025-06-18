@@ -97,6 +97,10 @@ public class InventoryBattleHandler : MonoBehaviour
                 {
                     playerHealthManager.IncreaseHealth(itemToConsume.healthRestorationAmount);
                 }
+                if (itemToConsume.abilityType1 == abilityType.damage)
+                {
+                    playerHealthManager.ApplyVenom(thisUnit);
+                }
             }
         }
         anim.SetTrigger("useconsumable");
@@ -205,7 +209,7 @@ public class InventoryBattleHandler : MonoBehaviour
                     currentWeapon.defense,
                     0,
                     currentWeapon.stunRate,
-                    currentWeapon.lifesteal);
+                    currentWeapon.lifesteal, currentWeapon.initiative, currentWeapon.combo);
                 IsWeaponEquipped = true;
 
                 // Remove the item from the combat inventory to mark it as used
@@ -261,7 +265,7 @@ public class InventoryBattleHandler : MonoBehaviour
                     currentWeapon.defense,
                     0,
                     currentWeapon.stunRate,
-                    currentWeapon.lifesteal);
+                    currentWeapon.lifesteal, currentWeapon.initiative, currentWeapon.combo);
             currentWeapon = null;
             IsWeaponEquipped = false;
         }

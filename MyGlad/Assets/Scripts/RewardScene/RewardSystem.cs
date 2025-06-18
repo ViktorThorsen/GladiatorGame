@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Networking;
 using System.Collections;
+using Unity.VisualScripting;
 
 
 public class RewardSystem : MonoBehaviour
@@ -16,10 +17,33 @@ public class RewardSystem : MonoBehaviour
     [SerializeField] private Image[] consumableSlots = new Image[3];
     [SerializeField] private Image[] petSlots = new Image[3];
 
+    [SerializeField] private Sprite coinImage;
+
     [SerializeField] private TMP_Text xpRewardText;
 
     [SerializeField] private Transform rewardSlotParent;
     [SerializeField] private GameObject rewardSlotPrefab;
+    [SerializeField] private GameObject swapPopup;
+
+    [SerializeField] private GameObject swapItemPrefab;
+    [SerializeField] private Image newItemSlot;
+    private SwapItemUI currentlyHighlightedSlot;
+    [SerializeField] private GameObject weaponSwapPanel;
+    [SerializeField] private GameObject consumableSwapPanel;
+    [SerializeField] private GameObject petSwapPanel;
+
+    [SerializeField] private TMP_Text swapInfoText;
+    [SerializeField] private TMP_Text swapInfoTitle;
+    private SwapType pendingSwapType;
+    private Item pendingItemReward;
+    private ItemType pendingItemType;
+    private GameObject pendingPetReward;
+    private bool initiatedFromSceneChooser = false;
+
+    private enum SwapType { Weapon, Consumable, Pet }
+    private Queue<(object item, SwapType type)> pendingSwapQueue = new();
+    private int selectedReplaceIndex = -1;
+
     private bool isLastFightAWin;
     private string[] lastFightNames;
 
@@ -29,39 +53,48 @@ public class RewardSystem : MonoBehaviour
 
     private List<Item> rewardItems = new List<Item>();
     private List<GameObject> rewardPets = new List<GameObject>();
+    int rewardCoin;
 
 
     void Start()
     {
-        GetLastFight();
-        levelUP = false;
-        UpdateInventorySlots();
-        if (isLastFightAWin)
+        if (ChooseLandsManager.Instance != null)
         {
-            Item newWeapon = GetWeaponReward();
-            rewardItems.Add(newWeapon);
-            Item newConsumable = GetConsumableReward();
-            rewardItems.Add(newConsumable);
-            foreach (Skill skill in Inventory.Instance.GetSkills())
+            GetLastFight();
+            levelUP = false;
+            if (isLastFightAWin)
             {
-                if (skill.skillName == "BeastMaster")
+                CharacterData.Instance.needUpdate = true;
+                Item newWeapon = itemDataBase.GetRandomDropForStage(lastFightLand + lastFightStage);
+                if (newWeapon != null)
+                { rewardItems.Add(newWeapon); }
+                Item newConsumable = itemDataBase.GetRandomConsumableForStage(lastFightLand + lastFightStage);
+                if (newConsumable != null) { rewardItems.Add(newConsumable); }
+
+                foreach (SkillInstance skillInstance in Inventory.Instance.GetSkills())
                 {
-                    // If the BeastMaster skill is found, add a pet
-                    GameObject newPet = GetPetReward();
-                    rewardPets.Add(newPet);
+                    if (skillInstance.skillName == "BeastMaster")
+                    {
+                        GameObject newPet = petDataBase.GetRandomPetForStage(lastFightLand + lastFightStage);
+                        if (newPet != null) { rewardPets.Add(newPet); }
+                    }
                 }
+
+                rewardCoin = GetCoinReward();
+                CharacterData.Instance.coins += rewardCoin;
+                int rewardXP = GetXpReward();
+                AddXpToCharacter(rewardXP);
+                UpdateXpDisplay(rewardXP);
+                StartCoroutine(UpdateMonsterHuntStage(
+                CharacterData.Instance.Id, lastFightLand, lastFightStage + 1));
             }
 
-            AddRewardToInventory();
-            int rewardXP = GetXpReward();
-            AddXpToCharacter(rewardXP);
-            UpdateXpDisplay(rewardXP);
-            StartCoroutine(UpdateMonsterHuntStage(
-            CharacterData.Instance.Id, lastFightLand, lastFightStage + 1));
+            UpdateRewardsSlots();
         }
+        else
+        {
 
-        UpdateRewardsSlots();
-
+        }
     }
 
     private void GetLastFight()
@@ -122,6 +155,18 @@ public class RewardSystem : MonoBehaviour
         }
         return reward;
     }
+    public int GetCoinReward()
+    {
+        int reward = 0;
+        foreach (string monsterName in lastFightNames)
+        {
+            GameObject monster = monsterDataBase.GetMonsterByName(monsterName);
+            MonsterStats stats = monster.GetComponent<MonsterStats>();
+            reward += stats.coinReward;
+        }
+        return reward;
+    }
+
 
     public void AddXpToCharacter(int rewardXp)
     {
@@ -168,31 +213,251 @@ public class RewardSystem : MonoBehaviour
     {
         foreach (Item item in rewardItems)
         {
-            if (item.itemType == ItemType.OneHandWeapon || item.itemType == ItemType.TwoHandWeapon)
-                if (Inventory.Instance.GetWeapons().Count < 20)
+            if (item.itemType == ItemType.Weapon)
+            {
+                if (Inventory.Instance.GetWeapons().Count < Inventory.Instance.maxWeapons)
                 {
                     Inventory.Instance.AddWeaponToInventory(item);
                     Inventory.Instance.shortcutWeaponIndexes.Add(-1);
                 }
-                else { }
+                else
+                {
+                    pendingSwapQueue.Enqueue((item, SwapType.Weapon));
+                }
+            }
             else if (item.itemType == ItemType.Consumable)
             {
-                if (Inventory.Instance.GetConsumables().Count < 3)
+                if (Inventory.Instance.GetConsumables().Count < Inventory.Instance.maxConsumables)
                 {
                     Inventory.Instance.AddConsumableToInventory(item);
                 }
-                else { }
+                else
+                {
+                    pendingSwapQueue.Enqueue((item, SwapType.Consumable));
+                }
             }
         }
+
         foreach (GameObject pet in rewardPets)
         {
-            if (Inventory.Instance.GetPets().Count < 3)
+            if (Inventory.Instance.GetPets().Count < Inventory.Instance.GetMaxAllowedPets())
             {
                 Inventory.Instance.AddPetToInventory(pet);
             }
-            else { }
+            else
+            {
+                pendingSwapQueue.Enqueue((pet, SwapType.Pet));
+            }
+        }
+
+        // 👉 Kör bara popup om något behöver swappas
+        if (pendingSwapQueue.Count > 0 && !initiatedFromSceneChooser)
+        {
+            HandleNextPendingItem();
         }
     }
+
+    private void HandleNextPendingItem()
+    {
+
+        if (pendingSwapQueue.Count == 0)
+        {
+
+            CloseSwapPopup();
+            return;
+        }
+
+        var (obj, type) = pendingSwapQueue.Dequeue();
+
+        if (type == SwapType.Pet)
+        {
+            ShowPetSwapPopup((GameObject)obj);
+        }
+        else
+        {
+            ShowSwapItemPopup((Item)obj, (ItemType)type);
+        }
+    }
+    public void HighlightSelectedSlot(SwapItemUI selectedSlot)
+    {
+        if (currentlyHighlightedSlot != null)
+        {
+            currentlyHighlightedSlot.SetHighlight(false);
+        }
+
+        currentlyHighlightedSlot = selectedSlot;
+        currentlyHighlightedSlot.SetHighlight(true);
+    }
+    private void ShowSwapItemPopup(Item item, ItemType type)
+    {
+        pendingPetReward = null;
+        pendingSwapType = default;
+        pendingItemReward = item;
+        pendingItemType = type;
+
+        swapPopup.SetActive(true);
+        newItemSlot.sprite = item.itemIcon;
+        newItemSlot.color = Color.white;
+
+        weaponSwapPanel.SetActive(type == ItemType.Weapon);
+        consumableSwapPanel.SetActive(type == ItemType.Consumable);
+
+        if (type == ItemType.Weapon)
+        {
+            UpdateItemSlots(Inventory.Instance.GetWeapons(), weaponSlots);
+            swapInfoTitle.text = "Weapon inventory is full";
+            swapInfoText.text = "Select the weapon you want to replace.";
+        }
+        else if (type == ItemType.Consumable)
+        {
+            UpdateItemSlots(Inventory.Instance.GetConsumables(), consumableSlots);
+            swapInfoTitle.text = "Consumable inventory is full";
+            swapInfoText.text = "Select the consumable you want to replace.";
+        }
+    }
+    private void ShowPetSwapPopup(GameObject pet)
+    {
+        pendingItemType = default;
+        pendingSwapType = SwapType.Pet;
+        swapPopup.SetActive(true);
+        pendingPetReward = pet;
+
+        MonsterStats stats = pet.GetComponent<MonsterStats>();
+        newItemSlot.sprite = stats.icon;
+        newItemSlot.color = Color.white;
+
+        weaponSwapPanel.SetActive(false);
+        consumableSwapPanel.SetActive(false);
+        petSwapPanel.SetActive(true); // Du behöver lägga till denna som ny panel
+        UpdatePetSlots(Inventory.Instance.GetPets(), petSlots);
+        swapInfoTitle.text = "Pet inventory is full";
+        swapInfoText.text = "Select the pet you want to replace.";
+    }
+    public void SelectItemToReplace(int index)
+    {
+        selectedReplaceIndex = index;
+    }
+    public void ConfirmReplace()
+    {
+        if (selectedReplaceIndex >= 0)
+        {
+            if (pendingSwapType == SwapType.Pet)
+            {
+                Inventory.Instance.GetPets()[selectedReplaceIndex] = pendingPetReward;
+            }
+            else if (pendingItemType == ItemType.Weapon)
+            {
+                Inventory.Instance.ReplaceWeaponAt(selectedReplaceIndex, pendingItemReward);
+                Inventory.Instance.shortcutWeaponIndexes[selectedReplaceIndex] = -1;
+            }
+            else if (pendingItemType == ItemType.Consumable)
+            {
+                Inventory.Instance.ReplaceConsumableAt(selectedReplaceIndex, pendingItemReward);
+            }
+        }
+
+        selectedReplaceIndex = -1;
+        pendingItemReward = null;
+        pendingPetReward = null;
+        pendingSwapType = default;
+
+        if (pendingSwapQueue.Count > 0)
+        {
+            HandleNextPendingItem(); // Visa nästa
+        }
+        else
+        {
+            LoadAppropriateScene();
+        }
+    }
+    public void SkipReplace()
+    {
+        selectedReplaceIndex = -1;
+        pendingItemReward = null;
+        pendingPetReward = null;
+        pendingSwapType = default;
+
+        if (pendingSwapQueue.Count > 0)
+        {
+            HandleNextPendingItem(); // Visa nästa
+        }
+        else
+        {
+            LoadAppropriateScene();
+        }
+    }
+    private void CloseSwapPopup()
+    {
+        swapPopup.SetActive(false);
+        selectedReplaceIndex = -1;
+        pendingItemReward = null;
+
+        // Rensa preview-bilden i mitten (om du vill nollställa den)
+        if (newItemSlot != null)
+        {
+            newItemSlot.sprite = null;
+            newItemSlot.color = new Color(1, 1, 1, 0); // gör den genomskinlig om ingen sprite
+        }
+    }
+
+    private void UpdateItemSlots(List<Item> items, Image[] slots)
+    {
+        for (int i = 0; i < slots.Length; i++)
+        {
+            Transform slot = slots[i].transform;
+
+            // 🧹 Rensa tidigare objekt i slotten
+            foreach (Transform child in slot)
+            {
+                Destroy(child.gameObject);
+            }
+
+            if (i < items.Count)
+            {
+                Item item = items[i];
+
+                GameObject itemObj = Instantiate(swapItemPrefab, slot);
+                itemObj.transform.localPosition = Vector3.zero;
+
+                Image img = itemObj.GetComponent<Image>();
+                img.sprite = item.itemIcon;
+
+                SwapItemUI swapUI = itemObj.GetComponent<SwapItemUI>();
+                if (swapUI != null)
+                {
+                    swapUI.Setup(i, this);  // 👈 krävs för att kunna klicka
+                }
+            }
+        }
+    }
+    private void UpdatePetSlots(List<GameObject> pets, Image[] slots)
+    {
+        int allowedPets = Inventory.Instance.GetMaxAllowedPets();
+
+        for (int i = 0; i < slots.Length; i++)
+        {
+            slots[i].gameObject.SetActive(i < allowedPets); // 👈 detta döljer överskottet
+
+            foreach (Transform child in slots[i].transform)
+            {
+                Destroy(child.gameObject);
+            }
+
+            if (i < pets.Count)
+            {
+                GameObject pet = pets[i];
+                GameObject obj = Instantiate(swapItemPrefab, slots[i].transform);
+                obj.transform.localPosition = Vector3.zero;
+
+                Image img = obj.GetComponent<Image>();
+                img.sprite = pet.GetComponent<MonsterStats>().icon;
+
+                SwapItemUI ui = obj.GetComponent<SwapItemUI>();
+                ui.Setup(i, this);
+            }
+        }
+    }
+
     public void UpdateRewardsSlots()
     {
         // Clear any existing slots if necessary
@@ -200,6 +465,15 @@ public class RewardSystem : MonoBehaviour
         {
             Destroy(child.gameObject);
         }
+        GameObject coinSlot = Instantiate(rewardSlotPrefab, rewardSlotParent);
+        Image coinSlotImage = coinSlot.GetComponent<Image>();
+        coinSlotImage.sprite = coinImage;
+        TMP_Text label = coinSlot.GetComponentInChildren<TMP_Text>();
+        if (label != null)
+        {
+            label.text = rewardCoin.ToString();
+        }
+
         // Iterate over each item in the combat inventory
         foreach (Item item in rewardItems)
         {
@@ -216,85 +490,8 @@ public class RewardSystem : MonoBehaviour
         {
             GameObject newSlot = Instantiate(rewardSlotPrefab, rewardSlotParent);
             Image slotImage = newSlot.GetComponent<Image>();
-            SpriteRenderer petSprite = pet.GetComponent<SpriteRenderer>();
-            slotImage.sprite = petSprite.sprite;
-        }
-    }
-
-    private void UpdateInventorySlots()
-    {
-        // Make sure the inventory is not null
-        if (Inventory.Instance != null)
-        {
-            // Get the inventory items
-            List<Item> weaponItems = Inventory.Instance.GetWeapons();
-            List<Item> consumableItems = Inventory.Instance.GetConsumables();
-            List<GameObject> pets = Inventory.Instance.GetPets();
-
-
-
-            // Loop through the inventory items and assign to slots
-            for (int i = 0; i < weaponSlots.Length; i++)
-            {
-                // If there's an item at this index, assign its sprite to the slot
-                if (i < weaponItems.Count)
-                {
-                    Item item = weaponItems[i];
-                    weaponSlots[i].sprite = item.itemIcon;
-                    weaponSlots[i].color = new Color(1, 1, 1, 1); // Make the slot fully visible
-                }
-                else
-                {
-                    // Clear the slot if there's no corresponding item
-                    weaponSlots[i].sprite = null;
-                    weaponSlots[i].color = new Color(60f / 255f, 47f / 255f, 47f / 255f, 1f); // Make the slot fully transparent
-                }
-            }
-            for (int i = 0; i < consumableSlots.Length; i++)
-            {
-                // If there's an item at this index, assign its sprite to the slot
-                if (i < consumableItems.Count)
-                {
-                    Item item = consumableItems[i];
-                    consumableSlots[i].sprite = item.itemIcon;
-                    consumableSlots[i].color = new Color(1, 1, 1, 1); // Make the slot fully visible
-                }
-                else
-                {
-                    // Clear the slot if there's no corresponding item
-                    consumableSlots[i].sprite = null;
-                    consumableSlots[i].color = new Color(60f / 255f, 47f / 255f, 47f / 255f, 1f); // Make the slot fully transparent
-                }
-            }
-            for (int i = 0; i < petSlots.Length; i++)
-            {
-                if (i < pets.Count)
-                {
-                    GameObject pet = pets[i];
-                    if (pet != null)
-                    {
-                        SpriteRenderer petsprite = pet.GetComponent<SpriteRenderer>();
-                        if (petsprite != null)
-                        {
-                            petSlots[i].sprite = petsprite.sprite;
-                            petSlots[i].color = new Color(1, 1, 1, 1);
-                        }
-                        else
-                        {
-                            Debug.LogWarning("SpriteRenderer missing on pet: " + pet.name);
-                        }
-                    }
-                    else
-                    {
-                        Debug.LogWarning("Pet is null at index " + i);
-                    }
-                }
-                else
-                {
-                    petSlots[i].sprite = null;
-                    petSlots[i].color = new Color(60f / 255f, 47f / 255f, 47f / 255f, 1f);
-                }
-            }
+            MonsterStats petStats = pet.GetComponent<MonsterStats>();
+            slotImage.sprite = petStats.icon;
         }
     }
     public void UpdateXpDisplay(int xpReward)
@@ -303,16 +500,27 @@ public class RewardSystem : MonoBehaviour
     }
     public void SceneChooser()
     {
-        if (levelUP == false)
-        {
-            SceneController.instance.LoadScene("Base");
-        }
-        else if (levelUP == true)
-        {
+        initiatedFromSceneChooser = true;
+        AddRewardToInventory();
 
-            SceneController.instance.LoadScene("LevelUp");
+        if (pendingSwapQueue.Count == 0)
+        {
+            LoadAppropriateScene(); // 🟢 går direkt om inget att swappa
+        }
+        else
+        {
+            // 🟡 Kör bara HandleNextPendingItem här om det fanns swaps
+            HandleNextPendingItem(); // ➕ Visa första popupen
         }
     }
+    private void LoadAppropriateScene()
+    {
+        if (levelUP)
+            SceneController.instance.LoadScene("LevelUp");
+        else
+            SceneController.instance.LoadScene("Base");
+    }
+
 
     public IEnumerator UpdateMonsterHuntStage(int characterId, string map, int newStage)
     {

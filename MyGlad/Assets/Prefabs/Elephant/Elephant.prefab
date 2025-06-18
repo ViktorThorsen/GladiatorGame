@@ -1205,15 +1205,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   monsterName: Elephant
   health: 2000
-  attackDamage: 20
+  attackDamage: 25
   lifeSteal: 0
   dodgeRate: 0
   critRate: 0
-  stunRate: 0
+  stunRate: 10
+  hitRate: 0
+  defense: 5
   initiative: 0
+  combo: 0
   scale: {x: 0.8, y: 0.8, z: 1}
-  xpReward: 500
-  itemreward: 0
+  xpReward: 2000
+  coinReward: 60
+  icon: {fileID: 21300000, guid: effc0482c75b42a498d3a7465da01c64, type: 3}
 --- !u!1 &2907871826034187515
 GameObject:
   m_ObjectHideFlags: 0

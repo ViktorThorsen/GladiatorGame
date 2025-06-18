@@ -8,16 +8,24 @@ public class MonsterStats : MonoBehaviour
     [SerializeField] private int health;
     [SerializeField] private int attackDamage;
     [SerializeField] private int lifeSteal;
-    [Tooltip("Dodge Rate as a percentage (e.g., 10 = 10%)")]
     [SerializeField] private int dodgeRate;
     [SerializeField] private int critRate;
     [SerializeField] private int stunRate;
+    [SerializeField] public int hitRate;
+
+    [SerializeField] public int defense;
 
     [SerializeField] private int initiative;
+
+    [SerializeField] public int combo;
     [SerializeField] private Vector3 scale;
 
     [SerializeField] private int xpReward;
-    [SerializeField] private int itemreward;
+    [SerializeField] public int coinReward;
+
+    [SerializeField] public Sprite icon;
+
+
 
 
 

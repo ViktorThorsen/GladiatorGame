@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 public class ArenaEnemyInventoryBattleHandler : MonoBehaviour
 {
@@ -245,7 +246,8 @@ public class ArenaEnemyInventoryBattleHandler : MonoBehaviour
                     currentWeapon.defense,
                     0,
                     currentWeapon.stunRate,
-                    currentWeapon.lifesteal);
+                    currentWeapon.lifesteal,
+                    currentWeapon.initiative, currentWeapon.combo);
                 IsWeaponEquipped = true;
 
                 // Remove the item from the combat inventory to mark it as used
@@ -301,7 +303,8 @@ public class ArenaEnemyInventoryBattleHandler : MonoBehaviour
                     currentWeapon.defense,
                     0,
                     currentWeapon.stunRate,
-                    currentWeapon.lifesteal);
+                    currentWeapon.lifesteal,
+                    currentWeapon.initiative, currentWeapon.combo);
             currentWeapon = null;
             IsWeaponEquipped = false;
         }
@@ -309,5 +312,41 @@ public class ArenaEnemyInventoryBattleHandler : MonoBehaviour
         {
 
         }
+    }
+
+    public void DisarmWeaponsBySkill()
+    {
+        var disarmSkill = Inventory.Instance.GetSkills()
+            .FirstOrDefault(s => s.skillName == "Disarm");
+
+        if (disarmSkill == null)
+        {
+            Debug.Log(" Disarm-skill saknas.");
+            return;
+        }
+
+        Skill disarmSkillData = disarmSkill.GetSkillData();
+        int level = disarmSkill.level;
+
+        int weaponsToRemove = level switch
+        {
+            1 => disarmSkillData.effectPercentIncreaseLevel1,
+            2 => disarmSkillData.effectPercentIncreaseLevel2,
+            3 => disarmSkillData.effectPercentIncreaseLevel3,
+            _ => 1
+        };
+
+        int removed = 0;
+        for (int i = 0; i < weaponInventory.Count && removed < weaponsToRemove; i++)
+        {
+            if (weaponInventory[i] != null)
+            {
+                weaponInventory[i] = null;
+                removed++;
+            }
+        }
+
+        Debug.Log($" Disarmed {removed} weapon(s) via skill level {level}");
+        gameManager.UpdateBattleInventorySlots();
     }
 }

@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6478961335050794fbd1bd02aedb4313, type: 3}
+  m_Name: ItemBaneHammer
+  m_EditorClassIdentifier: 
+  itemName: Bane Hammer
+  itemIcon: {fileID: 21300000, guid: a2b84cf7b10683943ab9401d568211da, type: 3}
+  itemSprite: {fileID: 21300000, guid: a2b84cf7b10683943ab9401d568211da, type: 3}
+  equippedPositionOffset: {x: 0.86, y: 0.72, z: 0}
+  equippedRotation: {x: 0, y: 0, z: 135.74411}
+  equippedScale: {x: 0.5430001, y: -0.5430001, z: 0.15175413}
+  description: "Legends say it was forged to punish gods. Whether that\u2019s true
+    or not doesn\u2019t matter to the ones it\u2019s crushed."
+  itemType: 0
+  abilityType: 0
+  abilityType1: 0
+  durability: 0
+  healthRestorationAmount: 0
+  strength: 0
+  agility: 0
+  intellect: 0
+  health: 0
+  hit: 0
+  defense: 0
+  stunRate: 0
+  lifesteal: 0
+  initiative: 0
+  combo: 0

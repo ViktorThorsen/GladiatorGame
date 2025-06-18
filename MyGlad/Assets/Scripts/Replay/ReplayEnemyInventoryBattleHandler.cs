@@ -201,7 +201,7 @@ public class ReplayEnemyInventoryBattleHandler : MonoBehaviour
                     currentWeapon.defense,
                     0,
                     currentWeapon.stunRate,
-                    currentWeapon.lifesteal);
+                    currentWeapon.lifesteal, currentWeapon.initiative);
                 IsWeaponEquipped = true;
                 IsWeaponEquipped = true;
 
@@ -257,7 +257,7 @@ public class ReplayEnemyInventoryBattleHandler : MonoBehaviour
                     currentWeapon.defense,
                     0,
                     currentWeapon.stunRate,
-                    currentWeapon.lifesteal);
+                    currentWeapon.lifesteal, currentWeapon.initiative);
             currentWeapon = null;
             IsWeaponEquipped = false;
         }

@@ -19,12 +19,16 @@ MonoBehaviour:
   equippedPositionOffset: {x: 0, y: 0, z: 0}
   equippedRotation: {x: 0, y: 0, z: 0}
   equippedScale: {x: 0, y: 0, z: 0}
-  description: 
+  description: Grants the ability to strike back when hit by an attack.
   strength: 0
   agility: 0
   intellect: 0
   health: 0
-  attackDamage: 0
   dodgeRate: 0
   critRate: 0
   stunRate: 0
+  hit: 0
+  defense: 0
+  lifesteal: 0
+  initiative: 0
+  combo: 0

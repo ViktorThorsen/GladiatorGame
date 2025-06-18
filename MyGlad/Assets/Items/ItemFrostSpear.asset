@@ -18,9 +18,11 @@ MonoBehaviour:
   equippedPositionOffset: {x: 1.35, y: 1.03, z: 0}
   equippedRotation: {x: 0, y: 0, z: 321.04745}
   equippedScale: {x: 1.02, y: 1.02, z: 1.02}
-  description: 
+  description: Pulled from the heart of a glacier in the north, its blade still cold
+    to the touch. Some say it pierced a god. Others say it waits to do so again.
   itemType: 0
   abilityType: 0
+  abilityType1: 0
   durability: 5
   healthRestorationAmount: 5
   strength: 50
@@ -29,6 +31,7 @@ MonoBehaviour:
   health: 0
   hit: 0
   defense: 0
-  fortune: 0
   stunRate: 0
   lifesteal: 0
+  initiative: 0
+  combo: 0

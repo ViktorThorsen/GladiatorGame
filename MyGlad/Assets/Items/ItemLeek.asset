@@ -18,9 +18,10 @@ MonoBehaviour:
   equippedPositionOffset: {x: 1.55, y: 1.35, z: 0}
   equippedRotation: {x: 0, y: 0, z: -51.878}
   equippedScale: {x: 0.39, y: 0.39, z: 0.39}
-  description: 
+  description: May cause mild bruising and extreme embarrassment.
   itemType: 0
   abilityType: 0
+  abilityType1: 0
   durability: 5
   healthRestorationAmount: 0
   strength: 2
@@ -29,6 +30,7 @@ MonoBehaviour:
   health: 0
   hit: 0
   defense: 0
-  fortune: 0
   stunRate: 0
   lifesteal: 0
+  initiative: 0
+  combo: 0

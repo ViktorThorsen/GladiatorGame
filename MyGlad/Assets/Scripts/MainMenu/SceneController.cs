@@ -12,6 +12,7 @@ public class SceneController : MonoBehaviour
         {
             instance = this;
             DontDestroyOnLoad(gameObject);
+            SceneManager.sceneLoaded += OnSceneLoaded; // Registrera scenlyssnare
         }
         else
         {
@@ -19,38 +20,45 @@ public class SceneController : MonoBehaviour
         }
     }
 
+    private void OnDestroy()
+    {
+        // Avregistrera för säkerhets skull
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        currentSceneName = scene.name;
+        Debug.Log("🎮 Scen laddad: " + currentSceneName);
+    }
+
     public void NextLevel()
     {
-        // Load the next scene and switch music if necessary
         int nextSceneIndex = SceneManager.GetActiveScene().buildIndex + 1;
         SceneManager.LoadSceneAsync(nextSceneIndex);
     }
+
     public void LoadScene(string sceneName)
     {
-        if (sceneName == "Battle")
+        if (sceneName == "Arena")
         {
-            if (CharacterData.Instance.Energy > 1)
+            if (ReplayManager.Instance != null)
             {
-                CharacterData.Instance.Energy--;
-                SceneManager.LoadSceneAsync(sceneName);
-                currentSceneName = sceneName;
+                Destroy(ReplayManager.Instance.gameObject);
             }
         }
-        else
-        {
-            SceneManager.LoadSceneAsync(sceneName);
-            currentSceneName = sceneName;
-        }
+        SceneManager.LoadSceneAsync(sceneName);
+
+        // currentSceneName sätts nu i OnSceneLoaded istället
     }
+
     public void Logout()
     {
-        // Ta bort JWT och annan sparad info
         PlayerPrefs.DeleteKey("jwt");
         PlayerPrefs.DeleteKey("id");
         PlayerPrefs.DeleteKey("characterId");
         PlayerPrefs.Save();
 
-        // Rensa ev. singleton-instansobjekt
         if (CharacterData.Instance != null)
         {
             Destroy(CharacterData.Instance.gameObject);
@@ -60,7 +68,6 @@ public class SceneController : MonoBehaviour
             Destroy(FightData.Instance.gameObject);
         }
 
-        // Ladda huvudmenyn
-        SceneManager.LoadScene("MainMenu"); // Ersätt med rätt scen-namn
+        SceneManager.LoadScene("MainMenu");
     }
 }

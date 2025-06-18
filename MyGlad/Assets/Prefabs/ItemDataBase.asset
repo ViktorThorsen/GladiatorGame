@@ -18,5 +18,173 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 0d148b29d965b184883cfc75c3669426, type: 2}
   - {fileID: 11400000, guid: eb1388f01cccc364ba32e09bdfb62efa, type: 2}
   - {fileID: 11400000, guid: 7e7e5bca33f7b77458e73f880a224b4f, type: 2}
+  - {fileID: 11400000, guid: 4eb22f64730870e41afc466cdf23f018, type: 2}
+  - {fileID: 11400000, guid: ecc5ebde12e45584fabd41f1b62af601, type: 2}
+  - {fileID: 11400000, guid: cba85db338f7de04ba1c835cdfe92b59, type: 2}
+  - {fileID: 11400000, guid: 90468a037e92ef0409168d40bf5fbc54, type: 2}
+  - {fileID: 11400000, guid: 0c5afae950ae8964eae36e549d2c7cc9, type: 2}
+  - {fileID: 11400000, guid: f4fbfbd594978254fbb9f1c764b21ec5, type: 2}
+  - {fileID: 11400000, guid: ec432643cc900ca44ba4a52bb20d3a07, type: 2}
+  - {fileID: 11400000, guid: 4a8b0c8704419784fa8bac89ac7a505c, type: 2}
+  - {fileID: 11400000, guid: 118e7b15c3ac3034fbabb47709ad3f75, type: 2}
+  - {fileID: 11400000, guid: d9a13568987b3f54db20e26750cb98fb, type: 2}
+  - {fileID: 11400000, guid: 1ba4f939e38993144ae25fd7424e019f, type: 2}
+  - {fileID: 11400000, guid: 22fb20f45d59d974488e9295e52f843b, type: 2}
+  - {fileID: 11400000, guid: ff16d31ee4aa06b47856f98aaca98290, type: 2}
   consumables:
   - {fileID: 11400000, guid: a0ff231d3c8a7bc4983cc3a26007223f, type: 2}
+  - {fileID: 11400000, guid: 61f1fff6b3ac62d4e963e55c47ea3714, type: 2}
+  - {fileID: 11400000, guid: b638745c6f1ba7f4791dc5c6f34c7c60, type: 2}
+  - {fileID: 11400000, guid: b7d6c4042bf292941a2c4ff34be268fd, type: 2}
+  - {fileID: 11400000, guid: f466bd453ab7cad4f8213ae8d51b638e, type: 2}
+  - {fileID: 11400000, guid: 7e736b4d52a9ff04ca791f00a1505fa4, type: 2}
+  stageWeaponDrops:
+  - stageName: Forest1
+    drops:
+    - weapon: {fileID: 11400000, guid: 0c5afae950ae8964eae36e549d2c7cc9, type: 2}
+      dropRate: 0.01
+    - weapon: {fileID: 11400000, guid: ecc5ebde12e45584fabd41f1b62af601, type: 2}
+      dropRate: 0.01
+    - weapon: {fileID: 11400000, guid: 107d2230325b74247b56eb437363cd04, type: 2}
+      dropRate: 0.1
+    - weapon: {fileID: 11400000, guid: ff16d31ee4aa06b47856f98aaca98290, type: 2}
+      dropRate: 0.05
+  - stageName: Forest2
+    drops:
+    - weapon: {fileID: 11400000, guid: af43968d7ecb93a409f662fb2e8fd483, type: 2}
+      dropRate: 0.1
+    - weapon: {fileID: 11400000, guid: ff16d31ee4aa06b47856f98aaca98290, type: 2}
+      dropRate: 0.1
+    - weapon: {fileID: 11400000, guid: 107d2230325b74247b56eb437363cd04, type: 2}
+      dropRate: 0.1
+    - weapon: {fileID: 11400000, guid: 107d2230325b74247b56eb437363cd04, type: 2}
+      dropRate: 0.1
+  - stageName: Forest3
+    drops:
+    - weapon: {fileID: 11400000, guid: af43968d7ecb93a409f662fb2e8fd483, type: 2}
+      dropRate: 0.1
+    - weapon: {fileID: 11400000, guid: ff16d31ee4aa06b47856f98aaca98290, type: 2}
+      dropRate: 0.1
+    - weapon: {fileID: 11400000, guid: 107d2230325b74247b56eb437363cd04, type: 2}
+      dropRate: 0.1
+    - weapon: {fileID: 11400000, guid: 118e7b15c3ac3034fbabb47709ad3f75, type: 2}
+      dropRate: 0.04
+  - stageName: Forest4
+    drops:
+    - weapon: {fileID: 11400000, guid: af43968d7ecb93a409f662fb2e8fd483, type: 2}
+      dropRate: 0.1
+    - weapon: {fileID: 11400000, guid: ff16d31ee4aa06b47856f98aaca98290, type: 2}
+      dropRate: 0.1
+    - weapon: {fileID: 11400000, guid: 107d2230325b74247b56eb437363cd04, type: 2}
+      dropRate: 0.1
+    - weapon: {fileID: 11400000, guid: 118e7b15c3ac3034fbabb47709ad3f75, type: 2}
+      dropRate: 0.05
+    - weapon: {fileID: 11400000, guid: 4a8b0c8704419784fa8bac89ac7a505c, type: 2}
+      dropRate: 0.05
+    - weapon: {fileID: 11400000, guid: 22fb20f45d59d974488e9295e52f843b, type: 2}
+      dropRate: 0.05
+  - stageName: Forest5
+    drops:
+    - weapon: {fileID: 11400000, guid: af43968d7ecb93a409f662fb2e8fd483, type: 2}
+      dropRate: 0.1
+    - weapon: {fileID: 11400000, guid: ff16d31ee4aa06b47856f98aaca98290, type: 2}
+      dropRate: 0.1
+    - weapon: {fileID: 11400000, guid: 107d2230325b74247b56eb437363cd04, type: 2}
+      dropRate: 0.1
+    - weapon: {fileID: 11400000, guid: 118e7b15c3ac3034fbabb47709ad3f75, type: 2}
+      dropRate: 0.07
+    - weapon: {fileID: 11400000, guid: 4a8b0c8704419784fa8bac89ac7a505c, type: 2}
+      dropRate: 0.07
+    - weapon: {fileID: 11400000, guid: 22fb20f45d59d974488e9295e52f843b, type: 2}
+      dropRate: 0.07
+  - stageName: Forest6
+    drops:
+    - weapon: {fileID: 11400000, guid: af43968d7ecb93a409f662fb2e8fd483, type: 2}
+      dropRate: 0.1
+    - weapon: {fileID: 11400000, guid: ff16d31ee4aa06b47856f98aaca98290, type: 2}
+      dropRate: 0.1
+    - weapon: {fileID: 11400000, guid: 107d2230325b74247b56eb437363cd04, type: 2}
+      dropRate: 0.1
+    - weapon: {fileID: 11400000, guid: 118e7b15c3ac3034fbabb47709ad3f75, type: 2}
+      dropRate: 0.07
+    - weapon: {fileID: 11400000, guid: 4a8b0c8704419784fa8bac89ac7a505c, type: 2}
+      dropRate: 0.07
+    - weapon: {fileID: 11400000, guid: 22fb20f45d59d974488e9295e52f843b, type: 2}
+      dropRate: 0.07
+    - weapon: {fileID: 11400000, guid: f4fbfbd594978254fbb9f1c764b21ec5, type: 2}
+      dropRate: 0.01
+  stageConsumableDrops:
+  - stageName: Forest1
+    drops:
+    - consumable: {fileID: 11400000, guid: a0ff231d3c8a7bc4983cc3a26007223f, type: 2}
+      dropRate: 0.1
+    - consumable: {fileID: 11400000, guid: b638745c6f1ba7f4791dc5c6f34c7c60, type: 2}
+      dropRate: 0.1
+    - consumable: {fileID: 11400000, guid: 61f1fff6b3ac62d4e963e55c47ea3714, type: 2}
+      dropRate: 0.1
+    - consumable: {fileID: 11400000, guid: f466bd453ab7cad4f8213ae8d51b638e, type: 2}
+      dropRate: 0.01
+  - stageName: Forest2
+    drops:
+    - consumable: {fileID: 11400000, guid: a0ff231d3c8a7bc4983cc3a26007223f, type: 2}
+      dropRate: 0.1
+    - consumable: {fileID: 11400000, guid: b638745c6f1ba7f4791dc5c6f34c7c60, type: 2}
+      dropRate: 0.1
+    - consumable: {fileID: 11400000, guid: 61f1fff6b3ac62d4e963e55c47ea3714, type: 2}
+      dropRate: 0.1
+    - consumable: {fileID: 11400000, guid: f466bd453ab7cad4f8213ae8d51b638e, type: 2}
+      dropRate: 0.01
+  - stageName: Forest3
+    drops:
+    - consumable: {fileID: 11400000, guid: a0ff231d3c8a7bc4983cc3a26007223f, type: 2}
+      dropRate: 0.1
+    - consumable: {fileID: 11400000, guid: b638745c6f1ba7f4791dc5c6f34c7c60, type: 2}
+      dropRate: 0.1
+    - consumable: {fileID: 11400000, guid: 61f1fff6b3ac62d4e963e55c47ea3714, type: 2}
+      dropRate: 0.1
+    - consumable: {fileID: 11400000, guid: f466bd453ab7cad4f8213ae8d51b638e, type: 2}
+      dropRate: 0.01
+  - stageName: Forest4
+    drops:
+    - consumable: {fileID: 11400000, guid: a0ff231d3c8a7bc4983cc3a26007223f, type: 2}
+      dropRate: 0.1
+    - consumable: {fileID: 11400000, guid: b638745c6f1ba7f4791dc5c6f34c7c60, type: 2}
+      dropRate: 0.1
+    - consumable: {fileID: 11400000, guid: 61f1fff6b3ac62d4e963e55c47ea3714, type: 2}
+      dropRate: 0.1
+    - consumable: {fileID: 11400000, guid: 791840815df74844596a806819596d88, type: 2}
+      dropRate: 0.05
+    - consumable: {fileID: 11400000, guid: b7d6c4042bf292941a2c4ff34be268fd, type: 2}
+      dropRate: 0.01
+    - consumable: {fileID: 11400000, guid: f466bd453ab7cad4f8213ae8d51b638e, type: 2}
+      dropRate: 0.01
+  - stageName: Forest5
+    drops:
+    - consumable: {fileID: 11400000, guid: a0ff231d3c8a7bc4983cc3a26007223f, type: 2}
+      dropRate: 0.1
+    - consumable: {fileID: 11400000, guid: b638745c6f1ba7f4791dc5c6f34c7c60, type: 2}
+      dropRate: 0.1
+    - consumable: {fileID: 11400000, guid: 61f1fff6b3ac62d4e963e55c47ea3714, type: 2}
+      dropRate: 0.1
+    - consumable: {fileID: 11400000, guid: 791840815df74844596a806819596d88, type: 2}
+      dropRate: 0.05
+    - consumable: {fileID: 11400000, guid: b7d6c4042bf292941a2c4ff34be268fd, type: 2}
+      dropRate: 0.02
+    - consumable: {fileID: 11400000, guid: f466bd453ab7cad4f8213ae8d51b638e, type: 2}
+      dropRate: 0.01
+  - stageName: Forest6
+    drops:
+    - consumable: {fileID: 11400000, guid: a0ff231d3c8a7bc4983cc3a26007223f, type: 2}
+      dropRate: 0.1
+    - consumable: {fileID: 11400000, guid: b638745c6f1ba7f4791dc5c6f34c7c60, type: 2}
+      dropRate: 0.1
+    - consumable: {fileID: 11400000, guid: 61f1fff6b3ac62d4e963e55c47ea3714, type: 2}
+      dropRate: 0.1
+    - consumable: {fileID: 11400000, guid: 791840815df74844596a806819596d88, type: 2}
+      dropRate: 0.05
+    - consumable: {fileID: 11400000, guid: b7d6c4042bf292941a2c4ff34be268fd, type: 2}
+      dropRate: 0.02
+    - consumable: {fileID: 11400000, guid: 7e736b4d52a9ff04ca791f00a1505fa4, type: 2}
+      dropRate: 0.01
+    - consumable: {fileID: 11400000, guid: f466bd453ab7cad4f8213ae8d51b638e, type: 2}
+      dropRate: 0.01

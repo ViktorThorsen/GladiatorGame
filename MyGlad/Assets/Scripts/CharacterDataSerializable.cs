@@ -6,6 +6,8 @@ public class CharacterDataSerializable
     public string charName;
     public int level;
     public int xp;
+    public int coins;
+    public int valor;
 
     public int health;
     public int lifeSteal;
@@ -19,6 +21,10 @@ public class CharacterDataSerializable
     public int strength;
     public int agility;
     public int intellect;
+
+    public int precision;
+    public int initiative;
+    public int combo;
     // Already an array, no changes needed
 }
 public class BodyPartsDataSerializable
@@ -29,9 +35,17 @@ public class BodyPartsDataSerializable
     public string legs;
 }
 
+[System.Serializable]
 public class SkillDataSerializable
 {
-    public List<string> skillNames = new List<string>();
+    public List<SkillEntrySerializable> skills;
+}
+
+[System.Serializable]
+public class SkillEntrySerializable
+{
+    public string skillName;
+    public int level;
 }
 public class PetDataSerializable
 {
@@ -71,7 +85,7 @@ public class LinkCharacterRequest
 
 public class EnergyResponse
 {
-    public int id;
+    public bool success;
     public int energy;
 }
 
@@ -92,3 +106,10 @@ public class ShortcutEntrySerializable
     public int slotIndex;
     public string weaponName;
 }
+
+[System.Serializable]
+public class SkillListResponse
+{
+    public List<string> skills;
+}
+

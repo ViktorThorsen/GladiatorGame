@@ -1,16 +1,21 @@
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 public class Inventory : MonoBehaviour
 {
     public static Inventory Instance { get; private set; }
     public List<Item> inventoryWeapons;
     private List<Item> inventoryConsumables;
-    private List<Skill> inventorySkills;
+    private List<SkillInstance> inventorySkills;
 
     private List<GameObject> inventoryPets;
 
     public List<int> shortcutWeaponIndexes;
+
+    public int maxWeapons = 20;
+    public int maxConsumables = 3;
+    public int maxPets = 3;
 
     private bool isDirty = false;
     public void MarkAsDirty() => isDirty = true;
@@ -28,7 +33,7 @@ public class Inventory : MonoBehaviour
             inventoryWeapons = new List<Item>();
             inventoryConsumables = new List<Item>();
             inventoryPets = new List<GameObject>();
-            inventorySkills = new List<Skill>();
+            inventorySkills = new List<SkillInstance>();
             shortcutWeaponIndexes = new List<int>();
         }
         else
@@ -70,6 +75,39 @@ public class Inventory : MonoBehaviour
 
         }
     }
+
+    public int GetMaxAllowedPets()
+    {
+        var beastmaster = GetSkillInstance("BeastMaster");
+        return beastmaster != null ? beastmaster.level : 0;
+    }
+
+    public void ReplaceWeaponAt(int index, Item item)
+    {
+        if (index >= 0 && index < inventoryWeapons.Count)
+        {
+            inventoryWeapons[index] = item;
+        }
+    }
+
+    public void ReplaceConsumableAt(int index, Item item)
+    {
+        if (index >= 0 && index < inventoryConsumables.Count)
+        {
+            inventoryConsumables[index] = item;
+        }
+    }
+
+    public void RemoveWeapon(Item item)
+    {
+        int index = inventoryWeapons.IndexOf(item);
+        if (index != -1)
+        {
+            inventoryWeapons.RemoveAt(index);
+            shortcutWeaponIndexes.RemoveAt(index);
+            MarkAsDirty();
+        }
+    }
     public List<Item> GetConsumables()
     {
         return inventoryConsumables;
@@ -108,14 +146,14 @@ public class Inventory : MonoBehaviour
         }
     }
 
-    public List<Skill> GetSkills()
+    public List<SkillInstance> GetSkills()
     {
         return inventorySkills;
     }
     public bool HasSkill(string skillName)
     {
         // Loop through the player's skills and check if the given skill is present
-        foreach (Skill skill in GetSkills())
+        foreach (SkillInstance skill in GetSkills())
         {
             if (skill.skillName == skillName)
             {
@@ -124,12 +162,46 @@ public class Inventory : MonoBehaviour
         }
         return false;  // Return false if the skill is not found
     }
+    public SkillInstance GetSkillInstance(string skillName)
+    {
+        return inventorySkills.FirstOrDefault(s => s.skillName == skillName);
+    }
 
     public void AddSkillToInventory(Skill skill)
     {
-        if (skill != null)
+        if (skill == null) return;
+
+        var existingSkill = inventorySkills.FirstOrDefault(s => s.skillName == skill.skillName);
+
+        if (existingSkill != null)
         {
-            inventorySkills.Add(skill);
+            if (skill.isLevelable)
+            {
+                existingSkill.level += 1;
+                Debug.Log($"⬆️ Upgraded {skill.skillName} to level {existingSkill.level}");
+            }
+            else
+            {
+                Debug.Log($"⚠️ Skill {skill.skillName} already exists and is not levelable.");
+            }
+        }
+        else
+        {
+            inventorySkills.Add(new SkillInstance(skill.skillName, 1));
+            Debug.Log($"🆕 Added skill: {skill.skillName} (Level 1)");
+        }
+    }
+
+    public void AddSkillInstanceToInventory(SkillInstance skillInstance)
+    {
+        var existingSkill = inventorySkills.FirstOrDefault(s => s.skillName == skillInstance.skillName);
+        if (existingSkill != null)
+        {
+            existingSkill.level = skillInstance.level;
+        }
+        else
+        {
+            inventorySkills.Add(skillInstance);
         }
     }
 
@@ -186,7 +258,7 @@ public class Inventory : MonoBehaviour
             int tmpSlot = shortcutWeaponIndexes[indexA];
             shortcutWeaponIndexes[indexA] = shortcutWeaponIndexes[indexB];
             shortcutWeaponIndexes[indexB] = tmpSlot;
-
+            MarkAsDirty();
             Debug.Log($"🔁 Swapped weapons at {indexA} and {indexB}, including shortcut mapping.");
         }
     }
@@ -196,6 +268,8 @@ public class Inventory : MonoBehaviour
         if (IsValidIndex(indexA, inventoryConsumables) && IsValidIndex(indexB, inventoryConsumables))
         {
             (inventoryConsumables[indexA], inventoryConsumables[indexB]) = (inventoryConsumables[indexB], inventoryConsumables[indexA]);
+            MarkAsDirty();
+            Debug.Log($"🔁 Swapped weapons at {indexA} and {indexB}, including shortcut mapping.");
         }
     }
 
@@ -204,6 +278,7 @@ public class Inventory : MonoBehaviour
         if (IsValidIndex(indexA, inventoryPets) && IsValidIndex(indexB, inventoryPets))
         {
             (inventoryPets[indexA], inventoryPets[indexB]) = (inventoryPets[indexB], inventoryPets[indexA]);
+            MarkAsDirty();
         }
     }
 

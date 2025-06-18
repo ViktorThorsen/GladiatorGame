@@ -5,6 +5,7 @@ using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.UI;
+using Unity.VisualScripting.Dependencies.NCalc;
 
 public class LevelUpManager : MonoBehaviour
 {
@@ -23,9 +24,9 @@ public class LevelUpManager : MonoBehaviour
     [SerializeField] private TMP_Text healthText;
     [SerializeField] private TMP_Text defText;
     [SerializeField] private TMP_Text precText;
-    [SerializeField] private TMP_Text fortText;
 
     [SerializeField] private TMP_Text levelText;
+    [SerializeField] private PetDataBase petDataBase;
     private int strToAdd;
     private int agiToAdd;
     private int intToAdd;
@@ -53,7 +54,6 @@ public class LevelUpManager : MonoBehaviour
         healthText.text = CharacterData.Instance.Health.ToString();
         defText.text = CharacterData.Instance.Defense.ToString();
         precText.text = CharacterData.Instance.HitRate.ToString();
-        fortText.text = CharacterData.Instance.Fortune.ToString();
         levelText.text = "LVL." + CharacterData.Instance.Level;
         GameObject characterObject = CharacterManager.InstantiateCharacter(
             CharacterData.Instance,
@@ -74,43 +74,43 @@ public class LevelUpManager : MonoBehaviour
 
             // Set the sprite of the new skill to the Image component
             newSkillImage.sprite = newSkill.skillIcon;
+            SkillUI skillUI = newSkillPanel.GetChild(0).GetComponent<SkillUI>();
+            if (skillUI != null)
+            {
+                skillUI.Skill = newSkill;
+                skillUI.Level = 1; // Eftersom det är ny skill
+            }
+            else
+            {
+                Debug.LogWarning("SkillUI saknas på nya skillpanelen!");
+            }
         }
     }
 
     public Skill GetSkillReward()
     {
-        // Get the total number of skills in the skill database
         int skillsCount = skillDataBase.GetSkillsCount();
+        List<SkillInstance> playerSkills = Inventory.Instance.GetSkills();
 
-        // Get all the player's current skills
-        List<Skill> playerSkills = Inventory.Instance.GetSkills();
+        var allAvailableSkills = skillDataBase.GetAllSkills(); // Denna bör returnera List<Skill>
+        var possibleSkills = allAvailableSkills
+            .Where(s =>
+            {
+                var owned = playerSkills.FirstOrDefault(p => p.skillName == s.skillName);
+                if (owned == null) return true;
+                if (s.isLevelable && owned.level < 3) return true; // ← OBS: ändrat från .skillLevel till .level
+                return false;
+            })
+            .ToList();
 
-        // Check if the player already has all the skills
-        if (playerSkills.Count >= skillsCount)
+        if (possibleSkills.Count == 0)
         {
-            Debug.Log("Got All Skills!");  // The player already has all skills, no new skills can be awarded
-            return null;  // Optionally return null or handle this case accordingly
+            Debug.Log("🎓 Alla skills uppnådda/maxade.");
+            return null;
         }
 
-        Skill skill;
-        bool skillIsAlreadyInInventory;
-
-        // Keep rerolling until we find a skill the player doesn't have
-        do
-        {
-            // Get a random index from the skill database
-            int randomIndex = UnityEngine.Random.Range(0, skillsCount);
-
-            // Retrieve the skill from the database
-            skill = skillDataBase.GetSkill(randomIndex);
-
-            // Check if the player already has this skill
-            skillIsAlreadyInInventory = playerSkills.Any(s => s.skillName == skill.skillName);
-
-        } while (skillIsAlreadyInInventory);  // Continue looping until a new skill is found
-
-        // Return the new skill
-        return skill;
+        Skill chosenSkill = possibleSkills[Random.Range(0, possibleSkills.Count)];
+        return chosenSkill;
     }
 
     public void IncreaseStrength()
@@ -147,9 +147,9 @@ public class LevelUpManager : MonoBehaviour
     {
         if (availablePoints > 0)
         {
-            healthToAdd += 5;
+            healthToAdd++;
             availablePoints--;
-            healthText.text = (healthToAdd + CharacterData.Instance.Health).ToString();
+            healthText.text = (healthToAdd * 5 + CharacterData.Instance.Health).ToString();
             availablePointsText.text = availablePoints.ToString();
         }
     }
@@ -170,16 +170,6 @@ public class LevelUpManager : MonoBehaviour
             precToAdd++;
             availablePoints--;
             precText.text = (precToAdd + CharacterData.Instance.HitRate).ToString();
-            availablePointsText.text = availablePoints.ToString();
-        }
-    }
-    public void IncreaseFortune()
-    {
-        if (availablePoints > 0)
-        {
-            fortToAdd++;
-            availablePoints--;
-            fortText.text = (fortToAdd + CharacterData.Instance.Fortune).ToString();
             availablePointsText.text = availablePoints.ToString();
         }
     }
@@ -218,9 +208,9 @@ public class LevelUpManager : MonoBehaviour
     {
         if (healthToAdd > 0)
         {
-            healthToAdd -= 5;
+            healthToAdd--;
             availablePoints++;
-            healthText.text = (healthToAdd + CharacterData.Instance.Health).ToString();
+            healthText.text = (healthToAdd * 5 + CharacterData.Instance.Health).ToString();
             availablePointsText.text = availablePoints.ToString();
         }
     }
@@ -244,21 +234,37 @@ public class LevelUpManager : MonoBehaviour
             availablePointsText.text = availablePoints.ToString();
         }
     }
-    public void DecreaseFortune()
-    {
-        if (fortToAdd > 0)
-        {
-            fortToAdd--;
-            availablePoints++;
-            fortText.text = (fortToAdd + CharacterData.Instance.Fortune).ToString();
-            availablePointsText.text = availablePoints.ToString();
-        }
-    }
+
     public void AddStatsAndSwitchScene()
     {
-        CharacterData.Instance.AddStrAgiInt(strToAdd, agiToAdd, intToAdd, healthToAdd, precToAdd, defToAdd, fortToAdd, 0, 0);
-
+        if (!Inventory.Instance.HasSkill("BeastMaster") && newSkill.skillName == "BeastMaster")
+        {
+            Inventory.Instance.AddPetToInventory(petDataBase.GetPetByName("Pig"));
+        }
         Inventory.Instance.AddSkillToInventory(newSkill);
+        CheckSkillStatsUpdate(newSkill.skillName);
+
+        CharacterData.Instance.AddStrAgiInt(strToAdd, agiToAdd, intToAdd, healthToAdd, precToAdd, defToAdd, fortToAdd, 0, 0, 0, 0);
+
+
         SceneController.instance.LoadScene("Base");
     }
+
+    public void CheckSkillStatsUpdate(string skillname)
+    {
+        if (skillname == "Vampyre")
+        {
+            CharacterData.Instance.LifeSteal += 5;
+        }
+        else if (skillname == "HungerToFight")
+        {
+            CharacterData.Instance.initiative += 10;
+        }
+        else if (skillname == "Momentum")
+        {
+            CharacterData.Instance.combo += 10;
+        }
+    }
+
+
 }

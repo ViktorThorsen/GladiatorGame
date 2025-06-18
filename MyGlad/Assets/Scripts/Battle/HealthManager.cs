@@ -6,6 +6,7 @@ using TMPro;
 using Unity.VisualScripting;
 using System.Runtime.CompilerServices;
 using Cinemachine;
+using System.Linq;
 
 public class HealthManager : MonoBehaviour
 {
@@ -20,12 +21,18 @@ public class HealthManager : MonoBehaviour
     private GameManager gameManager;
     private Transform visualTransform;
 
+    private GameObject venomDealer;
+
 
     public GameObject damageTextPrefab; // Reference to the txtCombat prefab
     [SerializeField] private CameraShakeManager cameraShakeManager;
 
     public bool IsPosioned;
     int startVenomRounds;
+
+    public bool standAgain = false;
+    public bool standAgainUsed = false;
+    public int standAgainRound;
 
     private bool isDead;
 
@@ -73,6 +80,7 @@ public class HealthManager : MonoBehaviour
                 currentHealth = CharacterData.Instance.Health;
                 healthBar.maxValue = maxHealth;  // Sätt sliderns max-värde
                 healthBar.value = currentHealth; // Sätt sliderns nuvarande värde
+                standAgain = Inventory.Instance.HasSkill("StandAgain");
             }
             else if (thisUnit.tag == "Enemy1" || thisUnit.tag == "Enemy2" || thisUnit.tag == "Enemy3" || thisUnit.tag == "Enemy4")
             {
@@ -98,7 +106,7 @@ public class HealthManager : MonoBehaviour
                 // Hitta föräldern (panelen) där husdjurets health slider ska placeras
                 Transform healthSliderParent = canvas.transform.Find("PetHealthSliderPanel");
                 // Instansiera health slider-prefab till föräldern
-                GameObject healthBarObject = Instantiate(gameManager.healthSliderPrefab, healthSliderParent);
+                GameObject healthBarObject = Instantiate(gameManager.pethealthSliderPrefab, healthSliderParent);
 
                 // Hämta slider-komponenten från den instansierade prefab
                 healthBar = healthBarObject.GetComponent<Slider>();
@@ -111,6 +119,15 @@ public class HealthManager : MonoBehaviour
                 // Ställ in max och nuvarande hälsa på slidern
                 healthBar.maxValue = maxHealth;  // Sätt sliderns max-värde
                 healthBar.value = currentHealth; // Sätt sliderns nuvarande värde
+
+                Sprite petIcon = petStats.icon; // du måste ha detta fält i MonsterStats eller motsvarande
+
+                // Hitta Image-komponenten i prefabens hierarki
+                Image unitIcon = healthBarObject.transform.Find("unitIcon")?.GetComponent<Image>();
+                if (unitIcon != null && petIcon != null)
+                {
+                    unitIcon.sprite = petIcon;
+                }
             }
 
             // Gemensam logik för att ställa in text och partikeleffekter
@@ -126,6 +143,32 @@ public class HealthManager : MonoBehaviour
         if (type == "Normal")
         {
             currentHealth -= damage;
+            if (thisUnit.tag == "Player")
+            {
+                var thornsSkill = Inventory.Instance.GetSkills()
+                    .FirstOrDefault(s => s.skillName == "Thorns");
+
+                if (thornsSkill != null)
+                {
+                    Skill thornsData = thornsSkill.GetSkillData(); // Hämta ScriptableObject från databasen
+                    int level = thornsSkill.level;
+
+                    int percent = level switch
+                    {
+                        1 => thornsData.effectPercentIncreaseLevel1,
+                        2 => thornsData.effectPercentIncreaseLevel2,
+                        3 => thornsData.effectPercentIncreaseLevel3,
+                        _ => 0
+                    };
+
+                    float multiplier = percent / 100f;
+                    int thornsDamage = Mathf.RoundToInt(damage * multiplier);
+                    if (thornsDamage < 1) thornsDamage = 1;
+
+                    HealthManager HM = doneBy.GetComponent<HealthManager>();
+                    HM.ReduceHealth(thornsDamage, "Thorns", thisUnit, false);
+                }
+            }
             cameraShakeManager.CameraShake();
             if (IsCrit)
             {
@@ -143,23 +186,91 @@ public class HealthManager : MonoBehaviour
             UpdateHealthUI();
             if (currentHealth <= 0)
             {
-                anim.SetBool("stunned", false);
-                IsPosioned = false;
-                currentHealth = 0;
-                anim.SetTrigger("death");
-                IsDead = true;
-                gameManager.Died(thisUnit.tag);
+                if (thisUnit.tag == "Player" && standAgain)
+                {
+                    if (!standAgainUsed)
+                    {
+                        currentHealth = 1;
+                        standAgainRound = gameManager.RoundsCount;
+                        standAgainUsed = true;
+                    }
+                    else if (standAgainUsed && standAgainRound + 1 <= gameManager.RoundsCount)
+                    {
+                        anim.SetBool("stunned", false);
+                        IsPosioned = false;
+                        currentHealth = 0;
+                        anim.SetTrigger("death");
+                        IsDead = true;
+                        gameManager.Died(thisUnit.tag);
+                    }
+                    else
+                    {
+                        currentHealth = 1;
+                        standAgainUsed = true;
+                    }
+                }
+                else
+                {
+                    anim.SetBool("stunned", false);
+                    IsPosioned = false;
+                    currentHealth = 0;
+                    anim.SetTrigger("death");
+                    IsDead = true;
+                    gameManager.Died(thisUnit.tag);
+                }
             }
         }
         else if (type == "Venom")
         {
             currentHealth -= damage;
-            CombatTextManager.Instance.SpawnText(damage.ToString(), thisUnit.transform.position + Vector3.up * 1.5f, "#FFFFFF");
             hitParticles.transform.position = thisUnit.transform.position;
             ParticleSystem.MainModule mainModule = hitParticles.main;  // Access the main module
             mainModule.startColor = Color.green;
             hitParticles.Play();
             UpdateHealthUI();
+            if (currentHealth <= 0)
+            {
+                if (thisUnit.tag == "Player" && standAgain)
+                {
+                    if (!standAgainUsed)
+                    {
+                        currentHealth = 1;
+                        standAgainRound = gameManager.RoundsCount;
+                        standAgainUsed = true;
+                    }
+                    else if (standAgainUsed && standAgainRound + 1 <= gameManager.RoundsCount)
+                    {
+                        anim.SetBool("stunned", false);
+                        IsPosioned = false;
+                        currentHealth = 0;
+                        anim.SetTrigger("death");
+                        IsDead = true;
+                        gameManager.Died(thisUnit.tag);
+                    }
+                    else
+                    {
+                        currentHealth = 1;
+                        standAgainUsed = true;
+                    }
+                }
+                else
+                {
+                    anim.SetBool("stunned", false);
+                    IsPosioned = false;
+                    currentHealth = 0;
+                    anim.SetTrigger("death");
+                    IsDead = true;
+                    gameManager.Died(thisUnit.tag);
+                }
+            }
+        }
+        else if (type == "Thorns")
+        {
+            if (damage < 1)
+            {
+                damage = 1;
+            }
+            currentHealth -= damage;
             if (currentHealth <= 0)
             {
                 anim.SetBool("stunned", false);
@@ -169,13 +280,13 @@ public class HealthManager : MonoBehaviour
                 IsDead = true;
                 gameManager.Died(thisUnit.tag);
             }
+            UpdateHealthUI();
         }
     }
 
     public void IncreaseHealth(int health)
     {
         currentHealth += health;
-        CombatTextManager.Instance.SpawnText(health.ToString(), thisUnit.transform.position + Vector3.up * 1.5f, "#00FF00", 1.5f);
         UpdateHealthUI();
         if (currentHealth >= maxHealth)
         {
@@ -183,9 +294,10 @@ public class HealthManager : MonoBehaviour
         }
     }
 
-    public void ApplyVenom()
+    public void ApplyVenom(GameObject venomdealer)
     {
         startVenomRounds = gameManager.RoundsCount;
+        venomDealer = venomdealer;
         IsPosioned = true;
     }
     public void RemoveVemon()
@@ -199,7 +311,7 @@ public class HealthManager : MonoBehaviour
             else
             {
                 SkillBattleHandler skillBattleHandler = thisUnit.GetComponent<SkillBattleHandler>();
-                ReduceHealth(skillBattleHandler.VenomousTouch(), "Venom", null, false);
+                ReduceHealth(skillBattleHandler.VenomousTouch(venomDealer, thisUnit), "Venom", null, false);
             }
         }
     }
